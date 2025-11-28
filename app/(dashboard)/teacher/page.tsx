@@ -48,12 +48,12 @@ export default async function TeacherDashboard() {
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
                     <p className="text-gray-500 dark:text-gray-400 mt-1">
-                        Welcome back, <span className="font-semibold text-blue-600 dark:text-blue-400">{session?.user?.name}</span>
+                        Welcome back, <span className="font-semibold text-primary dark:text-primary">{session?.user?.name}</span>
                     </p>
                 </div>
                 <Link
                     href="/teacher/exams/create"
-                    className="bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white px-6 py-2.5 rounded-xl flex items-center gap-2 transition-all shadow-lg shadow-blue-500/25 font-medium group"
+                    className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white px-6 py-2.5 rounded-xl flex items-center gap-2 transition-all shadow-lg shadow-primary/25 font-medium group"
                 >
                     <Plus className="h-5 w-5 group-hover:rotate-90 transition-transform" />
                     Create Exam
@@ -63,10 +63,10 @@ export default async function TeacherDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all group">
                     <div className="flex items-center justify-between mb-4">
-                        <div className="h-12 w-12 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
+                        <div className="h-12 w-12 bg-primary/10 dark:bg-primary/20 rounded-2xl flex items-center justify-center text-primary dark:text-primary group-hover:scale-110 transition-transform">
                             <FileText className="h-6 w-6" />
                         </div>
-                        <span className="text-xs font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-2 py-1 rounded-lg">
+                        <span className="text-xs font-medium bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary px-2 py-1 rounded-lg">
                             Total
                         </span>
                     </div>
@@ -78,11 +78,11 @@ export default async function TeacherDashboard() {
 
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all group">
                     <div className="flex items-center justify-between mb-4">
-                        <div className="h-12 w-12 bg-green-50 dark:bg-green-900/20 rounded-2xl flex items-center justify-center text-green-600 dark:text-green-400 group-hover:scale-110 transition-transform">
+                        <div className="h-12 w-12 bg-secondary/10 dark:bg-secondary/20 rounded-2xl flex items-center justify-center text-secondary dark:text-secondary group-hover:scale-110 transition-transform">
                             <Clock className="h-6 w-6" />
                         </div>
-                        <span className="text-xs font-medium bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 px-2 py-1 rounded-lg flex items-center gap-1">
-                            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                        <span className="text-xs font-medium bg-secondary/10 dark:bg-secondary/20 text-secondary dark:text-secondary px-2 py-1 rounded-lg flex items-center gap-1">
+                            <div className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
                             Live
                         </span>
                     </div>
@@ -94,10 +94,10 @@ export default async function TeacherDashboard() {
 
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all group">
                     <div className="flex items-center justify-between mb-4">
-                        <div className="h-12 w-12 bg-violet-50 dark:bg-violet-900/20 rounded-2xl flex items-center justify-center text-violet-600 dark:text-violet-400 group-hover:scale-110 transition-transform">
+                        <div className="h-12 w-12 bg-primary/10 dark:bg-primary/20 rounded-2xl flex items-center justify-center text-primary dark:text-primary group-hover:scale-110 transition-transform">
                             <Users className="h-6 w-6" />
                         </div>
-                        <span className="text-xs font-medium bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400 px-2 py-1 rounded-lg">
+                        <span className="text-xs font-medium bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary px-2 py-1 rounded-lg">
                             Students
                         </span>
                     </div>
@@ -112,10 +112,10 @@ export default async function TeacherDashboard() {
                 <div className="space-y-6">
                     <div className="flex items-center justify-between">
                         <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                            <div className="w-1 h-6 bg-blue-600 rounded-full" />
+                            <div className="w-1 h-6 bg-primary rounded-full" />
                             Active Exams
                         </h2>
-                        <Link href="/teacher/exams" className="text-sm font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1 group">
+                        <Link href="/teacher/exams" className="text-sm font-medium text-primary hover:text-primary/80 flex items-center gap-1 group">
                             View All <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
                         </Link>
                     </div>
@@ -133,11 +133,11 @@ export default async function TeacherDashboard() {
                             {activeExamsWithCounts.map((exam) => (
                                 <div key={exam.id} className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm hover:shadow-md transition-all group">
                                     <div className="flex items-center gap-4">
-                                        <div className="h-12 w-12 bg-blue-50 dark:bg-blue-900/20 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-lg shrink-0">
+                                        <div className="h-12 w-12 bg-primary/10 dark:bg-primary/20 rounded-xl flex items-center justify-center text-primary dark:text-primary font-bold text-lg shrink-0">
                                             {exam.title[0]}
                                         </div>
                                         <div>
-                                            <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-blue-600 transition-colors line-clamp-1">{exam.title}</h3>
+                                            <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors line-clamp-1">{exam.title}</h3>
                                             <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
                                                 <Clock className="h-3 w-3" />
                                                 Ends {format(new Date(exam.endTime), "h:mm a")}
@@ -151,7 +151,7 @@ export default async function TeacherDashboard() {
                                         </div>
                                         <Link
                                             href={`/teacher/exams/${exam.id}/monitor`}
-                                            className="px-4 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-xl text-sm font-bold transition-colors"
+                                            className="px-4 py-2 bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary hover:bg-primary/20 dark:hover:bg-primary/30 rounded-xl text-sm font-bold transition-colors"
                                         >
                                             Monitor
                                         </Link>
@@ -165,14 +165,14 @@ export default async function TeacherDashboard() {
                 <div className="space-y-6">
                     <div className="flex items-center justify-between">
                         <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                            <div className="w-1 h-6 bg-violet-600 rounded-full" />
+                            <div className="w-1 h-6 bg-secondary rounded-full" />
                             Recent Activity
                         </h2>
                     </div>
 
                     <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl border border-gray-100 dark:border-gray-700 text-center">
-                        <div className="w-16 h-16 bg-violet-50 dark:bg-violet-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <TrendingUp className="h-8 w-8 text-violet-400" />
+                        <div className="w-16 h-16 bg-secondary/10 dark:bg-secondary/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <TrendingUp className="h-8 w-8 text-secondary" />
                         </div>
                         <p className="text-gray-500 dark:text-gray-400 font-medium">No recent activity.</p>
                         <p className="text-sm text-gray-400 mt-1">Student submissions will appear here.</p>

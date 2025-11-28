@@ -45,7 +45,7 @@ export default async function TeacherStudentsPage() {
                         <input
                             type="text"
                             placeholder="Search students..."
-                            className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                            className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 focus:ring-2 focus:ring-primary outline-none transition-all"
                         />
                     </div>
                 </div>
@@ -74,7 +74,7 @@ export default async function TeacherStudentsPage() {
                                     <tr key={student.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center gap-3">
-                                                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center text-white font-medium">
+                                                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-medium">
                                                     {student.name[0]}
                                                 </div>
                                                 <span className="font-medium text-gray-900 dark:text-white">{student.name}</span>
@@ -90,7 +90,7 @@ export default async function TeacherStudentsPage() {
                                             {new Date(student.createdAt).toLocaleDateString()}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-secondary/10 text-secondary dark:bg-secondary/20 dark:text-secondary">
                                                 Active
                                             </span>
                                         </td>

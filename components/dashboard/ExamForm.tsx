@@ -119,7 +119,7 @@ export function ExamForm({ initialData }: ExamFormProps) {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 md:space-y-8 pb-20">
             <div className="bg-white dark:bg-gray-800 p-4 md:p-8 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-100/50 dark:shadow-none space-y-6 md:space-y-8">
                 <div className="flex items-center gap-4 border-b border-gray-100 dark:border-gray-700 pb-6">
-                    <div className="h-12 w-12 bg-gradient-to-br from-blue-500 to-violet-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
+                    <div className="h-12 w-12 bg-gradient-to-br from-primary to-secondary rounded-2xl flex items-center justify-center text-white shadow-lg shadow-primary/30">
                         <CalendarIcon className="h-6 w-6" />
                     </div>
                     <div>
@@ -137,7 +137,7 @@ export function ExamForm({ initialData }: ExamFormProps) {
                         <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Exam Title</label>
                         <input
                             {...form.register("title")}
-                            className="w-full px-5 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                            className="w-full px-5 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
                             placeholder="e.g. Advanced Mathematics Midterm"
                         />
                         {form.formState.errors.title && (
@@ -152,14 +152,14 @@ export function ExamForm({ initialData }: ExamFormProps) {
                         <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Description</label>
                         <textarea
                             {...form.register("description")}
-                            className="w-full px-5 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all min-h-[100px]"
+                            className="w-full px-5 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all min-h-[100px]"
                             placeholder="Instructions for students..."
                         />
                     </div>
 
                     <div className="col-span-1 lg:col-span-2 bg-gray-50 dark:bg-gray-900/50 p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                            <CalendarIcon className="h-5 w-5 text-blue-500" />
+                            <CalendarIcon className="h-5 w-5 text-primary" />
                             Scheduling & Settings
                         </h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -168,7 +168,7 @@ export function ExamForm({ initialData }: ExamFormProps) {
                                 <input
                                     type="datetime-local"
                                     {...form.register("startTime")}
-                                    className="w-full px-5 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                    className="w-full px-5 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary outline-none transition-all"
                                 />
                                 {form.formState.errors.startTime && (
                                     <p className="text-red-500 text-sm mt-2">{form.formState.errors.startTime.message}</p>
@@ -180,7 +180,7 @@ export function ExamForm({ initialData }: ExamFormProps) {
                                 <input
                                     type="datetime-local"
                                     {...form.register("endTime")}
-                                    className="w-full px-5 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                    className="w-full px-5 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary outline-none transition-all"
                                 />
                                 {form.formState.errors.endTime && (
                                     <p className="text-red-500 text-sm mt-2">{form.formState.errors.endTime.message}</p>
@@ -193,7 +193,7 @@ export function ExamForm({ initialData }: ExamFormProps) {
                                     <input
                                         type="number"
                                         {...form.register("duration")}
-                                        className="w-full px-5 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                        className="w-full px-5 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary outline-none transition-all"
                                     />
                                     <span className="absolute right-5 top-3.5 text-gray-400 text-sm">min</span>
                                 </div>
@@ -206,7 +206,7 @@ export function ExamForm({ initialData }: ExamFormProps) {
                                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Close Mode</label>
                                 <select
                                     {...form.register("closeMode")}
-                                    className="w-full px-5 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all appearance-none"
+                                    className="w-full px-5 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary outline-none transition-all appearance-none"
                                 >
                                     <option value="STRICT">Strict (Hard close)</option>
                                     <option value="PERMISSIVE">Permissive (Allow late w/ code)</option>
@@ -223,9 +223,9 @@ export function ExamForm({ initialData }: ExamFormProps) {
                     <button
                         type="button"
                         onClick={() => appendQuestion({ text: "", imageUrl: "", points: 1, options: [{ text: "", isCorrect: false }, { text: "", isCorrect: false }] })}
-                        className="group flex items-center gap-2 bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 border border-blue-200 dark:border-gray-700 px-5 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md font-medium"
+                        className="group flex items-center gap-2 bg-white dark:bg-gray-800 text-primary dark:text-primary hover:bg-primary/10 dark:hover:bg-gray-700 border border-primary/20 dark:border-gray-700 px-5 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md font-medium"
                     >
-                        <div className="bg-blue-100 dark:bg-blue-900/30 p-1 rounded-lg group-hover:scale-110 transition-transform">
+                        <div className="bg-primary/10 dark:bg-primary/20 p-1 rounded-lg group-hover:scale-110 transition-transform">
                             <Plus className="h-4 w-4" />
                         </div>
                         Add Question
@@ -249,7 +249,7 @@ export function ExamForm({ initialData }: ExamFormProps) {
                 <button
                     type="button"
                     onClick={() => appendQuestion({ text: "", imageUrl: "", points: 1, options: [{ text: "", isCorrect: false }, { text: "", isCorrect: false }] })}
-                    className="w-full py-4 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl text-gray-500 dark:text-gray-400 hover:border-blue-500 hover:text-blue-500 dark:hover:border-blue-400 dark:hover:text-blue-400 transition-all flex items-center justify-center gap-2 font-medium hover:bg-blue-50/50 dark:hover:bg-blue-900/10"
+                    className="w-full py-4 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl text-gray-500 dark:text-gray-400 hover:border-primary hover:text-primary dark:hover:border-primary dark:hover:text-primary transition-all flex items-center justify-center gap-2 font-medium hover:bg-primary/5 dark:hover:bg-primary/10"
                 >
                     <Plus className="h-5 w-5" />
                     Add Another Question
@@ -267,7 +267,7 @@ export function ExamForm({ initialData }: ExamFormProps) {
                 <button
                     type="submit"
                     disabled={loading}
-                    className="bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white px-8 py-2.5 rounded-xl font-semibold flex items-center gap-2 transition-all active:scale-[0.98] shadow-lg shadow-blue-500/25"
+                    className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white px-8 py-2.5 rounded-xl font-semibold flex items-center gap-2 transition-all active:scale-[0.98] shadow-lg shadow-primary/25"
                 >
                     {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
                     {initialData ? "Save Changes" : "Create Exam"}
@@ -286,9 +286,9 @@ function QuestionItem({ index, control, register, remove, errors, watch }: any) 
     const imageUrl = watch(`questions.${index}.imageUrl`)
 
     return (
-        <div className="bg-white dark:bg-gray-800 p-4 md:p-8 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-100/50 dark:shadow-none relative group transition-all hover:border-blue-200 dark:hover:border-blue-900/50">
+        <div className="bg-white dark:bg-gray-800 p-4 md:p-8 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-100/50 dark:shadow-none relative group transition-all hover:border-primary/30 dark:hover:border-primary/30">
             <div className="flex items-center justify-between mb-6">
-                <div className="bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider">
+                <div className="bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider">
                     Question {index + 1}
                 </div>
                 <button
@@ -307,7 +307,7 @@ function QuestionItem({ index, control, register, remove, errors, watch }: any) 
                             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Question Text</label>
                             <input
                                 {...register(`questions.${index}.text`)}
-                                className="w-full px-5 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-lg"
+                                className="w-full px-5 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary outline-none transition-all font-medium text-lg"
                                 placeholder="What is the capital of France?"
                             />
                             {errors?.questions?.[index]?.text && (
@@ -322,7 +322,7 @@ function QuestionItem({ index, control, register, remove, errors, watch }: any) 
                             </label>
                             <input
                                 {...register(`questions.${index}.imageUrl`)}
-                                className="w-full px-5 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-mono text-blue-600"
+                                className="w-full px-5 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary outline-none transition-all text-sm font-mono text-primary"
                                 placeholder="https://example.com/image.jpg"
                             />
                         </div>
@@ -334,7 +334,7 @@ function QuestionItem({ index, control, register, remove, errors, watch }: any) 
                             <input
                                 type="number"
                                 {...register(`questions.${index}.points`)}
-                                className="w-full px-5 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all font-bold text-center text-lg"
+                                className="w-full px-5 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary outline-none transition-all font-bold text-center text-lg"
                             />
                         </div>
                         {imageUrl && (
@@ -357,14 +357,14 @@ function QuestionItem({ index, control, register, remove, errors, watch }: any) 
                                     <input
                                         type="checkbox"
                                         {...register(`questions.${index}.options.${optIndex}.isCorrect`)}
-                                        className="peer h-6 w-6 rounded-full border-2 border-gray-300 text-green-500 focus:ring-green-500 cursor-pointer appearance-none checked:bg-green-500 checked:border-green-500 transition-all"
+                                        className="peer h-6 w-6 rounded-full border-2 border-gray-300 text-secondary focus:ring-secondary cursor-pointer appearance-none checked:bg-secondary checked:border-secondary transition-all"
                                     />
                                     <CheckCircle2 className="h-4 w-4 text-white absolute pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" />
                                 </div>
 
                                 <input
                                     {...register(`questions.${index}.options.${optIndex}.text`)}
-                                    className="flex-1 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                    className="flex-1 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary outline-none transition-all"
                                     placeholder={`Option ${optIndex + 1}`}
                                 />
 
@@ -382,7 +382,7 @@ function QuestionItem({ index, control, register, remove, errors, watch }: any) 
                     <button
                         type="button"
                         onClick={() => appendOption({ text: "", isCorrect: false })}
-                        className="text-sm font-medium text-blue-600 hover:text-blue-700 flex items-center gap-2 mt-2 px-2 py-1 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors w-fit"
+                        className="text-sm font-medium text-primary hover:text-primary/80 flex items-center gap-2 mt-2 px-2 py-1 rounded-lg hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors w-fit"
                     >
                         <Plus className="h-4 w-4" /> Add Another Option
                     </button>

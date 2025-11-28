@@ -7,7 +7,7 @@ import Image from "next/image";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-violet-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-100">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
@@ -16,26 +16,25 @@ export default function Home() {
             animate={{ opacity: 1, x: 0 }}
             className="flex items-center gap-3"
           >
-            <div className="relative group">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-violet-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30">
-                <Lock className="w-5 h-5 text-white" />
-              </div>
-            </div>
-            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-violet-600">
-              QuizLock
-            </span>
+            <Image
+              src="/logo.png"
+              alt="Xkorin school"
+              width={150}
+              height={40}
+              className="h-10 w-auto"
+            />
           </motion.div>
 
           <nav className="flex items-center gap-6">
             <Link
               href="/login"
-              className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors"
+              className="text-sm font-medium text-gray-600 hover:text-primary transition-colors"
             >
               Se connecter
             </Link>
             <Link
               href="/register"
-              className="px-5 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-violet-600 text-white font-semibold text-sm hover:shadow-lg hover:scale-105 transition-all"
+              className="px-5 py-2 rounded-lg bg-gradient-to-r from-primary to-secondary text-white font-semibold text-sm hover:shadow-lg hover:scale-105 transition-all"
             >
               Commencer
             </Link>
@@ -52,7 +51,7 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
             >
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-100 text-blue-700 text-sm font-semibold mb-6">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-100 text-primary text-sm font-semibold mb-6">
                 <Award className="w-4 h-4" />
                 Plateforme d'évaluation universitaire
               </div>
@@ -60,7 +59,7 @@ export default function Home() {
               <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight text-gray-900">
                 Examens en ligne
                 <br />
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-violet-600">
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
                   sécurisés et fiables
                 </span>
               </h1>
@@ -72,7 +71,7 @@ export default function Home() {
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
                   href="/register?role=teacher"
-                  className="group px-8 py-4 bg-gradient-to-r from-blue-600 to-violet-600 text-white rounded-xl font-semibold hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-3"
+                  className="group px-8 py-4 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-3"
                 >
                   <GraduationCap className="w-5 h-5" />
                   <span>Espace Enseignant</span>
@@ -81,7 +80,7 @@ export default function Home() {
 
                 <Link
                   href="/register?role=student"
-                  className="group px-8 py-4 bg-white border-2 border-gray-200 text-gray-700 rounded-xl font-semibold hover:border-blue-600 hover:text-blue-600 transition-all flex items-center justify-center gap-3"
+                  className="group px-8 py-4 bg-white border-2 border-gray-200 text-gray-700 rounded-xl font-semibold hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-3"
                 >
                   <BookOpen className="w-5 h-5" />
                   <span>Espace Étudiant</span>
@@ -104,8 +103,8 @@ export default function Home() {
                   className="w-full h-auto"
                 />
               </div>
-              <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-gradient-to-br from-blue-500 to-violet-600 rounded-full blur-3xl opacity-30" />
-              <div className="absolute -top-6 -left-6 w-32 h-32 bg-gradient-to-br from-violet-500 to-purple-600 rounded-full blur-3xl opacity-30" />
+              <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-gradient-to-br from-primary to-secondary rounded-full blur-3xl opacity-30" />
+              <div className="absolute -top-6 -left-6 w-32 h-32 bg-gradient-to-br from-secondary to-primary rounded-full blur-3xl opacity-30" />
             </motion.div>
           </div>
         </div>
@@ -128,7 +127,7 @@ export default function Home() {
               viewport={{ once: true }}
               className="bg-white p-8 rounded-2xl border border-gray-100 shadow-lg hover:shadow-xl transition-all"
             >
-              <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mb-6 shadow-lg shadow-blue-500/30">
+              <div className="w-14 h-14 bg-gradient-to-br from-primary to-blue-600 rounded-xl flex items-center justify-center mb-6 shadow-lg shadow-primary/30">
                 <Clock className="w-7 h-7 text-white" />
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">Gestion du temps</h3>
@@ -144,7 +143,7 @@ export default function Home() {
               transition={{ delay: 0.1 }}
               className="bg-white p-8 rounded-2xl border border-gray-100 shadow-lg hover:shadow-xl transition-all"
             >
-              <div className="w-14 h-14 bg-gradient-to-br from-violet-500 to-violet-600 rounded-xl flex items-center justify-center mb-6 shadow-lg shadow-violet-500/30">
+              <div className="w-14 h-14 bg-gradient-to-br from-secondary to-green-600 rounded-xl flex items-center justify-center mb-6 shadow-lg shadow-secondary/30">
                 <Shield className="w-7 h-7 text-white" />
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">Sécurité renforcée</h3>
@@ -160,7 +159,7 @@ export default function Home() {
               transition={{ delay: 0.2 }}
               className="bg-white p-8 rounded-2xl border border-gray-100 shadow-lg hover:shadow-xl transition-all"
             >
-              <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mb-6 shadow-lg shadow-purple-500/30">
+              <div className="w-14 h-14 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center mb-6 shadow-lg shadow-primary/30">
                 <CheckCircle2 className="w-7 h-7 text-white" />
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">Correction automatique</h3>
@@ -177,7 +176,7 @@ export default function Home() {
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            className="rounded-3xl bg-gradient-to-r from-blue-600 via-violet-600 to-purple-600 p-12 relative overflow-hidden"
+            className="rounded-3xl bg-gradient-to-r from-primary via-blue-700 to-secondary p-12 relative overflow-hidden"
           >
             <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
             <div className="relative z-10 grid md:grid-cols-3 gap-12 text-center text-white">
@@ -187,11 +186,11 @@ export default function Home() {
               </div>
               <div className="border-x border-white/20">
                 <div className="text-5xl font-bold mb-2">24/7</div>
-                <div className="text-violet-100 font-medium">Support Actif</div>
+                <div className="text-green-100 font-medium">Support Actif</div>
               </div>
               <div>
                 <div className="text-5xl font-bold mb-2">∞</div>
-                <div className="text-purple-100 font-medium">Évolutivité</div>
+                <div className="text-blue-100 font-medium">Évolutivité</div>
               </div>
             </div>
           </motion.div>
@@ -203,7 +202,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="bg-gradient-to-br from-blue-50 to-violet-50 rounded-3xl p-12 text-center border border-blue-100"
+            className="bg-gradient-to-br from-blue-50 to-green-50 rounded-3xl p-12 text-center border border-blue-100"
           >
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
               Prêt à commencer ?
@@ -213,7 +212,7 @@ export default function Home() {
             </p>
             <Link
               href="/register"
-              className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-600 to-violet-600 text-white rounded-xl font-semibold text-lg hover:shadow-xl hover:scale-105 transition-all"
+              className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-semibold text-lg hover:shadow-xl hover:scale-105 transition-all"
             >
               Créer un compte gratuitement
               <ArrowRight className="w-5 h-5" />
@@ -227,7 +226,7 @@ export default function Home() {
         <div className="container mx-auto px-6 py-12">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-violet-600 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
                 <Lock className="w-4 h-4 text-white" />
               </div>
               <span className="font-bold text-lg text-gray-900">QuizLock</span>

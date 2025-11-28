@@ -25,7 +25,7 @@ function StartButton({ examId }: { examId: string }) {
         <button
             onClick={handleClick}
             disabled={loading}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-indigo-500/30 transition-all active:scale-95 flex items-center justify-center gap-2"
+            className="w-full bg-primary hover:bg-primary/90 disabled:bg-primary/50 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-primary/30 transition-all active:scale-95 flex items-center justify-center gap-2"
         >
             {loading ? (
                 <>
@@ -55,7 +55,7 @@ function ResumeButton({ examId }: { examId: string }) {
         <button
             onClick={handleClick}
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-blue-500/30 transition-all active:scale-95 flex items-center justify-center gap-2"
+            className="w-full bg-primary hover:bg-primary/90 disabled:bg-primary/50 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-primary/30 transition-all active:scale-95 flex items-center justify-center gap-2"
         >
             {loading ? (
                 <>
@@ -81,14 +81,14 @@ export function ExamCard({ exam, status }: ExamCardProps) {
             <div
                 className={cn(
                     "group relative bg-white dark:bg-gray-800 rounded-3xl p-6 border-2 transition-all hover:-translate-y-1 hover:shadow-xl",
-                    status === 'active' ? 'border-indigo-500 shadow-indigo-500/10' : 'border-gray-100 dark:border-gray-700 hover:border-indigo-200 dark:hover:border-indigo-900'
+                    status === 'active' ? 'border-primary shadow-primary/10' : 'border-gray-100 dark:border-gray-700 hover:border-primary/30 dark:hover:border-primary/30'
                 )}
             >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                     <div className="flex items-start gap-4">
                         <div className={cn(
                             "w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold shrink-0",
-                            status === 'active' ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400' :
+                            status === 'active' ? 'bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary' :
                                 status === 'completed' ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' :
                                     status === 'missed' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' :
                                         'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
@@ -102,7 +102,7 @@ export function ExamCard({ exam, status }: ExamCardProps) {
                             <div className="flex items-center gap-2 mb-1">
                                 <h3 className="font-bold text-xl text-gray-900 dark:text-white">{exam.title}</h3>
                                 {status === 'active' && (
-                                    <span className="bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 text-xs font-bold px-2 py-0.5 rounded-full uppercase tracking-wide animate-pulse">
+                                    <span className="bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary text-xs font-bold px-2 py-0.5 rounded-full uppercase tracking-wide animate-pulse">
                                         Live
                                     </span>
                                 )}

@@ -254,14 +254,14 @@ export function ExamTaker({ exam, attempt }: ExamTakerProps) {
                                         className={cn(
                                             "w-full text-left p-4 md:p-5 rounded-2xl border-2 transition-all flex items-center gap-3 md:gap-4 group relative overflow-hidden",
                                             isSelected
-                                                ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 shadow-[0_4px_0_0_#3b82f6] translate-y-[-2px]"
+                                                ? "border-primary bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary shadow-[0_4px_0_0_#1e40af] translate-y-[-2px]"
                                                 : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600 shadow-[0_4px_0_0_rgb(0,0,0,0.05)] active:shadow-none active:translate-y-[2px]"
                                         )}
                                     >
                                         <div className={cn(
                                             "h-8 w-8 rounded-lg border-2 flex items-center justify-center flex-shrink-0 font-bold text-sm transition-colors",
                                             isSelected
-                                                ? "border-blue-500 bg-blue-500 text-white"
+                                                ? "border-primary bg-primary text-white"
                                                 : "border-gray-300 dark:border-gray-600 text-gray-400 group-hover:border-gray-400"
                                         )}>
                                             {String.fromCharCode(65 + idx)}
@@ -272,7 +272,7 @@ export function ExamTaker({ exam, attempt }: ExamTakerProps) {
                                             <motion.div
                                                 initial={{ scale: 0 }}
                                                 animate={{ scale: 1 }}
-                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-blue-500"
+                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-primary"
                                             >
                                                 <CheckCircle className="h-6 w-6 fill-current" />
                                             </motion.div>
@@ -303,7 +303,7 @@ export function ExamTaker({ exam, attempt }: ExamTakerProps) {
                         <button
                             onClick={() => handleSubmit(false)}
                             disabled={isSubmitting}
-                            className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 md:px-8 rounded-2xl font-black text-base md:text-lg shadow-[0_4px_0_0_#15803d] hover:shadow-[0_2px_0_0_#15803d] active:shadow-none active:translate-y-[2px] transition-all uppercase tracking-wide flex items-center gap-2"
+                            className="bg-secondary hover:bg-secondary/90 text-white px-6 py-3 md:px-8 rounded-2xl font-black text-base md:text-lg shadow-[0_4px_0_0_#027d46] hover:shadow-[0_2px_0_0_#027d46] active:shadow-none active:translate-y-[2px] transition-all uppercase tracking-wide flex items-center gap-2"
                         >
                             {isSubmitting ? (
                                 <>
@@ -321,7 +321,7 @@ export function ExamTaker({ exam, attempt }: ExamTakerProps) {
                             className={cn(
                                 "px-6 py-3 md:px-8 rounded-2xl font-black text-base md:text-lg shadow-[0_4px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-[2px] transition-all uppercase tracking-wide flex items-center gap-2",
                                 answers[currentQuestion.id]
-                                    ? "bg-green-500 hover:bg-green-600 text-white shadow-[0_4px_0_0_#15803d] hover:shadow-[0_2px_0_0_#15803d]"
+                                    ? "bg-secondary hover:bg-secondary/90 text-white shadow-[0_4px_0_0_#027d46] hover:shadow-[0_2px_0_0_#027d46]"
                                     : "bg-gray-200 dark:bg-gray-700 text-gray-400"
                             )}
                         >

@@ -60,35 +60,35 @@ export default async function StudentDashboard() {
     return (
         <div className="space-y-8 pb-10 max-w-5xl mx-auto">
             {/* Hero Section */}
-            <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden">
+            <div className="bg-gradient-to-r from-primary to-secondary rounded-3xl p-8 text-white shadow-xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/4 blur-3xl" />
                 <div className="relative z-10">
                     <div className="flex items-center gap-3 mb-2">
-                        <span className="text-indigo-100 font-medium tracking-wide uppercase text-sm">Student Dashboard</span>
+                        <span className="text-white/80 font-medium tracking-wide uppercase text-sm">Student Dashboard</span>
                     </div>
                     <h1 className="text-4xl font-extrabold mb-4">
                         Welcome back, {session?.user?.name}! 👋
                     </h1>
-                    <p className="text-indigo-100 text-lg max-w-2xl">
+                    <p className="text-white/80 text-lg max-w-2xl">
                         Ready to challenge yourself? You have <span className="font-bold text-white">{examsWithData.filter(e => isPast(new Date(e.startTime)) && !isPast(new Date(e.endTime)) && !e.attempts[0]).length} active exams</span> waiting for you.
                     </p>
 
                     <div className="flex flex-wrap gap-6 mt-8">
                         <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10">
-                            <div className="bg-yellow-400 p-2 rounded-lg text-yellow-900">
+                            <div className="bg-secondary p-2 rounded-lg text-white">
                                 <Trophy className="h-5 w-5" />
                             </div>
                             <div>
-                                <p className="text-xs text-indigo-100">Exams Passed</p>
+                                <p className="text-xs text-white/80">Exams Passed</p>
                                 <p className="font-bold text-xl">{completedExams}</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10">
-                            <div className="bg-orange-400 p-2 rounded-lg text-orange-900">
+                            <div className="bg-secondary p-2 rounded-lg text-white">
                                 <Flame className="h-5 w-5" />
                             </div>
                             <div>
-                                <p className="text-xs text-indigo-100">Total Score</p>
+                                <p className="text-xs text-white/80">Total Score</p>
                                 <p className="font-bold text-xl">{totalPoints}</p>
                             </div>
                         </div>
@@ -100,7 +100,7 @@ export default async function StudentDashboard() {
                 {/* Main Content - Exam List */}
                 <div className="lg:col-span-2 space-y-6">
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <BookOpen className="h-6 w-6 text-indigo-500" />
+                        <BookOpen className="h-6 w-6 text-primary" />
                         Your Learning Path
                     </h2>
 

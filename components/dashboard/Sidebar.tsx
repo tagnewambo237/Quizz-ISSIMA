@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { LayoutDashboard, PlusCircle, BookOpen, Users, Settings, LogOut } from "lucide-react"
 import { signOut, useSession } from "next-auth/react"
@@ -41,10 +42,13 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () =>
                 isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
             )}>
                 <div className="p-6 flex items-center gap-2">
-                    <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center">
-                        <span className="text-white font-bold text-xl">Q</span>
-                    </div>
-                    <span className="text-xl font-bold text-gray-900 dark:text-white">QuizLock</span>
+                    <Image
+                        src="/logo.png"
+                        alt="Xkorin School"
+                        width={150}
+                        height={40}
+                        className="h-8 w-auto"
+                    />
                 </div>
 
                 <nav className="flex-1 px-4 space-y-2 mt-4 overflow-y-auto">
