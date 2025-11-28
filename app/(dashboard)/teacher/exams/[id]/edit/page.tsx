@@ -28,14 +28,30 @@ export default async function EditExamPage({ params }: { params: Promise<{ id: s
 
     // Reconstruct the nested object structure
     const exam = {
-        ...examDoc,
         id: examDoc._id.toString(),
+        title: examDoc.title,
+        description: examDoc.description,
+        startTime: examDoc.startTime.toISOString(),
+        endTime: examDoc.endTime.toISOString(),
+        duration: examDoc.duration,
+        closeMode: examDoc.closeMode,
+        createdById: examDoc.createdById.toString(),
+        createdAt: examDoc.createdAt.toISOString(),
+        updatedAt: examDoc.updatedAt.toISOString(),
         questions: questionsDoc.map(q => ({
-            ...q,
             id: q._id.toString(),
+            examId: q.examId.toString(),
+            text: q.text,
+            imageUrl: q.imageUrl,
+            points: q.points,
             options: optionsDoc
                 .filter(o => o.questionId.toString() === q._id.toString())
-                .map(o => ({ ...o, id: o._id.toString() }))
+                .map(o => ({
+                    id: o._id.toString(),
+                    questionId: o.questionId.toString(),
+                    text: o.text,
+                    isCorrect: o.isCorrect,
+                }))
         }))
     }
 

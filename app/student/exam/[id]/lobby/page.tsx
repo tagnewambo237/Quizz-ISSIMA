@@ -26,10 +26,28 @@ export default async function ExamLobbyPage({ params }: { params: Promise<{ id: 
     }).lean()
 
     const exam = {
-        ...examDoc,
         id: examDoc._id.toString(),
+        title: examDoc.title,
+        description: examDoc.description,
+        startTime: examDoc.startTime.toISOString(),
+        endTime: examDoc.endTime.toISOString(),
+        duration: examDoc.duration,
+        closeMode: examDoc.closeMode,
+        createdById: examDoc.createdById.toString(),
+        createdAt: examDoc.createdAt.toISOString(),
+        updatedAt: examDoc.updatedAt.toISOString(),
         _count: { questions: questionCount },
-        attempts: attempts.map(a => ({ ...a, id: a._id.toString() }))
+        attempts: attempts.map(a => ({
+            id: a._id.toString(),
+            examId: a.examId.toString(),
+            userId: a.userId.toString(),
+            status: a.status,
+            score: a.score,
+            startedAt: a.startedAt?.toISOString(),
+            submittedAt: a.submittedAt?.toISOString(),
+            expiresAt: a.expiresAt.toISOString(),
+            resumeToken: a.resumeToken,
+        }))
     }
 
     if (!exam) notFound()

@@ -1,15 +1,75 @@
 "use client"
 
 import { useState } from "react"
-import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { format } from "date-fns"
-import { Clock, Star, ArrowRight, CheckCircle, AlertCircle, Key } from "lucide-react"
+import { Clock, Star, ArrowRight, CheckCircle, AlertCircle, Key, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { LateCodeModal } from "./LateCodeModal"
 
 interface ExamCardProps {
     exam: any
     status: "upcoming" | "active" | "in_progress" | "completed" | "missed"
+}
+
+function StartButton({ examId }: { examId: string }) {
+    const router = useRouter()
+    const [loading, setLoading] = useState(false)
+
+    const handleClick = () => {
+        setLoading(true)
+        router.push(`/student/exam/${examId}/lobby`)
+    }
+
+    return (
+        <button
+            onClick={handleClick}
+            disabled={loading}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-indigo-500/30 transition-all active:scale-95 flex items-center justify-center gap-2"
+        >
+            {loading ? (
+                <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    Loading...
+                </>
+            ) : (
+                <>
+                    Start
+                    <ArrowRight className="h-5 w-5" />
+                </>
+            )}
+        </button>
+    )
+}
+
+function ResumeButton({ examId }: { examId: string }) {
+    const router = useRouter()
+    const [loading, setLoading] = useState(false)
+
+    const handleClick = () => {
+        setLoading(true)
+        router.push(`/student/exam/${examId}/take`)
+    }
+
+    return (
+        <button
+            onClick={handleClick}
+            disabled={loading}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-blue-500/30 transition-all active:scale-95 flex items-center justify-center gap-2"
+        >
+            {loading ? (
+                <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    Loading...
+                </>
+            ) : (
+                <>
+                    Resume
+                    <ArrowRight className="h-5 w-5" />
+                </>
+            )}
+        </button>
+    )
 }
 
 export function ExamCard({ exam, status }: ExamCardProps) {
@@ -66,23 +126,11 @@ export function ExamCard({ exam, status }: ExamCardProps) {
 
                     <div className="flex flex-col items-end gap-3 min-w-[140px]">
                         {status === "active" && !attempt && (
-                            <Link
-                                href={`/student/exam/${exam.id}/lobby`}
-                                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-indigo-500/30 transition-all active:scale-95 flex items-center justify-center gap-2"
-                            >
-                                Start
-                                <ArrowRight className="h-5 w-5" />
-                            </Link>
+                            <StartButton examId={exam.id} />
                         )}
 
                         {status === "in_progress" && (
-                            <Link
-                                href={`/student/exam/${exam.id}/take`}
-                                className="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-blue-500/30 transition-all active:scale-95 flex items-center justify-center gap-2"
-                            >
-                                Resume
-                                <ArrowRight className="h-5 w-5" />
-                            </Link>
+                            <ResumeButton examId={exam.id} />
                         )}
 
                         {status === "completed" && (
@@ -96,7 +144,7 @@ export function ExamCard({ exam, status }: ExamCardProps) {
 
                         {status === "upcoming" && (
                             <div className="w-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-4 py-3 rounded-xl font-bold text-center text-sm">
-                                {format(exam.startTime, "MMM d, h:mm a")}
+                                {format(new Date(exam.startTime), "MMM d, h:mm a")}
                             </div>
                         )}
 

@@ -71,7 +71,7 @@ export default async function TeacherExamsPage() {
                             key={exam.id}
                             className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all group"
                         >
-                            <div className="flex items-start justify-between">
+                            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                                 <div className="space-y-1">
                                     <h3 className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-blue-600 transition-colors">
                                         {exam.title}
@@ -80,7 +80,7 @@ export default async function TeacherExamsPage() {
                                         {exam.description || "No description"}
                                     </p>
                                 </div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 self-start sm:self-auto">
                                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${new Date() >= new Date(exam.startTime) && new Date() <= new Date(exam.endTime)
                                         ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
                                         : new Date() > new Date(exam.endTime)
@@ -96,7 +96,7 @@ export default async function TeacherExamsPage() {
                                 </div>
                             </div>
 
-                            <div className="mt-6 flex items-center gap-6 text-sm text-gray-500 dark:text-gray-400 border-t border-gray-100 dark:border-gray-700 pt-4">
+                            <div className="mt-6 flex flex-wrap items-center gap-4 sm:gap-6 text-sm text-gray-500 dark:text-gray-400 border-t border-gray-100 dark:border-gray-700 pt-4">
                                 <div className="flex items-center gap-2">
                                     <Calendar className="h-4 w-4" />
                                     {format(new Date(exam.startTime), "MMM d, yyyy")}
@@ -109,8 +109,10 @@ export default async function TeacherExamsPage() {
                                     <Users className="h-4 w-4" />
                                     {exam._count.attempts} attempts
                                 </div>
-                                <div className="flex-1" />
-                                <ExamCardActions exam={exam} />
+                                <div className="flex-1 hidden sm:block" />
+                                <div className="w-full sm:w-auto flex justify-end mt-2 sm:mt-0">
+                                    <ExamCardActions exam={exam} />
+                                </div>
                             </div>
                         </div>
                     ))

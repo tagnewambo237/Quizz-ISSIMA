@@ -116,8 +116,8 @@ export function ExamForm({ initialData }: ExamFormProps) {
     }
 
     return (
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 pb-20">
-            <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-100/50 dark:shadow-none space-y-8">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 md:space-y-8 pb-20">
+            <div className="bg-white dark:bg-gray-800 p-4 md:p-8 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-100/50 dark:shadow-none space-y-6 md:space-y-8">
                 <div className="flex items-center gap-4 border-b border-gray-100 dark:border-gray-700 pb-6">
                     <div className="h-12 w-12 bg-gradient-to-br from-blue-500 to-violet-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
                         <CalendarIcon className="h-6 w-6" />
@@ -132,7 +132,7 @@ export function ExamForm({ initialData }: ExamFormProps) {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <div className="col-span-2">
                         <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Exam Title</label>
                         <input
@@ -157,54 +157,62 @@ export function ExamForm({ initialData }: ExamFormProps) {
                         />
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Start Time</label>
-                        <input
-                            type="datetime-local"
-                            {...form.register("startTime")}
-                            className="w-full px-5 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                        />
-                        {form.formState.errors.startTime && (
-                            <p className="text-red-500 text-sm mt-2">{form.formState.errors.startTime.message}</p>
-                        )}
-                    </div>
+                    <div className="col-span-1 lg:col-span-2 bg-gray-50 dark:bg-gray-900/50 p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                            <CalendarIcon className="h-5 w-5 text-blue-500" />
+                            Scheduling & Settings
+                        </h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Start Time</label>
+                                <input
+                                    type="datetime-local"
+                                    {...form.register("startTime")}
+                                    className="w-full px-5 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                />
+                                {form.formState.errors.startTime && (
+                                    <p className="text-red-500 text-sm mt-2">{form.formState.errors.startTime.message}</p>
+                                )}
+                            </div>
 
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">End Time</label>
-                        <input
-                            type="datetime-local"
-                            {...form.register("endTime")}
-                            className="w-full px-5 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                        />
-                        {form.formState.errors.endTime && (
-                            <p className="text-red-500 text-sm mt-2">{form.formState.errors.endTime.message}</p>
-                        )}
-                    </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">End Time</label>
+                                <input
+                                    type="datetime-local"
+                                    {...form.register("endTime")}
+                                    className="w-full px-5 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                />
+                                {form.formState.errors.endTime && (
+                                    <p className="text-red-500 text-sm mt-2">{form.formState.errors.endTime.message}</p>
+                                )}
+                            </div>
 
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Duration (minutes)</label>
-                        <div className="relative">
-                            <input
-                                type="number"
-                                {...form.register("duration")}
-                                className="w-full px-5 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                            />
-                            <span className="absolute right-5 top-3.5 text-gray-400 text-sm">min</span>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Duration (minutes)</label>
+                                <div className="relative">
+                                    <input
+                                        type="number"
+                                        {...form.register("duration")}
+                                        className="w-full px-5 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                    />
+                                    <span className="absolute right-5 top-3.5 text-gray-400 text-sm">min</span>
+                                </div>
+                                {form.formState.errors.duration && (
+                                    <p className="text-red-500 text-sm mt-2">{form.formState.errors.duration.message}</p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Close Mode</label>
+                                <select
+                                    {...form.register("closeMode")}
+                                    className="w-full px-5 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all appearance-none"
+                                >
+                                    <option value="STRICT">Strict (Hard close)</option>
+                                    <option value="PERMISSIVE">Permissive (Allow late w/ code)</option>
+                                </select>
+                            </div>
                         </div>
-                        {form.formState.errors.duration && (
-                            <p className="text-red-500 text-sm mt-2">{form.formState.errors.duration.message}</p>
-                        )}
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Close Mode</label>
-                        <select
-                            {...form.register("closeMode")}
-                            className="w-full px-5 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all appearance-none"
-                        >
-                            <option value="STRICT">Strict (Hard close)</option>
-                            <option value="PERMISSIVE">Permissive (Allow late w/ code)</option>
-                        </select>
                     </div>
                 </div>
             </div>
@@ -278,8 +286,8 @@ function QuestionItem({ index, control, register, remove, errors, watch }: any) 
     const imageUrl = watch(`questions.${index}.imageUrl`)
 
     return (
-        <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-100/50 dark:shadow-none relative group transition-all hover:border-blue-200 dark:hover:border-blue-900/50">
-            <div className="absolute top-6 right-6 flex gap-2">
+        <div className="bg-white dark:bg-gray-800 p-4 md:p-8 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-xl shadow-gray-100/50 dark:shadow-none relative group transition-all hover:border-blue-200 dark:hover:border-blue-900/50">
+            <div className="flex items-center justify-between mb-6">
                 <div className="bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider">
                     Question {index + 1}
                 </div>
@@ -293,8 +301,8 @@ function QuestionItem({ index, control, register, remove, errors, watch }: any) 
             </div>
 
             <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                    <div className="md:col-span-8 space-y-4">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <div className="lg:col-span-8 space-y-4">
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Question Text</label>
                             <input
@@ -320,7 +328,7 @@ function QuestionItem({ index, control, register, remove, errors, watch }: any) 
                         </div>
                     </div>
 
-                    <div className="md:col-span-4 space-y-4">
+                    <div className="lg:col-span-4 space-y-4">
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Points</label>
                             <input
@@ -363,7 +371,7 @@ function QuestionItem({ index, control, register, remove, errors, watch }: any) 
                                 <button
                                     type="button"
                                     onClick={() => removeOption(optIndex)}
-                                    className="text-gray-400 hover:text-red-500 opacity-0 group-hover/option:opacity-100 transition-opacity p-2"
+                                    className="text-gray-400 hover:text-red-500 p-2 transition-colors"
                                 >
                                     <Trash2 className="h-4 w-4" />
                                 </button>

@@ -33,21 +33,54 @@ export default async function MonitorPage({ params }: { params: Promise<{ id: st
     const users = await User.find({ _id: { $in: userIds } }).lean()
     const usersMap = new Map(users.map(u => [u._id.toString(), u]))
 
-    const attempts = attemptsDoc.map(a => ({
-        ...a,
-        id: a._id.toString(),
-        user: usersMap.get(a.userId.toString()) ? {
-            ...usersMap.get(a.userId.toString()),
-            id: usersMap.get(a.userId.toString())!._id.toString()
-        } : null
-    }))
+    const attempts = attemptsDoc.map(a => {
+        const user = usersMap.get(a.userId.toString())
+        return {
+            id: a._id.toString(),
+            examId: a.examId.toString(),
+            userId: a.userId.toString(),
+            startedAt: a.startedAt.toISOString(),
+            expiresAt: a.expiresAt.toISOString(),
+            submittedAt: a.submittedAt?.toISOString(),
+            status: a.status,
+            score: a.score,
+            resumeToken: a.resumeToken,
+            user: user ? {
+                id: user._id.toString(),
+                name: user.name,
+                email: user.email,
+                role: user.role,
+            } : null
+        }
+    })
 
     const exam = {
-        ...examDoc,
         id: examDoc._id.toString(),
-        questions: questions.map(q => ({ ...q, id: q._id.toString() })),
+        title: examDoc.title,
+        description: examDoc.description,
+        startTime: examDoc.startTime.toISOString(),
+        endTime: examDoc.endTime.toISOString(),
+        duration: examDoc.duration,
+        closeMode: examDoc.closeMode,
+        createdById: examDoc.createdById.toString(),
+        createdAt: examDoc.createdAt.toISOString(),
+        updatedAt: examDoc.updatedAt.toISOString(),
+        questions: questions.map(q => ({
+            id: q._id.toString(),
+            examId: q.examId.toString(),
+            text: q.text,
+            imageUrl: q.imageUrl,
+            points: q.points,
+        })),
         attempts,
-        lateCodes: lateCodes.map(lc => ({ ...lc, id: lc._id.toString() }))
+        lateCodes: lateCodes.map(lc => ({
+            id: lc._id.toString(),
+            code: lc.code,
+            examId: lc.examId.toString(),
+            usagesRemaining: lc.usagesRemaining,
+            expiresAt: lc.expiresAt?.toISOString(),
+            assignedUserId: lc.assignedUserId?.toString(),
+        }))
     }
 
     return <MonitorView exam={exam} />

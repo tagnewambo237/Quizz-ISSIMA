@@ -28,14 +28,30 @@ export default async function ExamTakePage({ params }: { params: Promise<{ id: s
     const optionsDoc = await Option.find({ questionId: { $in: questionIds } }).select('-isCorrect').lean()
 
     const exam = {
-        ...examDoc,
         id: examDoc._id.toString(),
+        title: examDoc.title,
+        description: examDoc.description,
+        startTime: examDoc.startTime.toISOString(),
+        endTime: examDoc.endTime.toISOString(),
+        duration: examDoc.duration,
+        closeMode: examDoc.closeMode,
+        createdById: examDoc.createdById.toString(),
+        createdAt: examDoc.createdAt.toISOString(),
+        updatedAt: examDoc.updatedAt.toISOString(),
         questions: questionsDoc.map(q => ({
-            ...q,
             id: q._id.toString(),
+            examId: q.examId.toString(),
+            text: q.text,
+            imageUrl: q.imageUrl,
+            points: q.points,
             options: optionsDoc
                 .filter(o => o.questionId.toString() === q._id.toString())
-                .map(o => ({ ...o, id: o._id.toString() }))
+                .map(o => ({
+                    id: o._id.toString(),
+                    questionId: o.questionId.toString(),
+                    text: o.text,
+                    // isCorrect is excluded via .select('-isCorrect')
+                }))
         }))
     }
 
@@ -48,9 +64,22 @@ export default async function ExamTakePage({ params }: { params: Promise<{ id: s
     if (attemptDoc) {
         const responsesDoc = await Response.find({ attemptId: attemptDoc._id }).lean()
         attempt = {
-            ...attemptDoc,
             id: attemptDoc._id.toString(),
-            responses: responsesDoc.map(r => ({ ...r, id: r._id.toString() }))
+            examId: attemptDoc.examId.toString(),
+            userId: attemptDoc.userId.toString(),
+            startedAt: attemptDoc.startedAt.toISOString(),
+            expiresAt: attemptDoc.expiresAt.toISOString(),
+            submittedAt: attemptDoc.submittedAt?.toISOString(),
+            status: attemptDoc.status,
+            score: attemptDoc.score,
+            resumeToken: attemptDoc.resumeToken,
+            responses: responsesDoc.map(r => ({
+                id: r._id.toString(),
+                attemptId: r.attemptId.toString(),
+                questionId: r.questionId.toString(),
+                selectedOptionId: r.selectedOptionId.toString(),
+                isCorrect: r.isCorrect,
+            }))
         }
     }
 
@@ -59,7 +88,7 @@ export default async function ExamTakePage({ params }: { params: Promise<{ id: s
     if (attempt.status === "COMPLETED") redirect(`/student/exam/${exam.id}/result`)
 
     // Check if expired
-    if (new Date() > attempt.expiresAt) {
+    if (new Date() > new Date(attempt.expiresAt)) {
         // Should trigger submit logic if not already submitted
         // But for now, just redirect to result which handles "completed" state
         // We might need a server action to mark as completed if expired but status is STARTED

@@ -131,21 +131,21 @@ export default async function TeacherDashboard() {
                     ) : (
                         <div className="space-y-4">
                             {activeExamsWithCounts.map((exam) => (
-                                <div key={exam.id} className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 flex items-center justify-between shadow-sm hover:shadow-md transition-all group">
+                                <div key={exam.id} className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm hover:shadow-md transition-all group">
                                     <div className="flex items-center gap-4">
-                                        <div className="h-12 w-12 bg-blue-50 dark:bg-blue-900/20 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-lg">
+                                        <div className="h-12 w-12 bg-blue-50 dark:bg-blue-900/20 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-lg shrink-0">
                                             {exam.title[0]}
                                         </div>
                                         <div>
-                                            <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-blue-600 transition-colors">{exam.title}</h3>
+                                            <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-blue-600 transition-colors line-clamp-1">{exam.title}</h3>
                                             <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
                                                 <Clock className="h-3 w-3" />
                                                 Ends {format(new Date(exam.endTime), "h:mm a")}
                                             </p>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-4">
-                                        <div className="text-right hidden sm:block">
+                                    <div className="flex items-center justify-between sm:justify-end gap-4 border-t sm:border-t-0 border-gray-100 dark:border-gray-700 pt-4 sm:pt-0">
+                                        <div className="text-right">
                                             <p className="text-sm font-bold text-gray-900 dark:text-white">{exam._count.attempts}</p>
                                             <p className="text-xs text-gray-500">Attempts</p>
                                         </div>

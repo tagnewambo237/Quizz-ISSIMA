@@ -26,9 +26,25 @@ export default async function StudentDashboard() {
             const userAttempt = attempts.find(a => a.examId.toString() === exam._id.toString())
 
             return {
-                ...exam,
                 id: exam._id.toString(),
-                attempts: userAttempt ? [userAttempt] : [],
+                title: exam.title,
+                description: exam.description,
+                startTime: exam.startTime.toISOString(),
+                endTime: exam.endTime.toISOString(),
+                duration: exam.duration,
+                closeMode: exam.closeMode,
+                createdById: exam.createdById.toString(),
+                createdAt: exam.createdAt.toISOString(),
+                updatedAt: exam.updatedAt.toISOString(),
+                attempts: userAttempt ? [{
+                    id: userAttempt._id.toString(),
+                    examId: userAttempt.examId.toString(),
+                    userId: userAttempt.userId.toString(),
+                    status: userAttempt.status,
+                    score: userAttempt.score,
+                    startedAt: userAttempt.startedAt?.toISOString(),
+                    submittedAt: userAttempt.submittedAt?.toISOString(),
+                }] : [],
                 _count: { questions: questionCount }
             }
         })
@@ -54,10 +70,10 @@ export default async function StudentDashboard() {
                         Welcome back, {session?.user?.name}! 👋
                     </h1>
                     <p className="text-indigo-100 text-lg max-w-2xl">
-                        Ready to challenge yourself? You have <span className="font-bold text-white">{examsWithData.filter(e => isPast(e.startTime) && !isPast(e.endTime) && !e.attempts[0]).length} active exams</span> waiting for you.
+                        Ready to challenge yourself? You have <span className="font-bold text-white">{examsWithData.filter(e => isPast(new Date(e.startTime)) && !isPast(new Date(e.endTime)) && !e.attempts[0]).length} active exams</span> waiting for you.
                     </p>
 
-                    <div className="flex gap-6 mt-8">
+                    <div className="flex flex-wrap gap-6 mt-8">
                         <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10">
                             <div className="bg-yellow-400 p-2 rounded-lg text-yellow-900">
                                 <Trophy className="h-5 w-5" />
@@ -102,8 +118,8 @@ export default async function StudentDashboard() {
                         ) : (
                             examsWithData.map((exam) => {
                                 const attempt = exam.attempts[0]
-                                const isStarted = isPast(exam.startTime)
-                                const isEnded = isPast(exam.endTime)
+                                const isStarted = isPast(new Date(exam.startTime))
+                                const isEnded = isPast(new Date(exam.endTime))
                                 const isActive = isStarted && !isEnded
 
                                 let status = "upcoming"
