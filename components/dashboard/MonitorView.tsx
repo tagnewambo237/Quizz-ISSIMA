@@ -20,7 +20,9 @@ export function MonitorView({ exam }: { exam: any }) {
                 body: JSON.stringify({ examId: exam.id }),
             })
             const { code } = await res.json()
-            setLateCodes((prev: any) => [code, ...prev])
+            // Normalize the new code object to match the structure of existing codes
+            const newCode = { ...code, id: code._id || code.id }
+            setLateCodes((prev: any) => [newCode, ...prev])
         } catch (error) {
             console.error(error)
         } finally {
@@ -175,7 +177,7 @@ export function MonitorView({ exam }: { exam: any }) {
 
                         <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                             {lateCodes.map((code: any) => (
-                                <div key={code.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/30 rounded-2xl border border-gray-100 dark:border-gray-700/50 group hover:border-blue-200 dark:hover:border-blue-800 transition-colors">
+                                <div key={code.id || code._id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/30 rounded-2xl border border-gray-100 dark:border-gray-700/50 group hover:border-blue-200 dark:hover:border-blue-800 transition-colors">
                                     <div>
                                         <p className="font-mono font-bold text-lg tracking-wider text-gray-800 dark:text-gray-200">{code.code}</p>
                                         <p className="text-xs text-gray-500 font-medium mt-1">
