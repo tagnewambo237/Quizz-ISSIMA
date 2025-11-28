@@ -21,7 +21,13 @@ export default async function TeacherExamsPage() {
         const attemptsCount = await Attempt.countDocuments({ examId: exam._id })
         return {
             ...exam,
+            _id: exam._id.toString(),
             id: exam._id.toString(),
+            createdById: exam.createdById.toString(),
+            startTime: exam.startTime.toISOString(),
+            endTime: exam.endTime.toISOString(),
+            createdAt: exam.createdAt ? exam.createdAt.toISOString() : undefined,
+            updatedAt: exam.updatedAt ? exam.updatedAt.toISOString() : undefined,
             _count: {
                 attempts: attemptsCount
             }
