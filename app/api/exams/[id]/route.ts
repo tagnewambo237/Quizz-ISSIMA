@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import connectDB from "@/lib/mongodb"
+import Exam from "@/models/Exam"
+import Question from "@/models/Question"
+import Option from "@/models/Option"
+import Attempt from "@/models/Attempt"
+import Response from "@/models/Response"
+import LateCode from "@/models/LateCode"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { z } from "zod"
@@ -33,24 +39,26 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
             return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
         }
 
+        await connectDB()
+
         const { id } = await params
         const body = await req.json()
         const data = examSchema.parse(body)
 
         // Check ownership
-        const existingExam = await prisma.exam.findUnique({ where: { id } })
-        if (!existingExam || existingExam.createdById !== session.user.id) {
+        const existingExam = await Exam.findById(id)
+        if (!existingExam || existingExam.createdById.toString() !== session.user.id) {
             return NextResponse.json({ message: "Not found or unauthorized" }, { status: 404 })
         }
 
         // Check for existing attempts
-        const attemptsCount = await prisma.attempt.count({ where: { examId: id } })
+        const attemptsCount = await Attempt.countDocuments({ examId: id })
 
         if (attemptsCount > 0) {
             // Partial update (no questions)
-            const updatedExam = await prisma.exam.update({
-                where: { id },
-                data: {
+            const updatedExam = await Exam.findByIdAndUpdate(
+                id,
+                {
                     title: data.title,
                     description: data.description,
                     startTime: new Date(data.startTime),
@@ -58,7 +66,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                     duration: data.duration,
                     closeMode: data.closeMode,
                 },
-            })
+                { new: true }
+            )
             return NextResponse.json({
                 message: "Exam updated. Questions were not modified because students have already taken this exam.",
                 exam: updatedExam,
@@ -66,32 +75,45 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
             })
         }
 
-        // Full update
-        const updatedExam = await prisma.exam.update({
-            where: { id },
-            data: {
+        // Full update - delete old questions and create new ones
+        const questions = await Question.find({ examId: id })
+        const questionIds = questions.map(q => q._id)
+
+        // Delete old options and questions
+        await Option.deleteMany({ questionId: { $in: questionIds } })
+        await Question.deleteMany({ examId: id })
+
+        // Update exam
+        const updatedExam = await Exam.findByIdAndUpdate(
+            id,
+            {
                 title: data.title,
                 description: data.description,
                 startTime: new Date(data.startTime),
                 endTime: new Date(data.endTime),
                 duration: data.duration,
                 closeMode: data.closeMode,
-                questions: {
-                    deleteMany: {},
-                    create: data.questions.map((q) => ({
-                        text: q.text,
-                        imageUrl: q.imageUrl || null,
-                        points: q.points,
-                        options: {
-                            create: q.options.map((o) => ({
-                                text: o.text,
-                                isCorrect: o.isCorrect,
-                            })),
-                        },
-                    })),
-                },
             },
-        })
+            { new: true }
+        )
+
+        // Create new questions with options
+        for (const questionData of data.questions) {
+            const question = await Question.create({
+                examId: id,
+                text: questionData.text,
+                imageUrl: questionData.imageUrl || undefined,
+                points: questionData.points,
+            })
+
+            await Option.insertMany(
+                questionData.options.map((o) => ({
+                    questionId: question._id,
+                    text: o.text,
+                    isCorrect: o.isCorrect,
+                }))
+            )
+        }
 
         return NextResponse.json({ message: "Exam updated successfully", exam: updatedExam })
     } catch (error: any) {
@@ -110,37 +132,40 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
             return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
         }
 
+        await connectDB()
+
         const { id } = await params
 
         // Check ownership
-        const existingExam = await prisma.exam.findUnique({ where: { id } })
-        if (!existingExam || existingExam.createdById !== session.user.id) {
+        const existingExam = await Exam.findById(id)
+        if (!existingExam || existingExam.createdById.toString() !== session.user.id) {
             return NextResponse.json({ message: "Not found or unauthorized" }, { status: 404 })
         }
 
-        // Manual cascade delete because Prisma MongoDB relations are emulated
-        // 1. Delete Responses (via Attempts) - wait, responses are linked to attempts.
-        // We need to find all attempts first.
-        const attempts = await prisma.attempt.findMany({ where: { examId: id }, select: { id: true } })
-        const attemptIds = attempts.map(a => a.id)
+        // Manual cascade delete
+        // 1. Delete Responses (via Attempts)
+        const attempts = await Attempt.find({ examId: id }).select('_id')
+        const attemptIds = attempts.map(a => a._id)
 
         if (attemptIds.length > 0) {
-            await prisma.response.deleteMany({ where: { attemptId: { in: attemptIds } } })
-            await prisma.attempt.deleteMany({ where: { examId: id } })
+            await Response.deleteMany({ attemptId: { $in: attemptIds } })
+            await Attempt.deleteMany({ examId: id })
         }
 
         // 2. Delete Options (via Questions)
-        // Questions have onDelete: Cascade from Exam? No, Question has `exam Exam @relation(..., onDelete: Cascade)`
-        // So deleting Exam should delete Questions.
-        // And Option has `question Question @relation(..., onDelete: Cascade)`
-        // So deleting Question should delete Options.
-        // Prisma Client handles this for us if configured correctly in schema.
-        // Let's rely on Prisma's cascade for Questions/Options/LateCodes if they are configured.
-        // LateCode has onDelete: Cascade.
+        const questions = await Question.find({ examId: id }).select('_id')
+        const questionIds = questions.map(q => q._id)
 
-        // But Attempt does NOT have cascade. We deleted it above.
+        if (questionIds.length > 0) {
+            await Option.deleteMany({ questionId: { $in: questionIds } })
+            await Question.deleteMany({ examId: id })
+        }
 
-        await prisma.exam.delete({ where: { id } })
+        // 3. Delete Late Codes
+        await LateCode.deleteMany({ examId: id })
+
+        // 4. Delete Exam
+        await Exam.findByIdAndDelete(id)
 
         return NextResponse.json({ message: "Exam deleted successfully" })
     } catch (error: any) {

@@ -1,4 +1,6 @@
-import { prisma } from "@/lib/prisma"
+import connectDB from "@/lib/mongodb"
+import Exam from "@/models/Exam"
+import Attempt from "@/models/Attempt"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { Plus, Users, Clock, FileText, ArrowRight, TrendingUp } from "lucide-react"
@@ -8,33 +10,35 @@ import { format } from "date-fns"
 export default async function TeacherDashboard() {
     const session = await getServerSession(authOptions)
 
+    await connectDB()
+
     // Fetch stats
-    const examsCount = await prisma.exam.count({
-        where: { createdById: session?.user?.id },
+    const examsCount = await Exam.countDocuments({
+        createdById: session?.user?.id,
     })
 
-    const activeExams = await prisma.exam.findMany({
-        where: {
-            createdById: session?.user?.id,
-            startTime: { lte: new Date() },
-            endTime: { gte: new Date() },
-        },
-        include: {
-            _count: {
-                select: { attempts: true },
-            },
-        },
-    })
+    const now = new Date()
+    const activeExams = await Exam.find({
+        createdById: session?.user?.id,
+        startTime: { $lte: now },
+        endTime: { $gte: now },
+    }).lean()
+
+    // Get attempt counts for active exams
+    const activeExamsWithCounts = await Promise.all(
+        activeExams.map(async (exam) => {
+            const attemptCount = await Attempt.countDocuments({ examId: exam._id })
+            return {
+                ...exam,
+                id: exam._id.toString(),
+                _count: { attempts: attemptCount }
+            }
+        })
+    )
 
     // Calculate total students (unique users who attempted exams)
-    const uniqueStudents = await prisma.attempt.findMany({
-        where: {
-            exam: {
-                createdById: session?.user?.id
-            }
-        },
-        distinct: ['userId'],
-        select: { userId: true }
+    const uniqueStudents = await Attempt.distinct('userId', {
+        examId: { $in: await Exam.find({ createdById: session?.user?.id }).distinct('_id') }
     })
     const totalStudents = uniqueStudents.length
 
@@ -116,7 +120,7 @@ export default async function TeacherDashboard() {
                         </Link>
                     </div>
 
-                    {activeExams.length === 0 ? (
+                    {activeExamsWithCounts.length === 0 ? (
                         <div className="bg-white dark:bg-gray-800 p-10 rounded-3xl border border-gray-100 dark:border-gray-700 text-center">
                             <div className="w-16 h-16 bg-gray-50 dark:bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <Clock className="h-8 w-8 text-gray-400" />
@@ -126,7 +130,7 @@ export default async function TeacherDashboard() {
                         </div>
                     ) : (
                         <div className="space-y-4">
-                            {activeExams.map((exam) => (
+                            {activeExamsWithCounts.map((exam) => (
                                 <div key={exam.id} className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 flex items-center justify-between shadow-sm hover:shadow-md transition-all group">
                                     <div className="flex items-center gap-4">
                                         <div className="h-12 w-12 bg-blue-50 dark:bg-blue-900/20 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-lg">

@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import connectDB from "@/lib/mongodb"
+import Attempt from "@/models/Attempt"
+import Exam from "@/models/Exam"
+import Response from "@/models/Response"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 
@@ -10,24 +13,26 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
             return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
         }
 
+        await connectDB()
+
         const { id } = await params
 
         // Verify attempt belongs to an exam created by this teacher
-        const attempt = await prisma.attempt.findUnique({
-            where: { id },
-            include: { exam: true },
-        })
+        const attempt = await Attempt.findById(id)
 
         if (!attempt) {
             return NextResponse.json({ message: "Attempt not found" }, { status: 404 })
         }
 
-        if (attempt.exam.createdById !== session.user.id) {
+        const exam = await Exam.findById(attempt.examId)
+
+        if (!exam || exam.createdById.toString() !== session.user.id) {
             return NextResponse.json({ message: "Unauthorized" }, { status: 403 })
         }
 
-        // Prisma schema has onDelete: Cascade for Response -> Attempt, so this is safe
-        await prisma.attempt.delete({ where: { id } })
+        // Delete responses first (manual cascade)
+        await Response.deleteMany({ attemptId: id })
+        await Attempt.findByIdAndDelete(id)
 
         return NextResponse.json({ message: "Attempt deleted" })
     } catch (error: any) {

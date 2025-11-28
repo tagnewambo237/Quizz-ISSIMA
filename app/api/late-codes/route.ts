@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import connectDB from "@/lib/mongodb"
+import LateCode from "@/models/LateCode"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { randomBytes } from "crypto"
@@ -11,17 +12,17 @@ export async function POST(req: Request) {
             return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
         }
 
+        await connectDB()
+
         const { examId } = await req.json()
 
         const code = randomBytes(3).toString("hex").toUpperCase()
 
-        const lateCode = await prisma.lateCode.create({
-            data: {
-                code,
-                examId,
-                usagesRemaining: 1, // Default to 1 use
-                // expiresAt: ... optional
-            },
+        const lateCode = await LateCode.create({
+            code,
+            examId,
+            usagesRemaining: 1, // Default to 1 use
+            // expiresAt: ... optional
         })
 
         return NextResponse.json({ code: lateCode }, { status: 201 })

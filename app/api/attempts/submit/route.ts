@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import connectDB from "@/lib/mongodb"
+import Attempt from "@/models/Attempt"
+import Response from "@/models/Response"
+import Question from "@/models/Question"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 
@@ -10,14 +13,13 @@ export async function POST(req: Request) {
             return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
         }
 
+        await connectDB()
+
         const { attemptId } = await req.json()
 
-        const attempt = await prisma.attempt.findUnique({
-            where: { id: attemptId },
-            include: { responses: { include: { question: true } } },
-        })
+        const attempt = await Attempt.findById(attemptId)
 
-        if (!attempt || attempt.userId !== session.user.id) {
+        if (!attempt || attempt.userId.toString() !== session.user.id) {
             return NextResponse.json({ message: "Invalid attempt" }, { status: 403 })
         }
 
@@ -25,27 +27,30 @@ export async function POST(req: Request) {
             return NextResponse.json({ message: "Already completed" })
         }
 
+        // Get all responses for this attempt
+        const responses = await Response.find({ attemptId }).lean()
+
         // Calculate score
         let score = 0
         console.log(`[SUBMIT] Calculating score for attempt ${attemptId}`)
-        console.log(`[SUBMIT] Total responses: ${attempt.responses.length}`)
+        console.log(`[SUBMIT] Total responses: ${responses.length}`)
 
-        attempt.responses.forEach((r) => {
-            console.log(`[SUBMIT] Response ${r.id}: isCorrect=${r.isCorrect}, points=${r.question.points}`)
-            if (r.isCorrect) {
-                score += r.question.points
+        for (const response of responses) {
+            const question = await Question.findById(response.questionId)
+            if (question) {
+                console.log(`[SUBMIT] Response ${response._id}: isCorrect=${response.isCorrect}, points=${question.points}`)
+                if (response.isCorrect) {
+                    score += question.points
+                }
             }
-        })
+        }
 
         console.log(`[SUBMIT] Final score: ${score}`)
 
-        await prisma.attempt.update({
-            where: { id: attemptId },
-            data: {
-                status: "COMPLETED",
-                submittedAt: new Date(),
-                score,
-            },
+        await Attempt.findByIdAndUpdate(attemptId, {
+            status: "COMPLETED",
+            submittedAt: new Date(),
+            score,
         })
 
         return NextResponse.json({ message: "Submitted", score })

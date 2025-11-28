@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import connectDB from "@/lib/mongodb"
+import Exam from "@/models/Exam"
+import Attempt from "@/models/Attempt"
+import LateCode from "@/models/LateCode"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { addMinutes } from "date-fns"
@@ -12,26 +15,24 @@ export async function POST(req: Request) {
             return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
         }
 
+        await connectDB()
+
         const { examId, lateCode } = await req.json()
 
-        const exam = await prisma.exam.findUnique({
-            where: { id: examId },
-        })
+        const exam = await Exam.findById(examId)
 
         if (!exam) {
             return NextResponse.json({ message: "Exam not found" }, { status: 404 })
         }
 
         // Check for existing attempt
-        const existingAttempt = await prisma.attempt.findFirst({
-            where: {
-                examId,
-                userId: session.user.id,
-            },
+        const existingAttempt = await Attempt.findOne({
+            examId,
+            userId: session.user.id,
         })
 
         if (existingAttempt) {
-            return NextResponse.json({ attemptId: existingAttempt.id, message: "Resuming attempt" })
+            return NextResponse.json({ attemptId: existingAttempt._id.toString(), message: "Resuming attempt" })
         }
 
         const now = new Date()
@@ -57,18 +58,15 @@ export async function POST(req: Request) {
                 }
 
                 // Validate late code
-                const codeRecord = await prisma.lateCode.findUnique({
-                    where: { code: lateCode },
-                })
+                const codeRecord = await LateCode.findOne({ code: lateCode })
 
-                if (!codeRecord || codeRecord.examId !== examId || codeRecord.usagesRemaining <= 0) {
+                if (!codeRecord || codeRecord.examId.toString() !== examId || codeRecord.usagesRemaining <= 0) {
                     return NextResponse.json({ message: "Invalid or expired late code" }, { status: 403 })
                 }
 
                 // Decrement usage
-                await prisma.lateCode.update({
-                    where: { id: codeRecord.id },
-                    data: { usagesRemaining: { decrement: 1 } },
+                await LateCode.findByIdAndUpdate(codeRecord._id, {
+                    $inc: { usagesRemaining: -1 }
                 })
             }
         }
@@ -77,16 +75,14 @@ export async function POST(req: Request) {
         const resumeToken = randomBytes(16).toString("hex")
         const expiresAt = addMinutes(now, exam.duration)
 
-        const attempt = await prisma.attempt.create({
-            data: {
-                examId,
-                userId: session.user.id,
-                expiresAt,
-                resumeToken,
-            },
+        const attempt = await Attempt.create({
+            examId,
+            userId: session.user.id,
+            expiresAt,
+            resumeToken,
         })
 
-        return NextResponse.json({ attemptId: attempt.id, resumeToken }, { status: 201 })
+        return NextResponse.json({ attemptId: attempt._id.toString(), resumeToken }, { status: 201 })
     } catch (error: any) {
         console.error(error)
         return NextResponse.json(

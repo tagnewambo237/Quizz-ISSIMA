@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import connectDB from "@/lib/mongodb"
+import Exam from "@/models/Exam"
+import Question from "@/models/Question"
+import Option from "@/models/Option"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { z } from "zod"
@@ -33,33 +36,40 @@ export async function POST(req: Request) {
             return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
         }
 
+        await connectDB()
+
         const body = await req.json()
         const data = examSchema.parse(body)
 
-        const exam = await prisma.exam.create({
-            data: {
-                title: data.title,
-                description: data.description,
-                startTime: new Date(data.startTime),
-                endTime: new Date(data.endTime),
-                duration: data.duration,
-                closeMode: data.closeMode,
-                createdById: session.user.id,
-                questions: {
-                    create: data.questions.map((q) => ({
-                        text: q.text,
-                        imageUrl: q.imageUrl || null,
-                        points: q.points,
-                        options: {
-                            create: q.options.map((o) => ({
-                                text: o.text,
-                                isCorrect: o.isCorrect,
-                            })),
-                        },
-                    })),
-                },
-            },
+        // Create exam
+        const exam = await Exam.create({
+            title: data.title,
+            description: data.description,
+            startTime: new Date(data.startTime),
+            endTime: new Date(data.endTime),
+            duration: data.duration,
+            closeMode: data.closeMode,
+            createdById: session.user.id,
         })
+
+        // Create questions with options
+        for (const questionData of data.questions) {
+            const question = await Question.create({
+                examId: exam._id,
+                text: questionData.text,
+                imageUrl: questionData.imageUrl || undefined,
+                points: questionData.points,
+            })
+
+            // Create options for this question
+            await Option.insertMany(
+                questionData.options.map((o) => ({
+                    questionId: question._id,
+                    text: o.text,
+                    isCorrect: o.isCorrect,
+                }))
+            )
+        }
 
         return NextResponse.json({ message: "Exam created", exam }, { status: 201 })
     } catch (error: any) {
