@@ -1,4 +1,7 @@
-import { prisma } from "@/lib/prisma"
+import connectDB from "@/lib/mongodb"
+import Exam from "@/models/Exam"
+import Attempt from "@/models/Attempt"
+import Question from "@/models/Question"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { notFound, redirect } from "next/navigation"
@@ -8,17 +11,26 @@ export default async function ExamLobbyPage({ params }: { params: Promise<{ id: 
     const session = await getServerSession(authOptions)
     if (!session) redirect("/login")
 
+    await connectDB()
+
     const { id } = await params
 
-    const exam = await prisma.exam.findUnique({
-        where: { id },
-        include: {
-            _count: { select: { questions: true } },
-            attempts: {
-                where: { userId: session.user.id },
-            },
-        },
-    })
+    const examDoc = await Exam.findById(id).lean()
+
+    if (!examDoc) notFound()
+
+    const questionCount = await Question.countDocuments({ examId: id })
+    const attempts = await Attempt.find({
+        examId: id,
+        userId: session.user.id
+    }).lean()
+
+    const exam = {
+        ...examDoc,
+        id: examDoc._id.toString(),
+        _count: { questions: questionCount },
+        attempts: attempts.map(a => ({ ...a, id: a._id.toString() }))
+    }
 
     if (!exam) notFound()
 

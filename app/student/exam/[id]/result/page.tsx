@@ -1,4 +1,7 @@
-import { prisma } from "@/lib/prisma"
+import connectDB from "@/lib/mongodb"
+import Exam from "@/models/Exam"
+import Question from "@/models/Question"
+import Attempt from "@/models/Attempt"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { notFound, redirect } from "next/navigation"
@@ -9,23 +12,28 @@ export default async function ResultPage({ params }: { params: Promise<{ id: str
     const session = await getServerSession(authOptions)
     if (!session) redirect("/login")
 
+    await connectDB()
+
     const { id } = await params
 
-    const exam = await prisma.exam.findUnique({
-        where: { id },
-        include: {
-            questions: true,
-        },
-    })
+    const examDoc = await Exam.findById(id).lean()
 
-    if (!exam) notFound()
+    if (!examDoc) notFound()
 
-    const attempt = await prisma.attempt.findFirst({
-        where: {
-            examId: id,
-            userId: session.user.id,
-        },
-    })
+    const questionsDoc = await Question.find({ examId: id }).lean()
+
+    const exam = {
+        ...examDoc,
+        id: examDoc._id.toString(),
+        questions: questionsDoc.map(q => ({ ...q, id: q._id.toString() }))
+    }
+
+    const attemptDoc = await Attempt.findOne({
+        examId: id,
+        userId: session.user.id,
+    }).lean()
+
+    const attempt = attemptDoc ? { ...attemptDoc, id: attemptDoc._id.toString() } : null
 
     if (!attempt || attempt.status !== "COMPLETED") {
         redirect(`/student/exam/${exam.id}/lobby`)

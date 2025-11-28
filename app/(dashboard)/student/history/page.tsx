@@ -1,4 +1,6 @@
-import { prisma } from "@/lib/prisma"
+import connectDB from "@/lib/mongodb"
+import Attempt from "@/models/Attempt"
+import Exam from "@/models/Exam"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { Clock, Calendar, CheckCircle, XCircle, Trophy, ArrowLeft } from "lucide-react"
@@ -8,18 +10,26 @@ import { format } from "date-fns"
 export default async function StudentHistoryPage() {
     const session = await getServerSession(authOptions)
 
-    const attempts = await prisma.attempt.findMany({
-        where: {
-            userId: session?.user?.id,
-            status: "COMPLETED"
-        },
-        include: {
-            exam: true
-        },
-        orderBy: {
-            submittedAt: "desc"
+    await connectDB()
+
+    const attemptsDoc = await Attempt.find({
+        userId: session?.user?.id,
+        status: "COMPLETED"
+    }).sort({ submittedAt: -1 }).lean()
+
+    // Populate exams
+    const examIds = [...new Set(attemptsDoc.map(a => a.examId.toString()))]
+    const exams = await Exam.find({ _id: { $in: examIds } }).lean()
+    const examsMap = new Map(exams.map(e => [e._id.toString(), e]))
+
+    const attempts = attemptsDoc.map(a => ({
+        ...a,
+        id: a._id.toString(),
+        exam: {
+            ...examsMap.get(a.examId.toString()),
+            id: examsMap.get(a.examId.toString())?._id.toString()
         }
-    })
+    })).filter(a => a.exam) // Filter out attempts where exam might have been deleted
 
     return (
         <div className="space-y-8 pb-10 max-w-5xl mx-auto">

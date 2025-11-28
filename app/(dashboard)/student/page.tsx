@@ -1,4 +1,7 @@
-import { prisma } from "@/lib/prisma"
+import connectDB from "@/lib/mongodb"
+import Exam from "@/models/Exam"
+import Attempt from "@/models/Attempt"
+import Question from "@/models/Question"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { Trophy, Star, BookOpen, Flame } from "lucide-react"
@@ -8,22 +11,32 @@ import { ExamCard } from "@/components/student/ExamCard"
 export default async function StudentDashboard() {
     const session = await getServerSession(authOptions)
 
+    await connectDB()
+
     // Fetch all exams
-    const exams = await prisma.exam.findMany({
-        orderBy: { startTime: "asc" },
-        include: {
-            attempts: {
-                where: { userId: session?.user?.id },
-            },
-            _count: {
-                select: { questions: true }
+    const exams = await Exam.find({}).sort({ startTime: 1 }).lean()
+
+    // Fetch attempts for this user
+    const attempts = await Attempt.find({ userId: session?.user?.id }).lean()
+
+    // Get question counts for each exam
+    const examsWithData = await Promise.all(
+        exams.map(async (exam) => {
+            const questionCount = await Question.countDocuments({ examId: exam._id })
+            const userAttempt = attempts.find(a => a.examId.toString() === exam._id.toString())
+
+            return {
+                ...exam,
+                id: exam._id.toString(),
+                attempts: userAttempt ? [userAttempt] : [],
+                _count: { questions: questionCount }
             }
-        },
-    })
+        })
+    )
 
     // Calculate stats
-    const completedExams = exams.filter(e => e.attempts[0]?.status === "COMPLETED").length
-    const totalPoints = exams.reduce((acc, exam) => {
+    const completedExams = examsWithData.filter(e => e.attempts[0]?.status === "COMPLETED").length
+    const totalPoints = examsWithData.reduce((acc, exam) => {
         const attempt = exam.attempts[0]
         return acc + (attempt?.score || 0)
     }, 0)
@@ -41,7 +54,7 @@ export default async function StudentDashboard() {
                         Welcome back, {session?.user?.name}! 👋
                     </h1>
                     <p className="text-indigo-100 text-lg max-w-2xl">
-                        Ready to challenge yourself? You have <span className="font-bold text-white">{exams.filter(e => isPast(e.startTime) && !isPast(e.endTime) && !e.attempts[0]).length} active exams</span> waiting for you.
+                        Ready to challenge yourself? You have <span className="font-bold text-white">{examsWithData.filter(e => isPast(e.startTime) && !isPast(e.endTime) && !e.attempts[0]).length} active exams</span> waiting for you.
                     </p>
 
                     <div className="flex gap-6 mt-8">
@@ -76,7 +89,7 @@ export default async function StudentDashboard() {
                     </h2>
 
                     <div className="space-y-4">
-                        {exams.length === 0 ? (
+                        {examsWithData.length === 0 ? (
                             <div className="bg-white dark:bg-gray-800 rounded-3xl p-12 text-center border-2 border-dashed border-gray-200 dark:border-gray-700">
                                 <div className="w-20 h-20 bg-gray-50 dark:bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
                                     <BookOpen className="h-10 w-10 text-gray-400" />
@@ -87,7 +100,7 @@ export default async function StudentDashboard() {
                                 </p>
                             </div>
                         ) : (
-                            exams.map((exam) => {
+                            examsWithData.map((exam) => {
                                 const attempt = exam.attempts[0]
                                 const isStarted = isPast(exam.startTime)
                                 const isEnded = isPast(exam.endTime)

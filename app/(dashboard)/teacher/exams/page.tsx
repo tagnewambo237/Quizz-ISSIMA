@@ -1,4 +1,6 @@
-import { prisma } from "@/lib/prisma"
+import connectDB from "@/lib/mongodb"
+import Exam from "@/models/Exam"
+import Attempt from "@/models/Attempt"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { format } from "date-fns"
@@ -9,15 +11,22 @@ import { ExamCardActions } from "@/components/dashboard/ExamCardActions"
 export default async function TeacherExamsPage() {
     const session = await getServerSession(authOptions)
 
-    const exams = await prisma.exam.findMany({
-        where: { createdById: session?.user?.id },
-        orderBy: { createdAt: "desc" },
-        include: {
+    await connectDB()
+
+    const examsData = await Exam.find({
+        createdById: session?.user?.id
+    }).sort({ createdAt: -1 }).lean()
+
+    const exams = await Promise.all(examsData.map(async (exam) => {
+        const attemptsCount = await Attempt.countDocuments({ examId: exam._id })
+        return {
+            ...exam,
+            id: exam._id.toString(),
             _count: {
-                select: { attempts: true },
-            },
-        },
-    })
+                attempts: attemptsCount
+            }
+        }
+    }))
 
     return (
         <div className="space-y-8">

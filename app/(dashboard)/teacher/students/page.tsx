@@ -1,4 +1,7 @@
-import { prisma } from "@/lib/prisma"
+import connectDB from "@/lib/mongodb"
+import Exam from "@/models/Exam"
+import Attempt from "@/models/Attempt"
+import User from "@/models/User"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { Users, Search, Mail, GraduationCap } from "lucide-react"
@@ -6,22 +9,25 @@ import { Users, Search, Mail, GraduationCap } from "lucide-react"
 export default async function TeacherStudentsPage() {
     const session = await getServerSession(authOptions)
 
-    // Find all students who have attempted exams created by this teacher
-    // This is a bit complex with Prisma, so we'll fetch attempts on teacher's exams
-    const attempts = await prisma.attempt.findMany({
-        where: {
-            exam: {
-                createdById: session?.user?.id
-            }
-        },
-        include: {
-            user: true,
-            exam: true
-        },
-        distinct: ['userId'] // Get unique students
-    })
+    await connectDB()
 
-    const students = attempts.map(a => a.user)
+    // Find all students who have attempted exams created by this teacher
+    const teacherExamIds = await Exam.find({ createdById: session?.user?.id }).distinct('_id')
+
+    const attempts = await Attempt.find({
+        examId: { $in: teacherExamIds }
+    }).lean()
+
+    const studentIds = [...new Set(attempts.map(a => a.userId.toString()))]
+
+    const studentsData = await User.find({
+        _id: { $in: studentIds }
+    }).lean()
+
+    const students = studentsData.map(s => ({
+        ...s,
+        id: s._id.toString()
+    }))
 
     return (
         <div className="space-y-8">
