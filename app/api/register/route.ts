@@ -5,16 +5,26 @@ import bcrypt from "bcryptjs"
 import { z } from "zod"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
+import { registrationLimiter, getClientIdentifier, createRateLimitResponse } from "@/lib/security/rateLimiter"
+import { sanitizeString, sanitizeEmail, validatePassword } from "@/lib/security/sanitize"
 
 const registerSchema = z.object({
-    name: z.string().min(2),
+    name: z.string().min(2).max(100),
     email: z.string().email(),
-    password: z.string().min(6),
+    password: z.string().min(8).max(128),
     role: z.enum(["STUDENT", "TEACHER"]),
 })
 
 export async function POST(req: Request) {
     try {
+        // Apply rate limiting
+        const identifier = getClientIdentifier(req)
+        const rateLimitResult = registrationLimiter(identifier)
+
+        if (!rateLimitResult.success) {
+            return createRateLimitResponse(rateLimitResult.resetTime)
+        }
+
         const session = await getServerSession(authOptions)
 
         if (!session) {
@@ -27,7 +37,25 @@ export async function POST(req: Request) {
         await connectDB()
 
         const body = await req.json()
-        const { name, email, password, role } = registerSchema.parse(body)
+
+        // Sanitize inputs before validation
+        const sanitizedBody = {
+            name: sanitizeString(body.name),
+            email: sanitizeEmail(body.email),
+            password: body.password, // Don't sanitize password, just validate
+            role: body.role
+        }
+
+        const { name, email, password, role } = registerSchema.parse(sanitizedBody)
+
+        // Additional password validation
+        const passwordValidation = validatePassword(password)
+        if (!passwordValidation.valid) {
+            return NextResponse.json(
+                { message: passwordValidation.message },
+                { status: 400 }
+            )
+        }
 
         const existingUser = await User.findOne({ email })
 

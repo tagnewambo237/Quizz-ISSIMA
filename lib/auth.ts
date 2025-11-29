@@ -1,9 +1,20 @@
 import { NextAuthOptions } from "next-auth"
-import CredentialsProvider from "next-auth/providers/credentials"
-import connectDB from "@/lib/mongodb"
+import { authStrategyManager } from "./auth/strategies/AuthStrategyManager"
 import User from "@/models/User"
-import bcrypt from "bcryptjs"
+import connectDB from "@/lib/mongodb"
 
+/**
+ * NextAuth Configuration with Strategy Pattern
+ *
+ * This configuration uses the Strategy Pattern to manage authentication providers.
+ * All providers are managed through AuthStrategyManager.
+ *
+ * To add a new authentication provider:
+ * 1. Create a new strategy class in lib/auth/strategies/
+ * 2. Register it in AuthStrategyManager
+ * 3. Add required environment variables
+ * 4. That's it! The provider will automatically appear in the UI
+ */
 export const authOptions: NextAuthOptions = {
     secret: process.env.NEXTAUTH_SECRET,
     session: {
@@ -12,49 +23,37 @@ export const authOptions: NextAuthOptions = {
     },
     pages: {
         signIn: "/login",
+        error: "/login", // Redirect to login page on error
     },
     debug: process.env.NODE_ENV === "development",
-    providers: [
-        CredentialsProvider({
-            name: "Credentials",
-            credentials: {
-                email: { label: "Email", type: "email" },
-                password: { label: "Password", type: "password" },
-            },
-            async authorize(credentials) {
-                if (!credentials?.email || !credentials?.password) {
-                    return null
-                }
 
-                await connectDB()
+    // Get all enabled providers from Strategy Manager
+    providers: authStrategyManager.getEnabledProviders(),
 
-                const user = await User.findOne({
-                    email: credentials.email,
-                })
-
-                if (!user) {
-                    return null
-                }
-
-                const isPasswordValid = await bcrypt.compare(
-                    credentials.password,
-                    user.password
-                )
-
-                if (!isPasswordValid) {
-                    return null
-                }
-
-                return {
-                    id: user._id.toString(),
-                    email: user.email,
-                    name: user.name,
-                    role: user.role,
-                }
-            },
-        }),
-    ],
     callbacks: {
+        /**
+         * Handle sign-in
+         * Delegates to the appropriate strategy
+         */
+        async signIn({ user, account, profile }) {
+            if (!account || !profile) return true
+
+            // For OAuth providers, handle user creation/update
+            if (account.provider !== "credentials") {
+                const success = await authStrategyManager.handleSignIn(
+                    account.provider,
+                    profile,
+                    account
+                )
+                return success
+            }
+
+            return true
+        },
+
+        /**
+         * Redirect after authentication
+         */
         async redirect({ url, baseUrl }) {
             // Allows relative callback URLs
             if (url.startsWith("/")) return `${baseUrl}${url}`
@@ -62,20 +61,72 @@ export const authOptions: NextAuthOptions = {
             else if (new URL(url).origin === baseUrl) return url
             return baseUrl
         },
+
+        /**
+         * Session callback - add user data to session
+         */
         async session({ session, token }) {
-            if (token) {
+            if (token && session.user) {
                 session.user.id = token.id as string
-                session.user.role = token.role as string
+                session.user.role = token.role
                 session.user.name = token.name as string
+                session.user.image = token.picture as string
             }
             return session
         },
-        async jwt({ token, user }) {
+
+        /**
+         * JWT callback - add user data to token
+         */
+        async jwt({ token, user, account, profile }) {
+            // Initial sign in
             if (user) {
-                token.id = user.id
-                token.role = user.role
+                // Fetch user from DB to get the role
+                // We need to do this because we're not using a database adapter
+                // so the 'user' object here doesn't have our DB fields
+                try {
+                    const dbUser = await User.findOne({ email: user.email })
+                    if (dbUser) {
+                        token.id = dbUser._id.toString()
+                        token.role = dbUser.role
+                        token.name = dbUser.name
+                        token.picture = dbUser.image
+                    }
+                } catch (error) {
+                    console.error("Error fetching user in JWT callback:", error)
+                }
+            } else if (token.email) {
+                // On subsequent calls, check if role has been updated (e.g. after onboarding)
+                // This ensures the session updates immediately after role selection
+                try {
+                    const dbUser = await User.findOne({ email: token.email })
+                    if (dbUser && dbUser.role !== token.role) {
+                        token.role = dbUser.role
+                    }
+                } catch (error) {
+                    console.error("Error refreshing user role:", error)
+                }
             }
+
             return token
         },
     },
+
+    // Events for logging and debugging
+    events: {
+        async signIn({ user, account, profile, isNewUser }) {
+            console.log(`[Auth] User signed in: ${user.email} via ${account?.provider}`)
+            if (isNewUser) {
+                console.log(`[Auth] New user created: ${user.email}`)
+            }
+        },
+        async signOut({ token }) {
+            console.log(`[Auth] User signed out: ${token.email}`)
+        },
+    },
 }
+
+/**
+ * Export Strategy Manager for use in other parts of the app
+ */
+export { authStrategyManager }

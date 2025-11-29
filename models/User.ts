@@ -9,9 +9,13 @@ export interface IUser extends Document {
     _id: mongoose.Types.ObjectId
     name: string
     email: string
-    password: string
-    role: Role
+    password?: string // Optional for OAuth users
+    role?: Role
     studentCode?: string
+    image?: string // Profile picture
+    googleId?: string // Google OAuth ID
+    githubId?: string // GitHub OAuth ID
+    emailVerified?: boolean // Email verification status
     createdAt: Date
     updatedAt: Date
 }
@@ -29,12 +33,30 @@ const UserSchema = new Schema<IUser>(
         },
         password: {
             type: String,
-            required: true,
+            required: false, // Not required for OAuth users
+        },
+        image: {
+            type: String,
+            required: false,
+        },
+        googleId: {
+            type: String,
+            unique: true,
+            sparse: true,
+        },
+        githubId: {
+            type: String,
+            unique: true,
+            sparse: true,
+        },
+        emailVerified: {
+            type: Boolean,
+            default: false,
         },
         role: {
             type: String,
             enum: Object.values(Role),
-            default: Role.STUDENT,
+            // No default role - must be selected during onboarding
         },
         studentCode: {
             type: String,

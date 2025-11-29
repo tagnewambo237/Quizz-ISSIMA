@@ -10,7 +10,9 @@ export default async function DashboardPage() {
     }
 
     // Redirect based on user role
-    if (session.user.role === "TEACHER") {
+    if (!session.user.role) {
+        redirect("/onboarding")
+    } else if (session.user.role === "TEACHER") {
         redirect("/teacher")
     } else {
         redirect("/student")

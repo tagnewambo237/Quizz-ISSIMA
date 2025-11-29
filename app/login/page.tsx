@@ -1,18 +1,38 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { Loader2, Lock, Eye, EyeOff } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { OAuthButtons } from "@/components/auth/OAuthButtons"
+
+interface OAuthProvider {
+    id: string
+    name: string
+    icon?: string
+}
 
 export default function LoginPage() {
     const router = useRouter()
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState("")
     const [showPassword, setShowPassword] = useState(false)
+    const [oauthProviders, setOAuthProviders] = useState<OAuthProvider[]>([])
+    const [loadingProviders, setLoadingProviders] = useState(true)
+
+    // Fetch available OAuth providers
+    useEffect(() => {
+        fetch("/api/auth/providers-info")
+            .then(res => res.json())
+            .then(data => {
+                setOAuthProviders(data.providers || [])
+            })
+            .catch(err => console.error("Failed to fetch providers:", err))
+            .finally(() => setLoadingProviders(false))
+    }, [])
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
@@ -63,6 +83,24 @@ export default function LoginPage() {
                     <p className="text-center text-gray-500 dark:text-gray-400 mb-8">
                         Sign in to access your exams
                     </p>
+
+                    {/* OAuth Buttons */}
+                    {!loadingProviders && oauthProviders.length > 0 && (
+                        <>
+                            <OAuthButtons providers={oauthProviders} callbackUrl="/dashboard" />
+
+                            <div className="relative my-6">
+                                <div className="absolute inset-0 flex items-center">
+                                    <div className="w-full border-t border-gray-200 dark:border-gray-700" />
+                                </div>
+                                <div className="relative flex justify-center text-sm">
+                                    <span className="px-4 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                                        Ou continuez avec email
+                                    </span>
+                                </div>
+                            </div>
+                        </>
+                    )}
 
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
