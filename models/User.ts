@@ -1,73 +1,94 @@
 import mongoose, { Schema, Document, Model } from 'mongoose'
-
-export enum Role {
-    STUDENT = 'STUDENT',
-    TEACHER = 'TEACHER'
-}
+import { UserRole, SubSystem } from './enums'
 
 export interface IUser extends Document {
     _id: mongoose.Types.ObjectId
     name: string
     email: string
     password?: string // Optional for OAuth users
-    role?: Role
+    role: UserRole
+    subSystem?: SubSystem
+    institution?: string
+
+    // OAuth
+    googleId?: string
+    githubId?: string
+
+    // Security
+    emailVerified?: boolean
+    isActive: boolean
+    lastLogin?: Date
+    loginAttempts: number
+    lockedUntil?: Date
+
+    // Preferences
+    preferences: {
+        language: string
+        timezone?: string
+        notifications: {
+            email: boolean
+            push: boolean
+        }
+    }
+
+    // Metadata
+    metadata: {
+        avatar?: string
+        phone?: string
+        address?: string
+    }
+
+    // Legacy fields (kept for compatibility during migration)
     studentCode?: string
-    image?: string // Profile picture
-    googleId?: string // Google OAuth ID
-    githubId?: string // GitHub OAuth ID
-    emailVerified?: boolean // Email verification status
+    image?: string
+
     createdAt: Date
     updatedAt: Date
 }
 
 const UserSchema = new Schema<IUser>(
     {
-        name: {
-            type: String,
-            required: true,
+        name: { type: String, required: true },
+        email: { type: String, required: true, unique: true },
+        password: { type: String, required: false },
+        role: { type: String, enum: Object.values(UserRole), required: false }, // Optional during onboarding
+        subSystem: { type: String, enum: Object.values(SubSystem) },
+        institution: String,
+
+        googleId: { type: String, unique: true, sparse: true },
+        githubId: { type: String, unique: true, sparse: true },
+
+        emailVerified: { type: Boolean, default: false },
+        isActive: { type: Boolean, default: true },
+        lastLogin: Date,
+        loginAttempts: { type: Number, default: 0 },
+        lockedUntil: Date,
+
+        preferences: {
+            language: { type: String, default: 'fr' },
+            timezone: String,
+            notifications: {
+                email: { type: Boolean, default: true },
+                push: { type: Boolean, default: true }
+            }
         },
-        email: {
-            type: String,
-            required: true,
-            unique: true,
+
+        metadata: {
+            avatar: String,
+            phone: String,
+            address: String
         },
-        password: {
-            type: String,
-            required: false, // Not required for OAuth users
-        },
-        image: {
-            type: String,
-            required: false,
-        },
-        googleId: {
-            type: String,
-            unique: true,
-            sparse: true,
-        },
-        githubId: {
-            type: String,
-            unique: true,
-            sparse: true,
-        },
-        emailVerified: {
-            type: Boolean,
-            default: false,
-        },
-        role: {
-            type: String,
-            enum: Object.values(Role),
-            // No default role - must be selected during onboarding
-        },
-        studentCode: {
-            type: String,
-            unique: true,
-            sparse: true, // Allows null values while maintaining uniqueness
-        },
+
+        // Legacy
+        studentCode: { type: String, unique: true, sparse: true },
+        image: String
     },
-    {
-        timestamps: true,
-    }
+    { timestamps: true }
 )
+
+// Indexes
+UserSchema.index({ role: 1, isActive: 1 })
+UserSchema.index({ subSystem: 1, institution: 1 })
 
 // Prevent model recompilation in development
 const User: Model<IUser> = mongoose.models.User || mongoose.model<IUser>('User', UserSchema)
