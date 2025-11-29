@@ -13,7 +13,7 @@ const examSchema = z.object({
     startTime: z.string(),
     endTime: z.string(),
     duration: z.coerce.number().min(1),
-    closeMode: z.enum(["STRICT", "PERMISSIVE"]),
+    closeMode: z.enum(["STRICT", "PERMISSIVE"]).default("STRICT"),
     questions: z.array(
         z.object({
             text: z.string().min(1),
@@ -71,9 +71,27 @@ export async function POST(req: Request) {
             )
         }
 
-        return NextResponse.json({ message: "Exam created", exam }, { status: 201 })
+        return NextResponse.json({
+            message: "Exam created",
+            exam: {
+                id: exam._id.toString(),
+                title: exam.title,
+                description: exam.description,
+                startTime: exam.startTime.toISOString(),
+                endTime: exam.endTime.toISOString(),
+                duration: exam.duration,
+                closeMode: exam.closeMode,
+                createdById: exam.createdById.toString(),
+            }
+        }, { status: 201 })
     } catch (error: any) {
         console.error(error)
+        if (error.name === 'ZodError') {
+            return NextResponse.json(
+                { message: "Invalid input data" },
+                { status: 400 }
+            )
+        }
         return NextResponse.json(
             { message: error.message || "Something went wrong" },
             { status: 500 }
