@@ -89,7 +89,7 @@ export default async function ExamReviewPage({ params }: { params: Promise<{ att
             id: r._id.toString(),
             attemptId: r.attemptId.toString(),
             questionId: r.questionId.toString(),
-            selectedOptionId: r.selectedOptionId.toString(),
+            selectedOptionId: r.selectedOptionId?.toString() || "",
             isCorrect: r.isCorrect,
         }))
     }

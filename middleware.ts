@@ -12,7 +12,13 @@ export default withAuth(
 
         if (isAuthPage) {
             if (isAuth) {
-                response = NextResponse.redirect(new URL("/dashboard", req.url))
+                // If user has no role, go to onboarding
+                if (!token?.role) {
+                    response = NextResponse.redirect(new URL("/onboarding", req.url))
+                } else {
+                    const target = token.role === "TEACHER" ? "/teacher" : "/student"
+                    response = NextResponse.redirect(new URL(target, req.url))
+                }
             } else {
                 response = NextResponse.next()
             }
@@ -20,14 +26,13 @@ export default withAuth(
             response = NextResponse.redirect(new URL("/login", req.url))
         } else {
             // Check if user needs onboarding (no role)
-            // Note: We need to ensure the token has the role. 
-            // If the role is missing in the token, it means the user hasn't selected one yet.
             if (!token?.role && !req.nextUrl.pathname.startsWith("/onboarding")) {
                 response = NextResponse.redirect(new URL("/onboarding", req.url))
             }
-            // If user has role but tries to access onboarding, redirect to dashboard
+            // If user has role but tries to access onboarding, redirect to specific dashboard
             else if (token?.role && req.nextUrl.pathname.startsWith("/onboarding")) {
-                response = NextResponse.redirect(new URL("/dashboard", req.url))
+                const target = token.role === "TEACHER" ? "/teacher" : "/student"
+                response = NextResponse.redirect(new URL(target, req.url))
             }
             // Role based protection
             else if (req.nextUrl.pathname.startsWith("/teacher") && token?.role !== "TEACHER") {

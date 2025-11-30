@@ -1,0 +1,146 @@
+import LearnerProfile, { ILearnerProfile } from "@/models/LearnerProfile"
+import PedagogicalProfile, { IPedagogicalProfile } from "@/models/PedagogicalProfile"
+import User from "@/models/User"
+import { UserRole } from "@/models/enums"
+import mongoose from "mongoose"
+
+export class ProfileService {
+    /**
+     * Retrieves the learner profile for a given user ID.
+     * Populates relevant references.
+     */
+    static async getLearnerProfile(userId: string): Promise<ILearnerProfile | null> {
+        return await LearnerProfile.findOne({ user: userId })
+            .populate('currentLevel', 'name code cycle')
+            .populate('currentField', 'name code')
+            .populate('stats.strongSubjects', 'name code')
+            .populate('stats.weakSubjects', 'name code')
+            .lean()
+    }
+
+    /**
+     * Retrieves the pedagogical profile for a given user ID.
+     * Populates relevant references.
+     */
+    static async getPedagogicalProfile(userId: string): Promise<IPedagogicalProfile | null> {
+        return await PedagogicalProfile.findOne({ user: userId })
+            .populate('teachingSubjects', 'name code')
+            .populate('interventionLevels', 'name code cycle')
+            .populate('interventionFields', 'name code')
+            .lean()
+    }
+
+    /**
+     * Updates a learner profile.
+     */
+    static async updateLearnerProfile(userId: string, data: Partial<ILearnerProfile>): Promise<ILearnerProfile | null> {
+        const profile = await LearnerProfile.findOneAndUpdate(
+            { user: userId },
+            { $set: data },
+            { new: true, runValidators: true }
+        )
+        return profile
+    }
+
+    /**
+     * Updates a pedagogical profile.
+     */
+    static async updatePedagogicalProfile(userId: string, data: Partial<IPedagogicalProfile>): Promise<IPedagogicalProfile | null> {
+        const profile = await PedagogicalProfile.findOneAndUpdate(
+            { user: userId },
+            { $set: data },
+            { new: true, runValidators: true }
+        )
+        return profile
+    }
+
+    /**
+     * Gets the appropriate profile based on the user's role.
+     */
+    static async getUserProfile(userId: string): Promise<{ user: any, profile: any }> {
+        const user = await User.findById(userId).select('-password').lean()
+        if (!user) throw new Error("User not found")
+
+        let profile = null
+        if (user.role === UserRole.STUDENT) {
+            profile = await this.getLearnerProfile(userId)
+        } else {
+            profile = await this.getPedagogicalProfile(userId)
+        }
+
+        return { user, profile }
+    }
+
+    /**
+     * Gets aggregated statistics for a learner profile
+     */
+    static async getLearnerStats(userId: string): Promise<any> {
+        const profile = await LearnerProfile.findOne({ user: userId })
+            .populate('stats.strongSubjects', 'name code')
+            .populate('stats.weakSubjects', 'name code')
+            .lean()
+
+        if (!profile) return null
+
+        // Récupérer des stats supplémentaires depuis Attempt/Response si nécessaire
+        // TODO: Ajouter agrégations MongoDB pour stats avancées
+
+        return {
+            basic: {
+                totalExamsTaken: profile.stats.totalExamsTaken,
+                averageScore: profile.stats.averageScore,
+                totalStudyTime: profile.stats.totalStudyTime,
+                lastActivityDate: profile.stats.lastActivityDate
+            },
+            subjects: {
+                strong: profile.stats.strongSubjects,
+                weak: profile.stats.weakSubjects
+            },
+            gamification: {
+                level: profile.gamification.level,
+                xp: profile.gamification.xp,
+                badges: profile.gamification.badges,
+                streak: profile.gamification.streak
+            },
+            subscription: {
+                status: profile.subscriptionStatus,
+                expiry: profile.subscriptionExpiry
+            }
+        }
+    }
+
+    /**
+     * Gets aggregated statistics for a pedagogical profile
+     */
+    static async getPedagogicalStats(userId: string): Promise<any> {
+        const profile = await PedagogicalProfile.findOne({ user: userId })
+            .populate('teachingSubjects', 'name code')
+            .populate('interventionLevels', 'name code')
+            .populate('interventionFields', 'name code')
+            .lean()
+
+        if (!profile) return null
+
+        return {
+            basic: {
+                totalExamsCreated: profile.stats.totalExamsCreated,
+                totalExamsValidated: profile.stats.totalExamsValidated,
+                totalStudentsSupervised: profile.stats.totalStudentsSupervised,
+                averageStudentScore: profile.stats.averageStudentScore,
+                lastActivityDate: profile.stats.lastActivityDate
+            },
+            teaching: {
+                subjects: profile.teachingSubjects,
+                levels: profile.interventionLevels,
+                fields: profile.interventionFields
+            },
+            access: {
+                scope: profile.accessScope,
+                reportingAccess: profile.reportingAccess,
+                contributionTypes: profile.contributionTypes
+            },
+            qualifications: profile.qualifications
+        }
+    }
+}
+

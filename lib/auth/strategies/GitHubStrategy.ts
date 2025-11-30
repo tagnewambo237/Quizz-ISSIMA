@@ -3,6 +3,7 @@ import { Provider } from "next-auth/providers/index"
 import { BaseAuthStrategy } from "./AuthStrategy"
 import connectDB from "@/lib/mongodb"
 import User from "@/models/User"
+import { UserRole } from "@/models/enums"
 
 /**
  * GitHub OAuth Authentication Strategy
@@ -38,7 +39,7 @@ export class GitHubAuthStrategy extends BaseAuthStrategy {
                 user.githubId = profile.id
 
                 if (!user.role) {
-                    user.role = "STUDENT"
+                    user.role = UserRole.STUDENT
                 }
 
                 await user.save()

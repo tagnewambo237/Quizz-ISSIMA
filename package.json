@@ -12,7 +12,10 @@
     "test:coverage": "jest --coverage",
     "test:unit": "jest __tests__/unit",
     "test:integration": "jest __tests__/integration",
-    "test:components": "jest __tests__/components"
+    "test:components": "jest __tests__/components",
+    "seed": "ts-node scripts/seed/index.ts",
+    "seed:clean": "ts-node scripts/seed/index.ts --clean",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -57,6 +60,7 @@
     "msw": "^2.12.3",
     "tailwindcss": "^4",
     "ts-jest": "^29.4.5",
+    "ts-node": "^10.9.2",
     "typescript": "^5"
   }
 }

@@ -77,7 +77,7 @@ export default async function ExamTakePage({ params }: { params: Promise<{ id: s
                 id: r._id.toString(),
                 attemptId: r.attemptId.toString(),
                 questionId: r.questionId.toString(),
-                selectedOptionId: r.selectedOptionId.toString(),
+                selectedOptionId: r.selectedOptionId?.toString() || "",
                 isCorrect: r.isCorrect,
             }))
         }

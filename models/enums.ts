@@ -4,6 +4,11 @@ export enum SubSystem {
     BILINGUAL = 'BILINGUAL'
 }
 
+export enum CloseMode {
+    STRICT = 'STRICT',      // Ferme automatiquement à l'heure exacte
+    PERMISSIVE = 'PERMISSIVE' // Autorise les soumissions tardives avec code
+}
+
 export enum Cycle {
     COLLEGE = 'COLLEGE',      // 6ème → 3ème
     LYCEE = 'LYCEE',          // 2nde → Tle
@@ -33,6 +38,38 @@ export enum DifficultyLevel {
     INTERMEDIATE = 'INTERMEDIATE',
     ADVANCED = 'ADVANCED',
     EXPERT = 'EXPERT'
+}
+
+export enum PedagogicalObjective {
+    DIAGNOSTIC_EVAL = 'DIAGNOSTIC_EVAL',           // Évaluation diagnostique
+    FORMATIVE_EVAL = 'FORMATIVE_EVAL',             // Évaluation formative
+    SUMMATIVE_EVAL = 'SUMMATIVE_EVAL',             // Évaluation sommative
+    SELF_ASSESSMENT = 'SELF_ASSESSMENT',           // Auto-évaluation
+    COMPETENCY_VALIDATION = 'COMPETENCY_VALIDATION', // Validation de compétence
+    REMEDIATION = 'REMEDIATION',                   // Remédiation
+    EVALUATE = 'EVALUATE',                         // Évaluer
+    REVISE = 'REVISE',                             // Réviser
+    TRAIN = 'TRAIN',                               // S'entraîner
+    PREP_EXAM = 'PREP_EXAM',                       // Préparer un examen
+    CONTINUOUS_VALIDATION = 'CONTINUOUS_VALIDATION' // Validation continue
+}
+
+export enum EvaluationType {
+    QCM = 'QCM',                    // Questions à choix multiples
+    TRUE_FALSE = 'TRUE_FALSE',      // Vrai/Faux
+    OPEN_QUESTION = 'OPEN_QUESTION', // Question ouverte
+    CASE_STUDY = 'CASE_STUDY',      // Étude de cas
+    EXAM_SIMULATION = 'EXAM_SIMULATION', // Simulation d'examen
+    ADAPTIVE = 'ADAPTIVE',          // Évaluation adaptative
+    MIXED = 'MIXED'                 // Mixte
+}
+
+export enum ExamStatus {
+    DRAFT = 'DRAFT',                         // Brouillon
+    PENDING_VALIDATION = 'PENDING_VALIDATION', // En attente de validation
+    VALIDATED = 'VALIDATED',                 // Validé par l'inspecteur
+    PUBLISHED = 'PUBLISHED',                 // Publié et accessible
+    ARCHIVED = 'ARCHIVED'                    // Archivé
 }
 
 export enum CompetencyType {
