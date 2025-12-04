@@ -1,9 +1,9 @@
-import Attempt, { IAttempt } from "@/models/Attempt"
+import Attempt, { IAttempt, AttemptStatus, AntiCheatEventType } from "@/models/Attempt"
 import Response from "@/models/Response"
 import Exam from "@/models/Exam"
 import Question from "@/models/Question"
+import Option from "@/models/Option"
 import LearnerProfile from "@/models/LearnerProfile"
-import { AttemptStatus } from "@/models/enums"
 import { EvaluationStrategyFactory } from "@/lib/patterns/EvaluationStrategy"
 import { publishEvent } from "@/lib/events/EventPublisher"
 import { EventType } from "@/lib/events/types"
@@ -41,7 +41,7 @@ export class AttemptService {
             const attemptCount = await Attempt.countDocuments({
                 examId: exam._id,
                 userId: new mongoose.Types.ObjectId(userId),
-                status: { $in: [AttemptStatus.COMPLETED, AttemptStatus.IN_PROGRESS] }
+                status: { $in: [AttemptStatus.COMPLETED, AttemptStatus.STARTED] }
             })
 
             if (attemptCount >= exam.config.maxAttempts) {
@@ -75,15 +75,13 @@ export class AttemptService {
         const attempt = await Attempt.create({
             examId: exam._id,
             userId: new mongoose.Types.ObjectId(userId),
-            status: AttemptStatus.IN_PROGRESS,
+            status: AttemptStatus.STARTED,
             startedAt: now,
+            expiresAt: exam.endTime || new Date(now.getTime() + (exam.duration || 60) * 60 * 1000),
             resumeToken,
             antiCheatEvents: [],
-            config: {
-                shuffleQuestions: exam.config.shuffleQuestions,
-                shuffleOptions: exam.config.shuffleOptions,
-                antiCheat: exam.config.antiCheat
-            }
+            tabSwitchCount: 0,
+            suspiciousActivityDetected: false
         })
 
         // Publier un événement
@@ -106,7 +104,7 @@ export class AttemptService {
         return {
             attemptId: attempt._id,
             resumeToken,
-            config: attempt.config,
+            config: exam.config,
             startedAt: attempt.startedAt,
             duration: exam.duration
         }
@@ -148,7 +146,7 @@ export class AttemptService {
         }
 
         // Vérifier que la tentative est toujours en cours
-        if (attempt.status !== AttemptStatus.IN_PROGRESS) {
+        if (attempt.status !== AttemptStatus.STARTED) {
             throw new Error("Attempt is not in progress")
         }
 
@@ -167,7 +165,7 @@ export class AttemptService {
     static async recordAntiCheatEvent(
         attemptId: string,
         userId: string,
-        eventType: string,
+        eventType: AntiCheatEventType,
         eventData?: any
     ) {
         const attempt = await Attempt.findById(attemptId)
@@ -179,7 +177,7 @@ export class AttemptService {
         }
 
         // Vérifier que la tentative est en cours
-        if (attempt.status !== AttemptStatus.IN_PROGRESS) {
+        if (attempt.status !== AttemptStatus.STARTED) {
             throw new Error("Attempt is not in progress")
         }
 
@@ -187,7 +185,7 @@ export class AttemptService {
         const event = {
             type: eventType,
             timestamp: new Date(),
-            data: eventData
+            metadata: eventData
         }
 
         attempt.antiCheatEvents.push(event)
@@ -196,16 +194,16 @@ export class AttemptService {
         const exam = await Exam.findById(attempt.examId)
         if (exam && exam.config.antiCheat.maxTabSwitches) {
             const tabSwitchCount = attempt.antiCheatEvents.filter(
-                e => e.type === 'tab_switch'
+                e => e.type === AntiCheatEventType.TAB_SWITCH
             ).length
 
             if (tabSwitchCount > exam.config.antiCheat.maxTabSwitches) {
                 // Auto-soumettre la tentative
-                attempt.status = AttemptStatus.FLAGGED
+                attempt.status = AttemptStatus.ABANDONED
                 attempt.submittedAt = new Date()
                 await attempt.save()
 
-                throw new Error("Maximum tab switches exceeded. Attempt has been flagged.")
+                throw new Error("Maximum tab switches exceeded. Attempt has been abandoned.")
             }
         }
 
@@ -236,7 +234,7 @@ export class AttemptService {
         }
 
         // Vérifier que la tentative est en cours
-        if (attempt.status !== AttemptStatus.IN_PROGRESS) {
+        if (attempt.status !== AttemptStatus.STARTED) {
             throw new Error("Attempt is not in progress")
         }
 
@@ -245,25 +243,32 @@ export class AttemptService {
 
         // Récupérer toutes les questions
         const questions = await Question.find({ examId: exam._id }).lean()
+        const questionIds = questions.map(q => q._id)
+
+        // Récupérer toutes les options pour ces questions
+        const allOptions = await Option.find({ questionId: { $in: questionIds } }).lean()
 
         // Sauvegarder les réponses
-        const savedResponses = []
+        const savedResponses: any[] = []
         for (const resp of responses) {
             const question = questions.find(q => q._id.toString() === resp.questionId)
             if (!question) continue
 
             // Déterminer si la réponse est correcte
             let isCorrect = false
-            if (question.type === 'QCM' || question.type === 'TRUE_FALSE') {
-                const correctOption = question.options?.find(opt => opt.isCorrect)
-                isCorrect = correctOption?._id?.toString() === resp.selectedOptionId
+            if (resp.selectedOptionId) {
+                // Trouver l'option sélectionnée
+                const selectedOption = allOptions.find(opt =>
+                    opt._id.toString() === resp.selectedOptionId &&
+                    opt.questionId.toString() === resp.questionId
+                )
+                isCorrect = selectedOption?.isCorrect || false
             }
 
             const response = await Response.create({
                 attemptId: attempt._id,
                 questionId: new mongoose.Types.ObjectId(resp.questionId),
                 selectedOptionId: resp.selectedOptionId ? new mongoose.Types.ObjectId(resp.selectedOptionId) : undefined,
-                textAnswer: resp.textAnswer,
                 isCorrect,
                 timeSpent: resp.timeSpent || 0,
                 answeredAt: new Date()

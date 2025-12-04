@@ -1,61 +1,37 @@
-import connectDB from "@/lib/mongodb"
-import Exam from "@/models/Exam"
-import Question from "@/models/Question"
-import Option from "@/models/Option"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
-import { notFound, redirect } from "next/navigation"
-import { ExamForm } from "@/components/dashboard/ExamForm"
+"use client"
 
-export default async function EditExamPage({ params }: { params: Promise<{ id: string }> }) {
-    const session = await getServerSession(authOptions)
-    if (!session || session.user.role !== "TEACHER") redirect("/login")
+import { useParams, useRouter } from "next/navigation"
+import { RoleGuard } from "@/components/guards/RoleGuard"
+import { UserRole } from "@/models/enums"
+import { Button } from "@/components/ui/button"
+import { ArrowLeft } from "lucide-react"
+import Link from "next/link"
 
-    await connectDB()
+export default function EditExamPage() {
+    const params = useParams()
+    const router = useRouter()
 
-    const { id } = await params
+    return (
+        <RoleGuard allowedRoles={[UserRole.TEACHER, UserRole.INSPECTOR]}>
+            <div className="p-8">
+                <div className="max-w-5xl mx-auto">
+                    <Link href={`/teacher/exams/${params.id}`}>
+                        <Button variant="ghost" className="mb-4">
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            Retour
+                        </Button>
+                    </Link>
 
-    const examDoc = await Exam.findById(id).lean()
+                    <h1 className="text-3xl font-bold mb-8">Modifier l'Examen</h1>
 
-    if (!examDoc) notFound()
-
-    // Fetch questions
-    const questionsDoc = await Question.find({ examId: id }).lean()
-
-    // Fetch options for all questions
-    const questionIds = questionsDoc.map(q => q._id)
-    const optionsDoc = await Option.find({ questionId: { $in: questionIds } }).lean()
-
-    // Reconstruct the nested object structure
-    const exam = {
-        id: examDoc._id.toString(),
-        title: examDoc.title,
-        description: examDoc.description,
-        startTime: examDoc.startTime.toISOString(),
-        endTime: examDoc.endTime.toISOString(),
-        duration: examDoc.duration,
-        closeMode: examDoc.closeMode,
-        createdById: examDoc.createdById.toString(),
-        createdAt: examDoc.createdAt.toISOString(),
-        updatedAt: examDoc.updatedAt.toISOString(),
-        questions: questionsDoc.map(q => ({
-            id: q._id.toString(),
-            examId: q.examId.toString(),
-            text: q.text,
-            imageUrl: q.imageUrl,
-            points: q.points,
-            options: optionsDoc
-                .filter(o => o.questionId.toString() === q._id.toString())
-                .map(o => ({
-                    id: o._id.toString(),
-                    questionId: o.questionId.toString(),
-                    text: o.text,
-                    isCorrect: o.isCorrect,
-                }))
-        }))
-    }
-
-    if (!exam || exam.createdById.toString() !== session.user.id) notFound()
-
-    return <ExamForm initialData={exam} />
+                    <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-6">
+                        <p className="text-yellow-800 dark:text-yellow-200">
+                            Fonctionnalité d'édition en cours de développement.
+                            Pour l'instant, vous pouvez créer un nouvel examen ou archiver celui-ci.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </RoleGuard>
+    )
 }

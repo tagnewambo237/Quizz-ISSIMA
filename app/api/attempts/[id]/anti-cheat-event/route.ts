@@ -14,7 +14,7 @@ import { AttemptService } from "@/lib/services/AttemptService"
  */
 export async function POST(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const session = await getServerSession(authOptions)
@@ -26,6 +26,7 @@ export async function POST(
         }
 
         await connectDB()
+        const { id } = await params
 
         const { type, data } = await req.json()
 
@@ -54,7 +55,7 @@ export async function POST(
         }
 
         const result = await AttemptService.recordAntiCheatEvent(
-            params.id,
+            id,
             session.user.id,
             type,
             data

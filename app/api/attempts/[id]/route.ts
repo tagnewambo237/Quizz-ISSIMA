@@ -10,7 +10,7 @@ import { AttemptService } from "@/lib/services/AttemptService"
  */
 export async function GET(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const session = await getServerSession(authOptions)
@@ -22,8 +22,9 @@ export async function GET(
         }
 
         await connectDB()
+        const { id } = await params
 
-        const attempt = await AttemptService.getAttempt(params.id, session.user.id)
+        const attempt = await AttemptService.getAttempt(id, session.user.id)
 
         return NextResponse.json({
             success: true,

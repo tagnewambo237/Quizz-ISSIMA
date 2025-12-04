@@ -15,10 +15,12 @@ interface AccessControlProps {
 export function useAccessControl() {
     const { data: session, status } = useSession()
     const [pedagogicalProfile, setPedagogicalProfile] = useState<any>(null)
+    const [profileLoading, setProfileLoading] = useState(false)
 
     // Charger le profil pédagogique si l'utilisateur est un enseignant
     useEffect(() => {
-        if (session?.user?.role === UserRole.TEACHER && !pedagogicalProfile) {
+        if (session?.user?.role === UserRole.TEACHER && !pedagogicalProfile && !profileLoading) {
+            setProfileLoading(true)
             fetch('/api/profiles/pedagogical')
                 .then(res => res.json())
                 .then(data => {
@@ -27,6 +29,7 @@ export function useAccessControl() {
                     }
                 })
                 .catch(err => console.error("Failed to load profile for access control", err))
+                .finally(() => setProfileLoading(false))
         }
     }, [session, pedagogicalProfile])
 
@@ -98,7 +101,7 @@ export function useAccessControl() {
 
     return {
         isAuthenticated: status === "authenticated",
-        isLoading: status === "loading" || (session?.user?.role === UserRole.TEACHER && !pedagogicalProfile),
+        isLoading: status === "loading" || (session?.user?.role === UserRole.TEACHER && profileLoading),
         user: session?.user,
         hasRole,
         hasAccess

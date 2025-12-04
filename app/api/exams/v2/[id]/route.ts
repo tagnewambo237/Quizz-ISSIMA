@@ -11,15 +11,16 @@ import { ExamServiceV2 } from "@/lib/services/ExamServiceV2"
  */
 export async function GET(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         await connectDB()
+        const { id } = await params
 
         const { searchParams } = new URL(req.url)
         const includeQuestions = searchParams.get('includeQuestions') === 'true'
 
-        const exam = await ExamServiceV2.getExamById(params.id, includeQuestions)
+        const exam = await ExamServiceV2.getExamById(id, includeQuestions)
 
         if (!exam) {
             return NextResponse.json(
@@ -47,7 +48,7 @@ export async function GET(
  */
 export async function PUT(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const session = await getServerSession(authOptions)
@@ -59,10 +60,11 @@ export async function PUT(
         }
 
         await connectDB()
+        const { id } = await params
         const updateData = await req.json()
 
         const updatedExam = await ExamServiceV2.updateExam(
-            params.id,
+            id,
             updateData,
             session.user.id
         )
@@ -102,7 +104,7 @@ export async function PUT(
  */
 export async function DELETE(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const session = await getServerSession(authOptions)
@@ -114,8 +116,9 @@ export async function DELETE(
         }
 
         await connectDB()
+        const { id } = await params
 
-        const result = await ExamServiceV2.deleteExam(params.id, session.user.id)
+        const result = await ExamServiceV2.deleteExam(id, session.user.id)
 
         return NextResponse.json({
             success: true,

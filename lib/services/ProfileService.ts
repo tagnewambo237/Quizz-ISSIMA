@@ -142,5 +142,39 @@ export class ProfileService {
             qualifications: profile.qualifications
         }
     }
+
+    /**
+     * Retrieves recent activities for a user (teacher/admin)
+     */
+    static async getRecentActivities(userId: string, limit: number = 5): Promise<any[]> {
+        const Exam = mongoose.model('Exam')
+
+        // 1. Fetch recent exams created
+        const recentExams = await Exam.find({ createdById: userId })
+            .sort({ createdAt: -1 })
+            .limit(limit)
+            .populate('subject', 'name')
+            .populate('targetLevels', 'name')
+            .lean()
+
+        // Transform to activity format
+        const activities = recentExams.map((exam: any) => ({
+            id: exam._id.toString(),
+            type: 'EXAM_CREATED',
+            title: 'Nouvel examen créé',
+            description: `${exam.subject?.name || 'Matière inconnue'} - ${exam.targetLevels?.map((l: any) => l.name).join(', ') || 'Niveaux inconnus'}`,
+            timestamp: exam.createdAt,
+            user: { name: 'Moi' }, // Since it's the current user's activity
+            metadata: {
+                examId: exam._id.toString(),
+                status: exam.status
+            }
+        }))
+
+        // TODO: Add other types of activities (validations, publications, etc.)
+        // For now, we just return exam creations
+
+        return activities
+    }
 }
 

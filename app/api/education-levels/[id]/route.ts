@@ -8,12 +8,13 @@ import { EducationStructureService } from "@/lib/services/EducationStructureServ
  */
 export async function GET(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        await connectDB()
+                const { id } = await params
+await connectDB()
 
-        const level = await EducationStructureService.getEducationLevelById(params.id)
+        const level = await EducationStructureService.getEducationLevelById(id)
 
         if (!level) {
             return NextResponse.json(
@@ -41,7 +42,7 @@ export async function GET(
  */
 export async function PUT(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         // TODO: Implémenter la mise à jour
@@ -64,7 +65,7 @@ export async function PUT(
  */
 export async function DELETE(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         // TODO: Implémenter la suppression (soft delete: isActive = false)

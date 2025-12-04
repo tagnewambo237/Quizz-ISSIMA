@@ -3,17 +3,9 @@ import connectDB from "@/lib/mongodb"
 import User from "@/models/User"
 import bcrypt from "bcryptjs"
 import { z } from "zod"
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth"
 import { registrationLimiter, getClientIdentifier, createRateLimitResponse } from "@/lib/security/rateLimiter"
 import { sanitizeString, sanitizeEmail, validatePassword } from "@/lib/security/sanitize"
 
-const registerSchema = z.object({
-    name: z.string().min(2).max(100),
-    email: z.string().email(),
-    password: z.string().min(8).max(128),
-    role: z.enum(["STUDENT", "TEACHER"]),
-})
 
 export async function POST(req: Request) {
     try {
@@ -25,15 +17,6 @@ export async function POST(req: Request) {
             return createRateLimitResponse(rateLimitResult.resetTime)
         }
 
-        const session = await getServerSession(authOptions)
-
-        if (!session) {
-            return NextResponse.json(
-                { message: "Unauthorized" },
-                { status: 401 }
-            )
-        }
-
         await connectDB()
 
         const body = await req.json()
@@ -43,10 +26,16 @@ export async function POST(req: Request) {
             name: sanitizeString(body.name),
             email: sanitizeEmail(body.email),
             password: body.password, // Don't sanitize password, just validate
-            role: body.role
         }
 
-        const { name, email, password, role } = registerSchema.parse(sanitizedBody)
+        // Updated schema - no role required during registration
+        const registerSchema = z.object({
+            name: z.string().min(2).max(100),
+            email: z.string().email(),
+            password: z.string().min(8).max(128),
+        })
+
+        const { name, email, password } = registerSchema.parse(sanitizedBody)
 
         // Additional password validation
         const passwordValidation = validatePassword(password)
@@ -68,23 +57,21 @@ export async function POST(req: Request) {
 
         const hashedPassword = await bcrypt.hash(password, 10)
 
+        // Create user without role - will be set during onboarding
         const user = await User.create({
             name,
             email,
             password: hashedPassword,
-            role,
-            studentCode: role === "STUDENT" ? Math.random().toString(36).substring(2, 10).toUpperCase() : undefined,
+            // role will be undefined, set during onboarding
         })
 
         return NextResponse.json(
             {
-                message: "User created successfully",
+                message: "User created successfully. Please complete onboarding.",
                 user: {
                     id: user._id,
                     name: user.name,
                     email: user.email,
-                    role: user.role,
-                    studentCode: user.studentCode
                 }
             },
             { status: 201 }

@@ -13,8 +13,8 @@
     "test:unit": "jest __tests__/unit",
     "test:integration": "jest __tests__/integration",
     "test:components": "jest __tests__/components",
-    "seed": "ts-node scripts/seed/index.ts",
-    "seed:clean": "ts-node scripts/seed/index.ts --clean",
+    "seed": "tsx --env-file=.env scripts/seed/index.ts",
+    "seed:clean": "tsx --env-file=.env scripts/seed/index.ts --clean",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
@@ -61,6 +61,7 @@
     "tailwindcss": "^4",
     "ts-jest": "^29.4.5",
     "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
     "typescript": "^5"
   }
 }

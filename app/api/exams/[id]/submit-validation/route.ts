@@ -11,7 +11,7 @@ import { ExamWorkflowService } from "@/lib/services/ExamWorkflowService"
  */
 export async function POST(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const session = await getServerSession(authOptions)
@@ -23,9 +23,10 @@ export async function POST(
         }
 
         await connectDB()
+        const { id } = await params
 
         const exam = await ExamWorkflowService.submitForValidation(
-            params.id,
+            id,
             session.user.id
         )
 

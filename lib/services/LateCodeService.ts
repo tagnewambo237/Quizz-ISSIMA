@@ -1,4 +1,4 @@
-import LateCode, { ILateCode } from "@/models/LateCode"
+import LateCode, { ILateCode, LateCodeStatus } from "@/models/LateCode"
 import Exam from "@/models/Exam"
 import User from "@/models/User"
 import { UserRole } from "@/models/enums"
@@ -61,10 +61,10 @@ export class LateCodeService {
             assignedUserId: options.assignedUserId
                 ? new mongoose.Types.ObjectId(options.assignedUserId)
                 : undefined,
-            usagesRemaining: options.usagesRemaining || 1,
+            maxUsages: options.usagesRemaining || 1,
             expiresAt: options.expiresAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 jours par défaut
             reason: options.reason || "Late access granted",
-            isActive: true
+            status: LateCodeStatus.ACTIVE
         })
 
         // Publier un événement
@@ -99,7 +99,7 @@ export class LateCodeService {
         }
 
         // Vérifier que le code est actif
-        if (!lateCode.isActive) {
+        if (lateCode.status !== LateCodeStatus.ACTIVE) {
             throw new Error("Late code has been deactivated")
         }
 
@@ -119,8 +119,8 @@ export class LateCodeService {
         }
 
         // Vérifier que l'utilisateur n'a pas déjà utilisé ce code
-        const alreadyUsed = lateCode.usedBy.some(
-            usage => usage.userId.toString() === userId
+        const alreadyUsed = lateCode.usageHistory.some(
+            (usage) => usage.userId.toString() === userId
         )
 
         if (alreadyUsed) {
@@ -128,18 +128,13 @@ export class LateCodeService {
         }
 
         // Enregistrer l'utilisation
-        lateCode.usedBy.push({
+        lateCode.usageHistory.push({
             userId: new mongoose.Types.ObjectId(userId),
-            usedAt: new Date()
+            usedAt: new Date(),
+            attemptId: new mongoose.Types.ObjectId() // Sera mis à jour quand l'attempt est créé
         })
 
-        lateCode.usagesRemaining -= 1
-
-        // Désactiver si plus d'usages
-        if (lateCode.usagesRemaining === 0) {
-            lateCode.isActive = false
-        }
-
+        // Le pre-save hook du modèle mettra à jour usagesRemaining et status automatiquement
         await lateCode.save()
 
         // Publier un événement
@@ -195,8 +190,7 @@ export class LateCodeService {
             throw new Error("Unauthorized: Only the code generator can deactivate it")
         }
 
-        lateCode.isActive = false
-        await lateCode.save()
+        await lateCode.revoke(new mongoose.Types.ObjectId(userId))
 
         return { success: true, message: "Late code deactivated" }
     }
@@ -222,9 +216,9 @@ export class LateCodeService {
     static async hasValidLateAccess(examId: string, userId: string): Promise<boolean> {
         const lateCode = await LateCode.findOne({
             examId,
-            isActive: true,
+            status: LateCodeStatus.ACTIVE,
             expiresAt: { $gt: new Date() },
-            'usedBy.userId': new mongoose.Types.ObjectId(userId)
+            'usageHistory.userId': new mongoose.Types.ObjectId(userId)
         })
 
         return !!lateCode

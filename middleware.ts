@@ -29,8 +29,8 @@ export default withAuth(
             if (!token?.role && !req.nextUrl.pathname.startsWith("/onboarding")) {
                 response = NextResponse.redirect(new URL("/onboarding", req.url))
             }
-            // If user has role but tries to access onboarding, redirect to specific dashboard
-            else if (token?.role && req.nextUrl.pathname.startsWith("/onboarding")) {
+            // If user has role but tries to access main onboarding page (not subpages), redirect to dashboard
+            else if (token?.role && req.nextUrl.pathname === "/onboarding") {
                 const target = token.role === "TEACHER" ? "/teacher" : "/student"
                 response = NextResponse.redirect(new URL(target, req.url))
             }

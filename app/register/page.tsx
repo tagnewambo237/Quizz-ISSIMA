@@ -21,13 +21,13 @@ export default function RegisterPage() {
         const name = formData.get("name") as string
         const email = formData.get("email") as string
         const password = formData.get("password") as string
-        const role = formData.get("role") as string
 
         try {
+            // 1. Register the user
             const res = await fetch("/api/register", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name, email, password, role }),
+                body: JSON.stringify({ name, email, password }),
             })
 
             if (!res.ok) {
@@ -35,7 +35,20 @@ export default function RegisterPage() {
                 throw new Error(data.message || "Registration failed")
             }
 
-            router.push("/login")
+            // 2. Auto-login using NextAuth signIn
+            const { signIn } = await import("next-auth/react")
+            const result = await signIn("credentials", {
+                email,
+                password,
+                redirect: false,
+            })
+
+            if (result?.error) {
+                throw new Error("Registration successful but auto-login failed. Please login manually.")
+            }
+
+            // 3. Redirect to onboarding
+            router.push("/onboarding")
         } catch (err: any) {
             setError(err.message)
         } finally {
@@ -115,19 +128,6 @@ export default function RegisterPage() {
                                     )}
                                 </button>
                             </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Role
-                            </label>
-                            <select
-                                name="role"
-                                className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-secondary focus:border-transparent outline-none transition-all"
-                            >
-                                <option value="STUDENT">Student</option>
-                                <option value="TEACHER">Teacher</option>
-                            </select>
                         </div>
 
                         {error && (

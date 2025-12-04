@@ -85,6 +85,7 @@ export const authOptions: NextAuthOptions = {
                 // We need to do this because we're not using a database adapter
                 // so the 'user' object here doesn't have our DB fields
                 try {
+                    await connectDB()
                     const dbUser = await User.findOne({ email: user.email })
                     if (dbUser) {
                         token.id = dbUser._id.toString()
@@ -99,8 +100,10 @@ export const authOptions: NextAuthOptions = {
                 // On subsequent calls, check if role has been updated (e.g. after onboarding)
                 // This ensures the session updates immediately after role selection
                 try {
+                    await connectDB()
                     const dbUser = await User.findOne({ email: token.email })
                     if (dbUser && dbUser.role !== token.role) {
+                        console.log(`[Auth] Role updated for ${token.email}: ${token.role} -> ${dbUser.role}`)
                         token.role = dbUser.role
                     }
                 } catch (error) {

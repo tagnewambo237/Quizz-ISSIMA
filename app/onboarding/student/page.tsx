@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Loader2, ChevronRight, ChevronLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -14,6 +15,7 @@ import FieldSelector from "@/components/onboarding/FieldSelector"
 
 export default function StudentOnboardingPage() {
     const router = useRouter()
+    const { update } = useSession()
     const [step, setStep] = useState(1)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState("")
@@ -63,6 +65,11 @@ export default function StudentOnboardingPage() {
                 throw new Error(data.message || "Failed to complete onboarding")
             }
 
+            // Force session update to refresh the JWT token with the new role
+            // This triggers the JWT callback which fetches the updated role from DB
+            await update()
+
+            // Use window.location.href for a full page reload to ensure middleware picks up new role
             window.location.href = "/student"
         } catch (err: any) {
             setError(err.message)

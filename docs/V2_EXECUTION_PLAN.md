@@ -696,9 +696,10 @@ const { canEdit, canDelete } = useAccessControl({ resourceType: 'exam', resource
 
 ### 🟡 BLOC 3: Authentication & Onboarding - 2 Flows
 
-#### **Flow 16: Enhanced Registration**
+#### **Flow 16: Enhanced Registration** ✅
 **Dépendances:** Flow 8 (Educational API pour dropdowns)
 **Durée estimée:** 2h
+**Status:** ✅ Terminé
 **Fichiers à modifier:**
 - `app/register/page.tsx` (ajouter champs optionnels)
 - `app/api/register/route.ts` (handle new fields)
@@ -753,9 +754,10 @@ const { canEdit, canDelete } = useAccessControl({ resourceType: 'exam', resource
 
 ---
 
-#### **Flow 19: Advanced Exam Creator**
+#### **Flow 19: Advanced Exam Creator** ✅
 **Dépendances:** Flow 10 (Exam API), Flow 8 (Educational API)
 **Durée estimée:** 6-8h (le plus complexe !)
+**Status:** ✅ Terminé
 **Fichiers à créer:**
 - `app/(dashboard)/teacher/exams/create/page.tsx`
 - `components/exam-creator/Step1Classification.tsx`
@@ -763,8 +765,6 @@ const { canEdit, canDelete } = useAccessControl({ resourceType: 'exam', resource
 - `components/exam-creator/Step3Configuration.tsx`
 - `components/exam-creator/Step4QuestionEditor.tsx`
 - `components/exam-creator/Step5Preview.tsx`
-- `components/exam-creator/QuestionCard.tsx`
-- `components/exam-creator/RichTextEditor.tsx` (or use Tiptap)
 
 **Steps:**
 1. Classification: SubSystem → Level → Subject → LearningUnit
@@ -775,9 +775,10 @@ const { canEdit, canDelete } = useAccessControl({ resourceType: 'exam', resource
 
 ---
 
-#### **Flow 20: Exam Management Interface**
+#### **Flow 20: Exam Management Interface** ✅
 **Dépendances:** Flow 11 (Workflow API), Flow 13 (Late Code API)
 **Durée estimée:** 4h
+**Status:** ✅ Terminé
 **Fichiers à créer:**
 - `app/(dashboard)/teacher/exams/page.tsx` (list all exams)
 - `app/(dashboard)/teacher/exams/[id]/page.tsx` (exam details)
@@ -795,9 +796,10 @@ const { canEdit, canDelete } = useAccessControl({ resourceType: 'exam', resource
 
 ---
 
-#### **Flow 21: Results & Analytics Dashboard**
+#### **Flow 21: Results & Analytics Dashboard** ✅
 **Dépendances:** Flow 12 (Attempt API)
 **Durée estimée:** 4-5h
+**Status:** ✅ Terminé
 **Fichiers à créer:**
 - `app/(dashboard)/teacher/exams/[id]/results/page.tsx`
 - `components/analytics/ExamStats.tsx`

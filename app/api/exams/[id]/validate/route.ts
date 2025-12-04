@@ -12,7 +12,7 @@ import { UserRole } from "@/models/enums"
  */
 export async function POST(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const session = await getServerSession(authOptions)
@@ -33,9 +33,10 @@ export async function POST(
         }
 
         await connectDB()
+        const { id } = await params
 
         const exam = await ExamWorkflowService.validateExam(
-            params.id,
+            id,
             session.user.id,
             session.user.role as UserRole
         )
