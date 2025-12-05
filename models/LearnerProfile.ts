@@ -1,30 +1,43 @@
 import mongoose, { Schema, Document, Model } from 'mongoose'
-import { CognitiveProfile, LearnerType, SubscriptionStatus, LearningMode } from './enums'
+import {
+    CognitiveProfile,
+    LearnerType,
+    SubscriptionStatus,
+    LearningMode
+} from './enums'
 
 export interface ILearnerProfile extends Document {
-    user: mongoose.Types.ObjectId
-    currentLevel?: mongoose.Types.ObjectId
-    currentField?: mongoose.Types.ObjectId
-    enrollmentDate?: Date
+    _id: mongoose.Types.ObjectId
+    user: mongoose.Types.ObjectId // Ref: 'User'
+
+    // Parcours Académique
+    currentLevel: mongoose.Types.ObjectId // Ref: 'EducationLevel'
+    currentField?: mongoose.Types.ObjectId // Ref: 'Field'
+    enrollmentDate: Date
     expectedGraduationDate?: Date
 
+    // Profil Cognitif
     cognitiveProfile?: CognitiveProfile
     learnerType?: LearnerType
 
+    // Abonnement
     subscriptionStatus: SubscriptionStatus
     subscriptionExpiry?: Date
 
+    // Préférences d'Apprentissage
     preferredLearningMode?: LearningMode
 
+    // Statistiques (dénormalisées)
     stats: {
         totalExamsTaken: number
         averageScore: number
-        totalStudyTime: number // minutes
-        strongSubjects: mongoose.Types.ObjectId[]
-        weakSubjects: mongoose.Types.ObjectId[]
+        totalStudyTime: number
+        strongSubjects: mongoose.Types.ObjectId[] // Ref: 'Subject'
+        weakSubjects: mongoose.Types.ObjectId[] // Ref: 'Subject'
         lastActivityDate?: Date
     }
 
+    // Gamification
     gamification: {
         level: number
         xp: number
@@ -41,19 +54,47 @@ export interface ILearnerProfile extends Document {
 
 const LearnerProfileSchema = new Schema<ILearnerProfile>(
     {
-        user: { type: Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
-        currentLevel: { type: Schema.Types.ObjectId, ref: 'EducationLevel' },
-        currentField: { type: Schema.Types.ObjectId, ref: 'Field' },
-        enrollmentDate: Date,
+        user: {
+            type: Schema.Types.ObjectId,
+            ref: 'User',
+            required: true,
+            unique: true
+        },
+        currentLevel: {
+            type: Schema.Types.ObjectId,
+            ref: 'EducationLevel',
+            required: true
+        },
+        currentField: {
+            type: Schema.Types.ObjectId,
+            ref: 'Field'
+        },
+        enrollmentDate: {
+            type: Date,
+            default: Date.now
+        },
         expectedGraduationDate: Date,
 
-        cognitiveProfile: { type: String, enum: Object.values(CognitiveProfile) },
-        learnerType: { type: String, enum: Object.values(LearnerType) },
+        cognitiveProfile: {
+            type: String,
+            enum: Object.values(CognitiveProfile)
+        },
+        learnerType: {
+            type: String,
+            enum: Object.values(LearnerType)
+        },
 
-        subscriptionStatus: { type: String, enum: Object.values(SubscriptionStatus), default: SubscriptionStatus.FREEMIUM },
+        subscriptionStatus: {
+            type: String,
+            enum: Object.values(SubscriptionStatus),
+            default: SubscriptionStatus.FREEMIUM
+        },
         subscriptionExpiry: Date,
 
-        preferredLearningMode: { type: String, enum: Object.values(LearningMode) },
+        preferredLearningMode: {
+            type: String,
+            enum: Object.values(LearningMode)
+        },
 
         stats: {
             totalExamsTaken: { type: Number, default: 0 },
@@ -69,15 +110,18 @@ const LearnerProfileSchema = new Schema<ILearnerProfile>(
             xp: { type: Number, default: 0 },
             badges: [{
                 badgeId: String,
-                earnedAt: Date
+                earnedAt: { type: Date, default: Date.now }
             }],
             streak: { type: Number, default: 0 }
         }
     },
-    { timestamps: true }
+    {
+        timestamps: true
+    }
 )
 
 // Indexes
+LearnerProfileSchema.index({ user: 1 })
 LearnerProfileSchema.index({ currentLevel: 1, currentField: 1 })
 LearnerProfileSchema.index({ subscriptionStatus: 1 })
 

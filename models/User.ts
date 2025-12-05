@@ -9,6 +9,12 @@ export interface IUser extends Document {
     role: UserRole
     subSystem?: SubSystem
     institution?: string
+    schools?: mongoose.Types.ObjectId[] // Refs to School
+    teachingSyllabuses?: mongoose.Types.ObjectId[] // Refs to Syllabus
+
+    // Profiles
+    learnerProfile?: mongoose.Types.ObjectId // Ref: 'LearnerProfile'
+    pedagogicalProfile?: mongoose.Types.ObjectId // Ref: 'PedagogicalProfile'
 
     // OAuth
     googleId?: string
@@ -54,6 +60,11 @@ const UserSchema = new Schema<IUser>(
         role: { type: String, enum: Object.values(UserRole), required: false }, // Optional during onboarding
         subSystem: { type: String, enum: Object.values(SubSystem) },
         institution: String,
+        schools: [{ type: Schema.Types.ObjectId, ref: 'School' }],
+        teachingSyllabuses: [{ type: Schema.Types.ObjectId, ref: 'Syllabus' }],
+
+        learnerProfile: { type: Schema.Types.ObjectId, ref: 'LearnerProfile' },
+        pedagogicalProfile: { type: Schema.Types.ObjectId, ref: 'PedagogicalProfile' },
 
         googleId: { type: String, unique: true, sparse: true },
         githubId: { type: String, unique: true, sparse: true },

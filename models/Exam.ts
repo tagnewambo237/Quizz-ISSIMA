@@ -50,24 +50,6 @@ export interface ExamConfig {
 
 /**
  * Interface principale du modèle Exam V2
- *
- * @example
- * ```typescript
- * const exam = await Exam.create({
- *   title: "Contrôle de Mathématiques",
- *   subSystem: SubSystem.FRANCOPHONE,
- *   targetLevels: [level TleC_id],
- *   subject: mathSubject_id,
- *   pedagogicalObjective: PedagogicalObjective.SUMMATIVE_EVAL,
- *   evaluationType: EvaluationType.QCM,
- *   difficultyLevel: DifficultyLevel.INTERMEDIATE,
- *   startTime: new Date(),
- *   endTime: new Date(Date.now() + 2 * 60 * 60 * 1000),
- *   duration: 60,
- *   closeMode: CloseMode.PERMISSIVE,
- *   createdById: teacher_id
- * })
- * ```
  */
 export interface IExam extends Document {
     _id: mongoose.Types.ObjectId
@@ -81,6 +63,7 @@ export interface IExam extends Document {
     subSystem: SubSystem
     targetLevels: mongoose.Types.ObjectId[] // Références vers EducationLevel
     subject: mongoose.Types.ObjectId // Référence vers Subject
+    syllabus?: mongoose.Types.ObjectId // Référence vers Syllabus (NOUVEAU)
     learningUnit?: mongoose.Types.ObjectId // Référence vers LearningUnit (optionnel)
     targetFields?: mongoose.Types.ObjectId[] // Références vers Field (Séries/Filières)
     targetedCompetencies?: mongoose.Types.ObjectId[] // Références vers Competency
@@ -156,6 +139,10 @@ const ExamSchema = new Schema<IExam>(
             type: Schema.Types.ObjectId,
             ref: 'Subject',
             required: true
+        },
+        syllabus: {
+            type: Schema.Types.ObjectId,
+            ref: 'Syllabus'
         },
         learningUnit: {
             type: Schema.Types.ObjectId,
@@ -366,6 +353,7 @@ ExamSchema.index({ status: 1, isPublished: 1 }) // Filtrage par statut
 ExamSchema.index({ createdById: 1, status: 1 }) // Exams d'un teacher
 ExamSchema.index({ 'targetFields': 1 }) // Filtrage par série/filière
 ExamSchema.index({ 'targetedCompetencies': 1 }) // Filtrage par compétence
+ExamSchema.index({ syllabus: 1 }) // Filtrage par syllabus
 
 // Méthode pour calculer le total des points
 ExamSchema.methods.getTotalPoints = async function (): Promise<number> {

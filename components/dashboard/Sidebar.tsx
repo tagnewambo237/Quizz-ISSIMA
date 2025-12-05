@@ -3,10 +3,11 @@
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, PlusCircle, BookOpen, Users, Settings, LogOut } from "lucide-react"
+import { LayoutDashboard, PlusCircle, BookOpen, Users, Settings, LogOut, School, FileText, GraduationCap } from "lucide-react"
 import { signOut, useSession } from "next-auth/react"
 import { cn } from "@/lib/utils"
 import { ThemeToggle } from "@/components/ThemeToggle"
+import { Bell } from "lucide-react"
 
 export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () => void }) {
     const pathname = usePathname()
@@ -15,9 +16,11 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () =>
 
     const teacherLinks = [
         { href: "/teacher", label: "Overview", icon: LayoutDashboard },
-        { href: "/teacher/exams/create", label: "Create Exam", icon: PlusCircle },
-        { href: "/teacher/exams", label: "My Exams", icon: BookOpen },
-        { href: "/teacher/students", label: "Students", icon: Users },
+        { href: "/teacher/classes", label: "My Classes", icon: Users },
+        { href: "/teacher/school", label: "My School", icon: School },
+        { href: "/teacher/syllabus", label: "Syllabus", icon: BookOpen },
+        { href: "/teacher/exams", label: "Exams", icon: FileText },
+        { href: "/teacher/students", label: "All Students", icon: GraduationCap },
     ]
 
     const studentLinks = [
@@ -54,7 +57,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () =>
                 <nav className="flex-1 px-4 space-y-2 mt-4 overflow-y-auto">
                     {links.map((link) => {
                         const Icon = link.icon
-                        const isActive = pathname === link.href
+                        const isActive = pathname === link.href || pathname?.startsWith(link.href + "/")
                         return (
                             <Link
                                 key={link.href}
@@ -79,6 +82,18 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () =>
                         <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Theme</span>
                         <ThemeToggle />
                     </div>
+
+                    {/* Notification Link */}
+                    <Link
+                        href="/teacher/notifications"
+                        className="flex items-center justify-between px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors group"
+                    >
+                        <span className="text-sm font-medium text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white">Notifications</span>
+                        <div className="relative">
+                            <Bell className="h-5 w-5 text-gray-400 group-hover:text-secondary transition-colors" />
+                            <span className="absolute -top-1 -right-1 h-2.5 w-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-900"></span>
+                        </div>
+                    </Link>
 
                     <div className="flex items-center gap-3 px-4 py-3 mb-2">
                         <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-sm font-medium">

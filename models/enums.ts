@@ -98,6 +98,12 @@ export enum UserRole {
     TECH_SUPPORT = 'TECH_SUPPORT'
 }
 
+export enum SchoolStatus {
+    PENDING = 'PENDING',
+    VALIDATED = 'VALIDATED',
+    REJECTED = 'REJECTED'
+}
+
 export enum CognitiveProfile {
     VISUAL = 'VISUAL',
     AUDITORY = 'AUDITORY',
