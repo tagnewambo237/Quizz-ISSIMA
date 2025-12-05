@@ -32,7 +32,7 @@ async function main() {
     const startTime = Date.now()
 
     logSeedProgress('='.repeat(60), 'info')
-    logSeedProgress('QuizLock V2 - Data Seeding', 'info')
+    logSeedProgress('Xkorin School V2 - Data Seeding', 'info')
     logSeedProgress('Cameroon Education System (Francophone & Anglophone)', 'info')
     logSeedProgress('='.repeat(60), 'info')
 

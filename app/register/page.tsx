@@ -74,7 +74,7 @@ export default function RegisterPage() {
                         Create Account
                     </h1>
                     <p className="text-center text-gray-500 dark:text-gray-400 mb-8">
-                        Join QuizLock to start learning
+                        Join Xkorin School to start learning
                     </p>
 
                     <form onSubmit={handleSubmit} className="space-y-4">

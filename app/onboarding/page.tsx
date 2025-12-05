@@ -33,7 +33,7 @@ export default function OnboardingPage() {
                 <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 md:p-12 border border-gray-100 dark:border-gray-700">
                     <div className="text-center mb-10">
                         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-                            Welcome to QuizLock! 👋
+                            Welcome to Xkorin School! 👋
                         </h1>
                         <p className="text-lg text-gray-500 dark:text-gray-400">
                             To get started, please tell us how you want to use the platform.

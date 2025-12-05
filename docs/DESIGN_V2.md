@@ -1,10 +1,10 @@
-# QuizLock V2 - Architecture Optimisée avec Design Patterns
+# Xkorin School V2 - Architecture Optimisée avec Design Patterns
 
 ## 1. Présentation de l'Application
 
-### 1.1 Qu'est-ce que QuizLock ?
+### 1.1 Qu'est-ce que Xkorin School ?
 
-**QuizLock** est une **plateforme éducative complète d'évaluation en ligne** conçue pour le système éducatif camerounais et africain. Elle permet aux enseignants de créer, gérer et superviser des examens sécurisés, tandis que les étudiants peuvent passer des évaluations dans un environnement contrôlé et adapté à leur niveau.
+**Xkorin School** est une **plateforme éducative complète d'évaluation en ligne** conçue pour le système éducatif camerounais et africain. Elle permet aux enseignants de créer, gérer et superviser des examens sécurisés, tandis que les étudiants peuvent passer des évaluations dans un environnement contrôlé et adapté à leur niveau.
 
 ### 1.2 Problématique Résolue
 
@@ -1167,7 +1167,7 @@ L3: Database - Source de vérité
 ## 5. Diagramme PlantUML Complet
 
 ```plantuml
-@startuml QuizLock_V2_Optimized
+@startuml Xkorin School_V2_Optimized
 
 !theme plain
 skinparam linetype ortho

@@ -1,6 +1,6 @@
 # Data Seeding - Système Éducatif Camerounais
 
-Ce module contient les scripts et données pour peupler la base de données QuizLock avec la structure éducative camerounaise (systèmes francophone et anglophone).
+Ce module contient les scripts et données pour peupler la base de données Xkorin School avec la structure éducative camerounaise (systèmes francophone et anglophone).
 
 ## 📚 Table des Matières
 
@@ -373,7 +373,7 @@ Error: MongoDB not connected
 cat .env | grep MONGO_URI
 
 # Ou définir manuellement
-export MONGO_URI="mongodb://localhost:27017/quizlock"
+export MONGO_URI="mongodb://localhost:27017/Xkorin School"
 
 # Relancer le seed
 npm run seed
@@ -471,10 +471,10 @@ Pour ajouter de nouvelles données :
 
 ## Licence
 
-© 2025 QuizLock. Tous droits réservés.
+© 2025 Xkorin School. Tous droits réservés.
 
 ---
 
-**Créé par :** QuizLock Team
+**Créé par :** Xkorin School Team
 **Dernière mise à jour :** 2025-01-29
 **Version :** 2.0.0

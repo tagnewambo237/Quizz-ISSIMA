@@ -1,4 +1,4 @@
-# QuizLock V2 - Plan d'Exécution Optimisé
+# Xkorin School V2 - Plan d'Exécution Optimisé
 
 Ce document réorganise le V2_ROADMAP.md en **flows logiques et exécutables** en tenant compte de toutes les dépendances.
 

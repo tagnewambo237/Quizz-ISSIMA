@@ -13,7 +13,7 @@ export function MobileHeader({ onOpenSidebar }: MobileHeaderProps) {
             <div className="flex items-center gap-2">
                 <Image
                     src="/logo.png"
-                    alt="QuizLock"
+                    alt="Xkorin School"
                     width={120}
                     height={32}
                     className="h-8 w-auto"

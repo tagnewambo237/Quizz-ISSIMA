@@ -1,6 +1,6 @@
-# QuizLock - Guide de Sécurité
+# Xkorin School - Guide de Sécurité
 
-Ce document décrit toutes les mesures de sécurité implémentées dans QuizLock pour protéger contre les attaques et le piratage.
+Ce document décrit toutes les mesures de sécurité implémentées dans Xkorin School pour protéger contre les attaques et le piratage.
 
 ## 🛡️ Mesures de Sécurité Implémentées
 

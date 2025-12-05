@@ -1,4 +1,4 @@
-# QuizLock - Implémentation de Sécurité Complète
+# Xkorin School - Implémentation de Sécurité Complète
 
 ## ✅ Mesures Implémentées
 

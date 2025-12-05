@@ -1,8 +1,8 @@
-# QuizLock Project Documentation
+# Xkorin School Project Documentation
 
 ## 1. Project Overview
 
-**QuizLock** is a secure online examination platform built with modern web technologies. It allows teachers to create, manage, and monitor exams, while students can take exams in a secure environment.
+**Xkorin School** is a secure online examination platform built with modern web technologies. It allows teachers to create, manage, and monitor exams, while students can take exams in a secure environment.
 
 ### Tech Stack
 - **Framework**: Next.js 14 (App Router)

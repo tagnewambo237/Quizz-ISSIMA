@@ -1,19 +1,19 @@
 # Quick Start - OAuth avec Google
 
-Guide rapide pour activer Google OAuth sur votre application QuizLock.
+Guide rapide pour activer Google OAuth sur votre application Xkorin School.
 
 ## ⚡ Setup en 5 minutes
 
 ### 1. Google Cloud Console
 
 1. Allez sur https://console.cloud.google.com/
-2. Créez un nouveau projet: **QuizLock**
+2. Créez un nouveau projet: **Xkorin School**
 3. Activez **Google+ API** (APIs & Services > Library)
 4. Créez OAuth 2.0 credentials:
    - **APIs & Services** > **Credentials**
    - **Create Credentials** > **OAuth 2.0 Client ID**
    - Application type: **Web application**
-   - Name: **QuizLock Development**
+   - Name: **Xkorin School Development**
 
 5. **Authorized redirect URIs** - Ajoutez:
    ```

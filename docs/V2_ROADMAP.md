@@ -1,4 +1,4 @@
-# QuizLock V2 - Implementation Roadmap
+# Xkorin School V2 - Implementation Roadmap
 
 This document serves as the master checklist for the V2 "Premium" implementation. It breaks down the complex architecture defined in `DESIGN_V2.md` into manageable, sequential phases.
 
