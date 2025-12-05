@@ -19,6 +19,7 @@ export interface IResponse extends Document {
   attemptId: mongoose.Types.ObjectId
   questionId: mongoose.Types.ObjectId
   selectedOptionId?: mongoose.Types.ObjectId // Optional pour questions non répondues
+  textResponse?: string // NOUVEAU - Pour les questions ouvertes
 
   // Validation
   isCorrect: boolean
@@ -51,6 +52,10 @@ const ResponseSchema = new Schema<IResponse>(
     selectedOptionId: {
       type: Schema.Types.ObjectId,
       ref: 'Option'
+    },
+    textResponse: {
+      type: String,
+      trim: true
     },
 
     // Validation

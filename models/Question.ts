@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document, Model } from 'mongoose'
-import { DifficultyLevel } from './enums'
+import { DifficultyLevel, EvaluationType } from './enums'
 
 /**
  * Interface pour les statistiques d'une question
@@ -14,18 +14,6 @@ export interface QuestionStats {
 
 /**
  * Interface principale du modèle Question V2
- *
- * @example
- * ```typescript
- * const question = await Question.create({
- *   examId: exam._id,
- *   text: "Quelle est la dérivée de x² ?",
- *   points: 2,
- *   difficulty: DifficultyLevel.INTERMEDIATE,
- *   explanation: "La dérivée de x² est 2x d'après la règle de puissance",
- *   hints: ["Utilisez la règle de puissance", "n * x^(n-1)"]
- * })
- * ```
  */
 export interface IQuestion extends Document {
   _id: mongoose.Types.ObjectId
@@ -37,8 +25,14 @@ export interface IQuestion extends Document {
   audioUrl?: string // Pour les questions audio (langues, etc.)
 
   // Configuration
+  type: EvaluationType // NOUVEAU
   points: number
   difficulty: DifficultyLevel
+  timeLimit?: number // NOUVEAU - Limite de temps spécifique à la question (en secondes)
+
+  // Réponses (selon le type)
+  correctAnswer?: boolean // Pour TRUE_FALSE
+  modelAnswer?: string // Pour OPEN_QUESTION
 
   // Aide pédagogique (NOUVEAUX CHAMPS V2)
   explanation?: string // Explication de la réponse correcte
@@ -77,6 +71,12 @@ const QuestionSchema = new Schema<IQuestion>(
     },
 
     // Configuration
+    type: {
+      type: String,
+      enum: Object.values(EvaluationType),
+      default: EvaluationType.QCM,
+      required: true
+    },
     points: {
       type: Number,
       default: 1,
@@ -86,6 +86,19 @@ const QuestionSchema = new Schema<IQuestion>(
       type: String,
       enum: Object.values(DifficultyLevel),
       default: DifficultyLevel.INTERMEDIATE
+    },
+    timeLimit: {
+      type: Number,
+      min: 0
+    },
+
+    // Réponses
+    correctAnswer: {
+      type: Boolean
+    },
+    modelAnswer: {
+      type: String,
+      trim: true
     },
 
     // Aide pédagogique

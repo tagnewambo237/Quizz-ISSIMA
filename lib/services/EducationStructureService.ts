@@ -50,14 +50,20 @@ export class EducationStructureService {
      * Récupère les filières avec filtres
      */
     static async getFields(filters: {
-        level?: string
+        level?: string | string[]
         cycle?: Cycle
         category?: string
         isActive?: boolean
     } = {}) {
         const query: any = {}
 
-        if (filters.level) query.applicableLevels = filters.level
+        if (filters.level) {
+            if (Array.isArray(filters.level)) {
+                query.applicableLevels = { $in: filters.level }
+            } else {
+                query.applicableLevels = filters.level
+            }
+        }
         if (filters.cycle) query.cycle = filters.cycle
         if (filters.category) query.category = filters.category
         if (filters.isActive !== undefined) query.isActive = filters.isActive
@@ -93,14 +99,20 @@ export class EducationStructureService {
      * Récupère les matières avec filtres
      */
     static async getSubjects(filters: {
-        level?: string
+        level?: string | string[]
         field?: string
         subjectType?: string
         isActive?: boolean
     } = {}) {
         const query: any = {}
 
-        if (filters.level) query.applicableLevels = filters.level
+        if (filters.level) {
+            if (Array.isArray(filters.level)) {
+                query.applicableLevels = { $in: filters.level }
+            } else {
+                query.applicableLevels = filters.level
+            }
+        }
         if (filters.field) query.applicableFields = filters.field
         if (filters.subjectType) query.subjectType = filters.subjectType
         if (filters.isActive !== undefined) query.isActive = filters.isActive

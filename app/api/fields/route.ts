@@ -16,7 +16,12 @@ export async function GET(req: Request) {
         const filters: any = {}
 
         if (searchParams.get('level')) {
-            filters.level = searchParams.get('level')
+            const levelParam = searchParams.get('level')
+            if (levelParam?.includes(',')) {
+                filters.level = levelParam.split(',')
+            } else {
+                filters.level = levelParam
+            }
         }
         if (searchParams.get('cycle')) {
             filters.cycle = searchParams.get('cycle') as Cycle

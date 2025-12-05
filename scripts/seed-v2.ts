@@ -1,13 +1,10 @@
 import mongoose from 'mongoose'
-import * as dotenv from 'dotenv'
-import { join } from 'path'
 import EducationLevel from '../models/EducationLevel'
 import Field from '../models/Field'
 import Subject from '../models/Subject'
-import { Cycle, SubSystem, FieldCategory, SubjectType } from '../models/enums'
-
-// Load environment variables
-dotenv.config({ path: join(__dirname, '../.env') })
+import LearningUnit from '../models/LearningUnit'
+import Competency from '../models/Competency'
+import { Cycle, SubSystem, FieldCategory, SubjectType, UnitType, DifficultyLevel, CompetencyType } from '../models/enums'
 
 const MONGODB_URI = process.env.MONGODB_URI
 
@@ -25,6 +22,8 @@ async function seed() {
         await EducationLevel.deleteMany({})
         await Field.deleteMany({})
         await Subject.deleteMany({})
+        await LearningUnit.deleteMany({})
+        await Competency.deleteMany({})
         console.log('Cleared existing V2 data')
 
         // --- 1. Seed Education Levels ---
@@ -129,16 +128,17 @@ async function seed() {
             { name: 'Français', code: 'FRA_FR', type: SubjectType.DISCIPLINE },
         ]
 
+        const createdSubjectsFr = []
         for (const s of subjectsFr) {
-            await Subject.create({
+            const subject = await Subject.create({
                 ...s,
                 subSystem: SubSystem.FRANCOPHONE,
                 subjectType: s.type,
                 applicableLevels: createdLevelsFr.map(l => l._id),
-                // For simplicity, apply to all fields for now, or specific ones
                 applicableFields: createdFieldsFr.map(f => f._id),
                 metadata: { displayName: { fr: s.name, en: s.name } }
             })
+            createdSubjectsFr.push(subject)
         }
 
         // Common Subjects Anglophone
@@ -152,14 +152,63 @@ async function seed() {
             { name: 'French', code: 'FRE_EN', type: SubjectType.DISCIPLINE },
         ]
 
+        const createdSubjectsEn = []
         for (const s of subjectsEn) {
-            await Subject.create({
+            const subject = await Subject.create({
                 ...s,
                 subSystem: SubSystem.ANGLOPHONE,
                 subjectType: s.type,
                 applicableLevels: createdLevelsEn.map(l => l._id),
                 applicableFields: createdFieldsEn.map(f => f._id),
                 metadata: { displayName: { fr: s.name, en: s.name } }
+            })
+            createdSubjectsEn.push(subject)
+        }
+
+        // --- 4. Seed Learning Units ---
+        console.log('Seeding Learning Units...')
+
+        const allSubjects = [...createdSubjectsFr, ...createdSubjectsEn]
+
+        for (const subject of allSubjects) {
+            // Create 3-5 units per subject
+            const numUnits = Math.floor(Math.random() * 3) + 3
+
+            for (let i = 1; i <= numUnits; i++) {
+                await LearningUnit.create({
+                    subject: subject._id,
+                    type: UnitType.CHAPTER,
+                    title: `Chapitre ${i}: Introduction à ${subject.name}`,
+                    description: `Contenu fondamental du chapitre ${i}`,
+                    order: i,
+                    content: {
+                        objectives: [`Comprendre les bases de ${subject.name}`, "Appliquer les concepts"],
+                        difficulty: DifficultyLevel.INTERMEDIATE
+                    },
+                    metadata: {
+                        tags: ["fondamental", "théorie"],
+                        resources: []
+                    }
+                })
+            }
+        }
+
+        // --- 5. Seed Competencies ---
+        console.log('Seeding Competencies...')
+
+        const competencies = [
+            { name: "Analyse critique", code: "COMP_ANA", type: CompetencyType.LOGIC_REASONING },
+            { name: "Résolution de problèmes", code: "COMP_PROB", type: CompetencyType.PROBLEM_SOLVING },
+            { name: "Communication écrite", code: "COMP_COMM", type: CompetencyType.SOFT_SKILL },
+        ]
+
+        for (const comp of competencies) {
+            await Competency.create({
+                ...comp,
+                relatedSubjects: allSubjects.slice(0, 3).map(s => s._id), // Link to first 3 subjects
+                metadata: {
+                    displayName: { fr: comp.name, en: comp.name }
+                }
             })
         }
 

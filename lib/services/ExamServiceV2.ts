@@ -76,9 +76,20 @@ export class ExamServiceV2 {
 
         if (includeQuestions) {
             const questions = await Question.find({ examId: id })
-                .populate('competencies', 'name')
                 .lean()
-            return { ...exam, questions }
+
+            // Fetch options for each question if needed
+            // Note: Ideally we should use aggregation or separate queries if performance is an issue
+            const questionsWithOptions = await Promise.all(questions.map(async (q: any) => {
+                if (q.type === EvaluationType.QCM) {
+                    const Option = (await import("@/models/Option")).default
+                    const options = await Option.find({ questionId: q._id }).sort({ order: 1 }).lean()
+                    return { ...q, options }
+                }
+                return q
+            }))
+
+            return { ...exam, questions: questionsWithOptions }
         }
 
         return exam
@@ -87,47 +98,104 @@ export class ExamServiceV2 {
     /**
      * Crée un nouvel examen V2
      */
-    static async createExam(examData: Partial<IExam>, createdBy: string) {
+    static async createExam(examData: Partial<IExam> & { questions?: any[] }, createdBy: string) {
         // Valider les données
         if (!examData.title || !examData.subject) {
             throw new Error("Title and subject are required")
         }
 
-        // Définir les valeurs par défaut V2
-        const exam = await Exam.create({
-            ...examData,
-            createdById: createdBy,
-            status: ExamStatus.DRAFT,
-            isPublished: false,
-            version: 1,
-            config: {
-                shuffleQuestions: examData.config?.shuffleQuestions ?? false,
-                shuffleOptions: examData.config?.shuffleOptions ?? false,
-                showResultsImmediately: examData.config?.showResultsImmediately ?? true,
-                allowReview: examData.config?.allowReview ?? true,
-                passingScore: examData.config?.passingScore ?? 50,
-                maxAttempts: examData.config?.maxAttempts ?? 1,
-                timeBetweenAttempts: examData.config?.timeBetweenAttempts ?? 0,
-                antiCheat: {
-                    fullscreenRequired: examData.config?.antiCheat?.fullscreenRequired ?? false,
-                    disableCopyPaste: examData.config?.antiCheat?.disableCopyPaste ?? false,
-                    trackTabSwitches: examData.config?.antiCheat?.trackTabSwitches ?? false,
-                    blockRightClick: examData.config?.antiCheat?.blockRightClick ?? false,
-                    preventScreenshot: examData.config?.antiCheat?.preventScreenshot ?? false,
-                    webcamRequired: examData.config?.antiCheat?.webcamRequired ?? false,
-                    maxTabSwitches: examData.config?.antiCheat?.maxTabSwitches ?? 3
-                }
-            },
-            stats: {
-                totalAttempts: 0,
-                totalCompletions: 0,
-                averageScore: 0,
-                passRate: 0,
-                averageTime: 0
-            }
-        } as any)
+        const session = await mongoose.startSession()
+        session.startTransaction()
 
-        return exam
+        try {
+            // Définir les valeurs par défaut V2
+            const exam = await Exam.create([{
+                ...examData,
+                createdById: createdBy,
+                status: ExamStatus.DRAFT,
+                isPublished: false,
+                version: 1,
+                config: {
+                    shuffleQuestions: examData.config?.shuffleQuestions ?? false,
+                    shuffleOptions: examData.config?.shuffleOptions ?? false,
+                    showResultsImmediately: examData.config?.showResultsImmediately ?? true,
+                    allowReview: examData.config?.allowReview ?? true,
+                    passingScore: examData.config?.passingScore ?? 50,
+                    maxAttempts: examData.config?.maxAttempts ?? 1,
+                    timeBetweenAttempts: examData.config?.timeBetweenAttempts ?? 0,
+                    antiCheat: {
+                        fullscreenRequired: examData.config?.antiCheat?.fullscreenRequired ?? false,
+                        disableCopyPaste: examData.config?.antiCheat?.disableCopyPaste ?? false,
+                        trackTabSwitches: examData.config?.antiCheat?.trackTabSwitches ?? false,
+                        blockRightClick: examData.config?.antiCheat?.blockRightClick ?? false,
+                        preventScreenshot: examData.config?.antiCheat?.preventScreenshot ?? false,
+                        webcamRequired: examData.config?.antiCheat?.webcamRequired ?? false,
+                        maxTabSwitches: examData.config?.antiCheat?.maxTabSwitches ?? 3
+                    }
+                },
+                stats: {
+                    totalAttempts: 0,
+                    totalCompletions: 0,
+                    averageScore: 0,
+                    passRate: 0,
+                    averageTime: 0
+                }
+            }], { session })
+
+            const createdExam = exam[0]
+
+            // Create questions if provided
+            if (examData.questions && examData.questions.length > 0) {
+                const Option = (await import("@/models/Option")).default
+
+                for (let i = 0; i < examData.questions.length; i++) {
+                    const qData = examData.questions[i]
+
+                    const question = await Question.create([{
+                        examId: createdExam._id,
+                        text: qData.text,
+                        type: qData.type,
+                        points: qData.points,
+                        difficulty: qData.difficulty,
+                        timeLimit: qData.timeLimit,
+                        correctAnswer: qData.correctAnswer,
+                        modelAnswer: qData.modelAnswer,
+                        order: i,
+                        stats: {
+                            timesAsked: 0,
+                            timesCorrect: 0,
+                            timesIncorrect: 0,
+                            successRate: 0
+                        }
+                    }], { session })
+
+                    const createdQuestion = question[0]
+
+                    // Create options for QCM
+                    if (qData.type === EvaluationType.QCM && qData.options && qData.options.length > 0) {
+                        const optionsToCreate = qData.options.map((opt: any, idx: number) => ({
+                            questionId: createdQuestion._id,
+                            text: opt.text,
+                            isCorrect: opt.isCorrect,
+                            order: idx,
+                            stats: {
+                                timesSelected: 0,
+                                selectionRate: 0
+                            }
+                        }))
+                        await Option.create(optionsToCreate, { session })
+                    }
+                }
+            }
+
+            await session.commitTransaction()
+            return createdExam
+        } catch (error) {
+            await session.abortTransaction()
+            throw error
+        } finally {
+            session.endSession()
+        }
     }
 
     /**

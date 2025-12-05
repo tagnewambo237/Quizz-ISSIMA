@@ -15,7 +15,8 @@ export async function GET(req: Request) {
         const filters: any = {}
 
         if (searchParams.get('level')) {
-            filters.level = searchParams.get('level')
+            const levelParam = searchParams.get('level')!;
+            filters.level = levelParam.includes(',') ? levelParam.split(',') : levelParam;
         }
         if (searchParams.get('field')) {
             filters.field = searchParams.get('field')
