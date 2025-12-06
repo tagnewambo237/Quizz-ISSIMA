@@ -199,10 +199,22 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () =>
                 </nav>
 
                 <div className="p-4 border-t border-gray-200 dark:border-gray-700 space-y-4">
-                    <div className="flex items-center justify-between px-4">
+                    {/* <div className="flex items-center justify-between px-4">
                         <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Theme</span>
                         <ThemeToggle />
-                    </div>
+                    </div> */}
+
+                    {/* Settings Link */}
+                    <Link
+                        href="/settings"
+                        onClick={() => onClose?.()}
+                        className="flex items-center justify-between px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors group"
+                    >
+                        <div className="flex items-center gap-2">
+                            <Settings className="h-5 w-5 text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white transition-colors" />
+                            <span className="text-sm font-medium text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white">Paramètres</span>
+                        </div>
+                    </Link>
 
                     {/* Notification Link */}
                     <Link

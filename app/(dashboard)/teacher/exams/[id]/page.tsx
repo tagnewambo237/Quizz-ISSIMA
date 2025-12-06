@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { ExamStatusBadge } from "@/components/exam-management/ExamStatusBadge"
 import { ArrowLeft, Edit, Send, CheckCircle, Archive, Loader2 } from "lucide-react"
 import Link from "next/link"
+import { LateCodeManager } from "@/components/exam-management/LateCodeManager"
 
 export default function ExamDetailsPage() {
     const params = useParams()
@@ -170,6 +171,7 @@ export default function ExamDetailsPage() {
                             </CardContent>
                         </Card>
 
+
                         <Card>
                             <CardHeader>
                                 <CardTitle>Statistiques</CardTitle>
@@ -195,6 +197,9 @@ export default function ExamDetailsPage() {
                                 </div>
                             </CardContent>
                         </Card>
+
+                        {/* Late Code Management */}
+                        <LateCodeManager examId={exam._id} examStatus={exam.status} />
                     </div>
                 </div>
             </div>
