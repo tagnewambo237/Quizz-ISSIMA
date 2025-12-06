@@ -1,6 +1,6 @@
 import Exam, { IExam } from "@/models/Exam"
 import Question from "@/models/Question"
-import { ExamStatus, EvaluationType, DifficultyLevel, PedagogicalObjective } from "@/models/enums"
+import { ExamStatus, EvaluationType, DifficultyLevel, PedagogicalObjective, CloseMode } from "@/models/enums"
 import { EvaluationStrategyFactory } from "@/lib/patterns/EvaluationStrategy"
 import mongoose from "mongoose"
 
@@ -79,20 +79,42 @@ export class ExamServiceV2 {
                 .lean()
 
             // Fetch options for each question if needed
-            // Note: Ideally we should use aggregation or separate queries if performance is an issue
+            // Load options for all question types that might have them
             const questionsWithOptions = await Promise.all(questions.map(async (q: any) => {
-                if (q.type === EvaluationType.QCM) {
+                const typesWithOptions = [EvaluationType.QCM, EvaluationType.TRUE_FALSE, EvaluationType.MIXED]
+                if (typesWithOptions.includes(q.type) || !q.type) {
                     const Option = (await import("@/models/Option")).default
                     const options = await Option.find({ questionId: q._id }).sort({ order: 1 }).lean()
                     return { ...q, options }
                 }
-                return q
+                return { ...q, options: [] }
             }))
 
             return { ...exam, questions: questionsWithOptions }
         }
 
         return exam
+    }
+
+    /**
+     * Convertit les anciennes valeurs d'enum vers les nouvelles
+     */
+    private static normalizeLegacyEnums(examData: Partial<IExam>) {
+        // Convert legacy closeMode
+        if (examData.closeMode === 'MANUAL' as any) {
+            examData.closeMode = CloseMode.STRICT
+        }
+
+        // Convert legacy difficultyLevel
+        const difficultyMap: Record<string, DifficultyLevel> = {
+            'EASY': DifficultyLevel.BEGINNER,
+            'MEDIUM': DifficultyLevel.INTERMEDIATE,
+            'HARD': DifficultyLevel.ADVANCED
+        }
+
+        if (examData.difficultyLevel && difficultyMap[examData.difficultyLevel as string]) {
+            examData.difficultyLevel = difficultyMap[examData.difficultyLevel as string]
+        }
     }
 
     /**
@@ -104,12 +126,12 @@ export class ExamServiceV2 {
             throw new Error("Title and subject are required")
         }
 
-        const session = await mongoose.startSession()
-        session.startTransaction()
+        // Normalize legacy enum values
+        this.normalizeLegacyEnums(examData)
 
         try {
             // Définir les valeurs par défaut V2
-            const exam = await Exam.create([{
+            const createdExam = await Exam.create({
                 ...examData,
                 createdById: createdBy,
                 status: ExamStatus.DRAFT,
@@ -140,9 +162,7 @@ export class ExamServiceV2 {
                     passRate: 0,
                     averageTime: 0
                 }
-            }], { session })
-
-            const createdExam = exam[0]
+            })
 
             // Create questions if provided
             if (examData.questions && examData.questions.length > 0) {
@@ -151,7 +171,7 @@ export class ExamServiceV2 {
                 for (let i = 0; i < examData.questions.length; i++) {
                     const qData = examData.questions[i]
 
-                    const question = await Question.create([{
+                    const createdQuestion = await Question.create({
                         examId: createdExam._id,
                         text: qData.text,
                         type: qData.type,
@@ -167,9 +187,7 @@ export class ExamServiceV2 {
                             timesIncorrect: 0,
                             successRate: 0
                         }
-                    }], { session })
-
-                    const createdQuestion = question[0]
+                    })
 
                     // Create options for QCM
                     if (qData.type === EvaluationType.QCM && qData.options && qData.options.length > 0) {
@@ -183,18 +201,14 @@ export class ExamServiceV2 {
                                 selectionRate: 0
                             }
                         }))
-                        await Option.create(optionsToCreate, { session })
+                        await Option.create(optionsToCreate)
                     }
                 }
             }
 
-            await session.commitTransaction()
             return createdExam
         } catch (error) {
-            await session.abortTransaction()
             throw error
-        } finally {
-            session.endSession()
         }
     }
 
@@ -220,6 +234,9 @@ export class ExamServiceV2 {
                 throw new Error("Cannot modify published exam except isPublished and endTime")
             }
         }
+
+        // Normalize legacy enum values
+        this.normalizeLegacyEnums(updateData)
 
         // Incrémenter la version si modification majeure
         if ((updateData as any).questions || updateData.config) {

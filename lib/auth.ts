@@ -66,11 +66,16 @@ export const authOptions: NextAuthOptions = {
          * Session callback - add user data to session
          */
         async session({ session, token }) {
-            if (token && session.user) {
-                session.user.id = token.id as string
-                session.user.role = token.role
-                session.user.name = token.name as string
-                session.user.image = token.picture as string
+            try {
+                if (token && session.user) {
+                    session.user.id = token.id as string
+                    session.user.role = token.role
+                    session.user.name = token.name as string
+                    session.user.image = token.picture as string
+                    session.user.schools = token.schools || []
+                }
+            } catch (error) {
+                console.error("Error in session callback:", error)
             }
             return session
         },
@@ -79,36 +84,50 @@ export const authOptions: NextAuthOptions = {
          * JWT callback - add user data to token
          */
         async jwt({ token, user, account, profile }) {
-            // Initial sign in
-            if (user) {
-                // Fetch user from DB to get the role
-                // We need to do this because we're not using a database adapter
-                // so the 'user' object here doesn't have our DB fields
-                try {
-                    await connectDB()
-                    const dbUser = await User.findOne({ email: user.email })
-                    if (dbUser) {
-                        token.id = dbUser._id.toString()
-                        token.role = dbUser.role
-                        token.name = dbUser.name
-                        token.picture = dbUser.image
+            try {
+                // Initial sign in
+                if (user) {
+                    // Fetch user from DB to get the role
+                    // We need to do this because we're not using a database adapter
+                    // so the 'user' object here doesn't have our DB fields
+                    try {
+                        await connectDB()
+                        const dbUser = await User.findOne({ email: user.email }).lean()
+                        if (dbUser) {
+                            token.id = dbUser._id.toString()
+                            token.role = dbUser.role
+                            token.name = dbUser.name
+                            token.picture = dbUser.image || dbUser.metadata?.avatar
+                            token.schools = dbUser.schools?.map((id: any) => id.toString()) || []
+                        } else {
+                            console.warn(`[Auth] User not found in DB: ${user.email}`)
+                        }
+                    } catch (error) {
+                        console.error("Error fetching user in JWT callback:", error)
+                        // Continue with existing token data
                     }
-                } catch (error) {
-                    console.error("Error fetching user in JWT callback:", error)
-                }
-            } else if (token.email) {
-                // On subsequent calls, check if role has been updated (e.g. after onboarding)
-                // This ensures the session updates immediately after role selection
-                try {
-                    await connectDB()
-                    const dbUser = await User.findOne({ email: token.email })
-                    if (dbUser && dbUser.role !== token.role) {
-                        console.log(`[Auth] Role updated for ${token.email}: ${token.role} -> ${dbUser.role}`)
-                        token.role = dbUser.role
+                } else if (token.email) {
+                    // On subsequent calls, check if role has been updated (e.g. after onboarding)
+                    // This ensures the session updates immediately after role selection
+                    try {
+                        await connectDB()
+                        const dbUser = await User.findOne({ email: token.email }).lean()
+                        if (dbUser) {
+                            if (dbUser.role !== token.role) {
+                                console.log(`[Auth] Role updated for ${token.email}: ${token.role} -> ${dbUser.role}`)
+                                token.role = dbUser.role
+                            }
+                            // Always refresh schools
+                            token.schools = dbUser.schools?.map((id: any) => id.toString()) || []
+                        }
+                    } catch (error) {
+                        console.error("Error refreshing user role:", error)
+                        // Continue with existing token data
                     }
-                } catch (error) {
-                    console.error("Error refreshing user role:", error)
                 }
+            } catch (error) {
+                console.error("Critical error in JWT callback:", error)
+                // Return token as-is to avoid breaking authentication
             }
 
             return token

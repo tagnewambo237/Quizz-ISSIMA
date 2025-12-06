@@ -1,169 +1,195 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
+import { Trophy, TrendingUp, Calendar, ArrowLeft, Mail, User, Medal } from "lucide-react"
 import { motion } from "framer-motion"
-import { User, Mail, Phone, MapPin, Award, TrendingUp, Brain, Target } from "lucide-react"
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from "recharts"
-
-// Mock Data
-const performanceData = [
-    { name: 'Exam 1', score: 12, average: 10 },
-    { name: 'Exam 2', score: 14, average: 11 },
-    { name: 'Exam 3', score: 13, average: 12 },
-    { name: 'Exam 4', score: 16, average: 11.5 },
-    { name: 'Exam 5', score: 15, average: 12.5 },
-]
-
-const skillsData = [
-    { subject: 'Math', A: 120, fullMark: 150 },
-    { subject: 'Physique', A: 98, fullMark: 150 },
-    { subject: 'SVT', A: 86, fullMark: 150 },
-    { subject: 'Français', A: 99, fullMark: 150 },
-    { subject: 'Anglais', A: 85, fullMark: 150 },
-    { subject: 'Philo', A: 65, fullMark: 150 },
-]
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 
 export default function StudentDetailPage() {
     const params = useParams()
-    const [student, setStudent] = useState<any>(null)
+    const router = useRouter()
+    const [stats, setStats] = useState<any>(null)
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        // Mock fetch
-        setTimeout(() => {
-            setStudent({
-                id: params.studentId,
-                name: "Jean Dupont",
-                email: "jean.dupont@example.com",
-                phone: "+237 699 99 99 99",
-                address: "Douala, Cameroun",
-                avatar: null,
-                level: "Tle C",
-                stats: {
-                    average: 14.5,
-                    rank: 3,
-                    attendance: 95
-                }
-            })
-            setLoading(false)
-        }, 1000)
-    }, [params.studentId])
+        if (params.classId && params.studentId) {
+            setLoading(true)
+            fetch(`/api/classes/${params.classId}/students/${params.studentId}/stats`)
+                .then(res => res.json())
+                .then(data => setStats(data))
+                .catch(err => console.error("Error loading stats", err))
+                .finally(() => setLoading(false))
+        }
+    }, [params.classId, params.studentId])
 
-    if (loading) return <div className="p-8">Loading...</div>
+    if (loading) return <div className="flex h-96 items-center justify-center">Loading...</div>
+    if (!stats) return <div className="flex h-96 items-center justify-center">Student not found</div>
+
+    // Chart Data Preparation
+    const chartData = stats.history
+        ?.filter((h: any) => h.status === 'COMPLETED')
+        .map((h: any) => ({
+            name: h.title,
+            score: h.score,
+            date: new Date(h.date).toLocaleDateString()
+        })) || []
 
     return (
-        <div className="space-y-8">
-            {/* Header / Profile Card */}
-            <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col md:flex-row gap-8 items-center md:items-start">
-                <div className="h-32 w-32 rounded-full bg-gradient-to-br from-secondary to-purple-600 flex items-center justify-center text-4xl text-white font-bold shadow-xl shadow-secondary/20">
-                    {student.name[0]}
-                </div>
-                <div className="flex-1 text-center md:text-left space-y-4">
-                    <div>
-                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{student.name}</h1>
-                        <p className="text-gray-500 dark:text-gray-400 text-lg">{student.level} • Rank #{student.stats.rank}</p>
-                    </div>
-                    <div className="flex flex-wrap justify-center md:justify-start gap-4 text-sm text-gray-600 dark:text-gray-300">
-                        <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700/50 px-3 py-1.5 rounded-lg">
-                            <Mail className="h-4 w-4 text-gray-400" />
-                            {student.email}
-                        </div>
-                        <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700/50 px-3 py-1.5 rounded-lg">
-                            <Phone className="h-4 w-4 text-gray-400" />
-                            {student.phone}
-                        </div>
-                        <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700/50 px-3 py-1.5 rounded-lg">
-                            <MapPin className="h-4 w-4 text-gray-400" />
-                            {student.address}
-                        </div>
-                    </div>
-                </div>
-                <div className="flex gap-4">
-                    <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-2xl min-w-[100px]">
-                        <div className="text-green-600 font-bold text-2xl">{student.stats.average}</div>
-                        <div className="text-xs text-green-700/70 font-medium uppercase tracking-wide">Moyenne</div>
-                    </div>
-                    <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl min-w-[100px]">
-                        <div className="text-blue-600 font-bold text-2xl">{student.stats.attendance}%</div>
-                        <div className="text-xs text-blue-700/70 font-medium uppercase tracking-wide">Présence</div>
-                    </div>
-                </div>
+        <div className="space-y-8 pb-10 max-w-7xl mx-auto px-6">
+            {/* Header / Navigation */}
+            <div className="flex items-center gap-4 mb-8">
+                <button
+                    onClick={() => router.back()}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+                >
+                    <ArrowLeft className="h-6 w-6 text-gray-500" />
+                </button>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Détails de l'apprenant</h1>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Performance Chart */}
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm">
-                    <div className="flex items-center gap-3 mb-6">
-                        <div className="p-2 bg-purple-100 text-purple-600 rounded-lg">
-                            <TrendingUp className="h-5 w-5" />
+            {/* Profile Card & Key Stats */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Profile Card */}
+                <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 border border-gray-100 dark:border-gray-700 shadow-xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-secondary/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+
+                    <div className="relative z-10 flex flex-col items-center text-center">
+                        <div className="w-24 h-24 rounded-full bg-secondary text-white text-3xl font-bold flex items-center justify-center mb-4 shadow-lg ring-4 ring-white dark:ring-gray-800">
+                            {stats.student?.name?.[0] || "U"}
                         </div>
-                        <h3 className="text-lg font-bold">Évolution des Notes</h3>
+                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+                            {stats.student?.name}
+                        </h2>
+                        <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 mb-6">
+                            <Mail className="h-4 w-4" />
+                            <span>{stats.student?.email}</span>
+                        </div>
+
+                        {/* Rank Badge */}
+                        <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-white px-6 py-2 rounded-full font-bold shadow-lg flex items-center gap-2 mb-2">
+                            <Medal className="h-5 w-5" />
+                            <span>Rang: #{stats.rank} / {stats.totalStudents}</span>
+                        </div>
+                        <p className="text-sm text-gray-400">Classement général</p>
                     </div>
-                    <div className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={performanceData}>
-                                <defs>
-                                    <linearGradient id="colorStudent" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF' }} />
-                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF' }} />
-                                <Tooltip
-                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                </div>
+
+                {/* Stats Cards */}
+                <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col justify-between">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-xl text-green-600">
+                                <Trophy className="h-6 w-6" />
+                            </div>
+                            <span className="text-sm font-medium text-gray-400">Moyenne Générale</span>
+                        </div>
+                        <div>
+                            <p className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
+                                {stats.averageScore}<span className="text-xl text-gray-400">/100</span>
+                            </p>
+                            <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
+                                <div
+                                    className="h-2 rounded-full bg-green-500 transition-all duration-1000"
+                                    style={{ width: `${stats.averageScore}%` }}
                                 />
-                                <Area type="monotone" dataKey="score" stroke="#8B5CF6" fillOpacity={1} fill="url(#colorStudent)" strokeWidth={3} name="Note" />
-                                <Area type="monotone" dataKey="average" stroke="#9CA3AF" fill="none" strokeDasharray="5 5" strokeWidth={2} name="Moyenne Classe" />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-
-                {/* Skills Radar */}
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm">
-                    <div className="flex items-center gap-3 mb-6">
-                        <div className="p-2 bg-orange-100 text-orange-600 rounded-lg">
-                            <Brain className="h-5 w-5" />
+                            </div>
                         </div>
-                        <h3 className="text-lg font-bold">Compétences par Matière</h3>
                     </div>
-                    <div className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={skillsData}>
-                                <PolarGrid stroke="#E5E7EB" />
-                                <PolarAngleAxis dataKey="subject" tick={{ fill: '#6B7280', fontSize: 12 }} />
-                                <PolarRadiusAxis angle={30} domain={[0, 150]} tick={false} axisLine={false} />
-                                <Radar name="Jean" dataKey="A" stroke="#F97316" fill="#F97316" fillOpacity={0.5} />
-                            </RadarChart>
-                        </ResponsiveContainer>
+
+                    <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col justify-between">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-600">
+                                <TrendingUp className="h-6 w-6" />
+                            </div>
+                            <span className="text-sm font-medium text-gray-400">Participation</span>
+                        </div>
+                        <div>
+                            <p className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
+                                {stats.participationRate}%
+                            </p>
+                            <p className="text-sm text-gray-500">
+                                {stats.examsTaken} examens passés sur {stats.totalExams} disponibles
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Performance Chart */}
+                    <div className="md:col-span-2 bg-white dark:bg-gray-800 rounded-3xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm">
+                        <h3 className="font-bold text-gray-900 dark:text-white mb-6">Évolution des notes</h3>
+                        <div className="h-[200px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={chartData}>
+                                    <defs>
+                                        <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#114D5A" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="#114D5A" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                                    <XAxis dataKey="name" hide />
+                                    <YAxis hide domain={[0, 100]} />
+                                    <Tooltip
+                                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                    />
+                                    <Area
+                                        type="monotone"
+                                        dataKey="score"
+                                        stroke="#114D5A"
+                                        strokeWidth={3}
+                                        fillOpacity={1}
+                                        fill="url(#colorScore)"
+                                    />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* Recent Activity / Recommendations */}
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm">
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
-                        <Target className="h-5 w-5" />
-                    </div>
-                    <h3 className="text-lg font-bold">Recommandations Pédagogiques</h3>
+            {/* Detailed History Table */}
+            <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+                <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <Calendar className="h-5 w-5 text-secondary" />
+                        Historique Détaillé
+                    </h3>
                 </div>
-                <div className="space-y-4">
-                    <div className="p-4 bg-yellow-50 dark:bg-yellow-900/10 rounded-xl border border-yellow-100 dark:border-yellow-900/20">
-                        <h4 className="font-semibold text-yellow-800 dark:text-yellow-200 mb-1">Renforcer les bases en Physique</h4>
-                        <p className="text-sm text-yellow-700 dark:text-yellow-300/80">
-                            Les résultats en mécanique sont en baisse. Suggérer des exercices de révision sur les lois de Newton.
-                        </p>
-                    </div>
-                    <div className="p-4 bg-green-50 dark:bg-green-900/10 rounded-xl border border-green-100 dark:border-green-900/20">
-                        <h4 className="font-semibold text-green-800 dark:text-green-200 mb-1">Excellent progrès en Mathématiques</h4>
-                        <p className="text-sm text-green-700 dark:text-green-300/80">
-                            A féliciter pour sa progression constante. Peut être orienté vers des exercices d'approfondissement.
-                        </p>
-                    </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full">
+                        <thead className="bg-gray-50 dark:bg-gray-900/50">
+                            <tr>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Examen</th>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Date</th>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Statut</th>
+                                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase">Note</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                            {stats.history?.map((exam: any) => (
+                                <tr key={exam.examId} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
+                                        {exam.title}
+                                    </td>
+                                    <td className="px-6 py-4 text-gray-500">
+                                        {new Date(exam.date).toLocaleDateString()}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        {exam.status === 'COMPLETED' ? (
+                                            <span className="px-2 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-bold">Complété</span>
+                                        ) : exam.status === 'MISSED' ? (
+                                            <span className="px-2 py-1 bg-red-100 text-red-700 rounded-lg text-xs font-bold">Manqué</span>
+                                        ) : (
+                                            <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-lg text-xs font-bold">En attente</span>
+                                        )}
+                                    </td>
+                                    <td className="px-6 py-4 text-right font-bold text-gray-900 dark:text-white">
+                                        {exam.status === 'COMPLETED' ? `${exam.score}/100` : '-'}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

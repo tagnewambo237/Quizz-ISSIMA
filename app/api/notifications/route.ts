@@ -2,12 +2,11 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import connectDB from "@/lib/mongodb"
-import User from "@/models/User"
-import LearnerProfile from "@/models/LearnerProfile"
+import Notification from "@/models/Notification"
 
 /**
  * API pour récupérer les notifications de l'utilisateur
- * Basé sur les événements du système (XP, Badges, Level Up, etc.)
+ * Récupère les notifications depuis la base de données
  */
 export async function GET(req: Request) {
     try {
@@ -18,64 +17,33 @@ export async function GET(req: Request) {
 
         await connectDB()
 
-        // Récupérer le profil de l'utilisateur pour les notifications gamification
-        const profile = await LearnerProfile.findOne({ user: session.user.id })
-            .select('gamification')
+        // Récupérer les notifications de l'utilisateur (50 dernières)
+        const notifications = await Notification.find({ userId: session.user.id })
+            .sort({ createdAt: -1 })
+            .limit(50)
             .lean()
 
-        const notifications: any[] = []
+        // Compter les non lues
+        const unreadCount = await Notification.countDocuments({
+            userId: session.user.id,
+            read: false
+        })
 
-        // Notifications de badges récents (derniers 7 jours)
-        if (profile?.gamification?.badges) {
-            const recentBadges = profile.gamification.badges
-                .filter((badge: any) => {
-                    const earnedDate = new Date(badge.earnedAt)
-                    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-                    return earnedDate > weekAgo
-                })
-                .map((badge: any) => ({
-                    id: `badge-${badge.id}`,
-                    type: 'badge',
-                    title: 'Nouveau Badge!',
-                    message: `Badge "${badge.name}" débloqué`,
-                    timestamp: badge.earnedAt,
-                    read: false,
-                    data: badge
-                }))
-
-            notifications.push(...recentBadges)
-        }
-
-        // Notification de niveau actuel
-        if (profile?.gamification?.level) {
-            const currentLevel = profile.gamification.level
-            const currentXP = profile.gamification.xp
-            const nextLevelXP = Math.pow(currentLevel, 2) * 100
-
-            notifications.push({
-                id: `level-${currentLevel}`,
-                type: 'level_up',
-                title: `Niveau ${currentLevel}`,
-                message: `${currentXP} / ${nextLevelXP} XP vers le niveau ${currentLevel + 1}`,
-                timestamp: new Date(),
-                read: true,
-                data: {
-                    currentLevel,
-                    currentXP,
-                    nextLevelXP
-                }
-            })
-        }
-
-        // Trier par date (plus récent en premier)
-        notifications.sort((a, b) =>
-            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        )
+        // Formater les notifications pour le frontend
+        const formattedNotifications = notifications.map(notif => ({
+            id: notif._id.toString(),
+            type: notif.type,
+            title: notif.title,
+            message: notif.message,
+            timestamp: notif.createdAt,
+            read: notif.read,
+            data: notif.data
+        }))
 
         return NextResponse.json({
             success: true,
-            data: notifications,
-            unreadCount: notifications.filter(n => !n.read).length
+            data: formattedNotifications,
+            unreadCount
         })
 
     } catch (error: any) {
@@ -88,7 +56,7 @@ export async function GET(req: Request) {
 }
 
 /**
- * Marquer une notification comme lue
+ * Marquer une ou plusieurs notifications comme lues
  */
 export async function PATCH(req: Request) {
     try {
@@ -97,18 +65,83 @@ export async function PATCH(req: Request) {
             return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 })
         }
 
-        const { notificationId } = await req.json()
+        await connectDB()
 
-        // Dans une vraie implémentation, vous stockeriez l'état de lecture
-        // dans une collection séparée ou dans le profil utilisateur
+        const body = await req.json()
+        const { notificationId, markAllAsRead } = body
 
-        return NextResponse.json({
-            success: true,
-            message: "Notification marked as read"
-        })
+        if (markAllAsRead) {
+            // Marquer toutes les notifications comme lues
+            await Notification.updateMany(
+                { userId: session.user.id, read: false },
+                { $set: { read: true } }
+            )
+
+            return NextResponse.json({
+                success: true,
+                message: "All notifications marked as read"
+            })
+        } else if (notificationId) {
+            // Marquer une notification spécifique comme lue
+            await Notification.findOneAndUpdate(
+                { _id: notificationId, userId: session.user.id },
+                { $set: { read: true } }
+            )
+
+            return NextResponse.json({
+                success: true,
+                message: "Notification marked as read"
+            })
+        } else {
+            return NextResponse.json(
+                { success: false, message: "Missing notificationId or markAllAsRead parameter" },
+                { status: 400 }
+            )
+        }
 
     } catch (error: any) {
         console.error("Mark Read Error:", error)
+        return NextResponse.json(
+            { success: false, message: error.message || "Internal server error" },
+            { status: 500 }
+        )
+    }
+}
+
+/**
+ * Supprimer une notification
+ */
+export async function DELETE(req: Request) {
+    try {
+        const session = await getServerSession(authOptions)
+        if (!session?.user?.id) {
+            return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 })
+        }
+
+        await connectDB()
+
+        const { searchParams } = new URL(req.url)
+        const notificationId = searchParams.get('id')
+
+        if (!notificationId) {
+            return NextResponse.json(
+                { success: false, message: "Missing notification ID" },
+                { status: 400 }
+            )
+        }
+
+        await Notification.findOneAndDelete({
+            _id: notificationId,
+            userId: session.user.id
+        })
+
+        return NextResponse.json({
+            success: true,
+            message: "Notification deleted"
+        })
+
+    } catch (error: any) {
+        console.error("Delete Notification Error:", error)
         return NextResponse.json(
             { success: false, message: error.message || "Internal server error" },
             { status: 500 }

@@ -4,10 +4,11 @@ import { authOptions } from "@/lib/auth"
 import connectDB from "@/lib/mongodb"
 import { ClassService } from "@/lib/services/ClassService"
 import { UserRole } from "@/models/enums"
+import mongoose from "mongoose"
 
 export async function GET(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const session = await getServerSession(authOptions)
@@ -15,8 +16,15 @@ export async function GET(
             return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 })
         }
 
+        const { id } = await params
+
+        // Validate ID
+        if (!id || id === 'undefined' || !mongoose.Types.ObjectId.isValid(id)) {
+            return NextResponse.json({ success: false, message: "Invalid class ID" }, { status: 400 })
+        }
+
         await connectDB()
-        const classData = await ClassService.getClassById(params.id)
+        const classData = await ClassService.getClassById(id)
 
         if (!classData) {
             return NextResponse.json({ success: false, message: "Class not found" }, { status: 404 })
@@ -40,7 +48,7 @@ export async function GET(
 
 export async function PUT(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const session = await getServerSession(authOptions)
@@ -49,10 +57,17 @@ export async function PUT(
         }
 
         const body = await req.json()
+        const { id } = await params
+
+        // Validate ID
+        if (!id || id === 'undefined' || !mongoose.Types.ObjectId.isValid(id)) {
+            return NextResponse.json({ success: false, message: "Invalid class ID" }, { status: 400 })
+        }
+
         await connectDB()
 
         // Check ownership
-        const existingClass = await ClassService.getClassById(params.id)
+        const existingClass = await ClassService.getClassById(id)
         if (!existingClass) {
             return NextResponse.json({ success: false, message: "Class not found" }, { status: 404 })
         }
@@ -61,7 +76,7 @@ export async function PUT(
             return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 403 })
         }
 
-        const updatedClass = await ClassService.updateClass(params.id, body)
+        const updatedClass = await ClassService.updateClass(id, body)
         return NextResponse.json({ success: true, data: updatedClass })
 
     } catch (error: any) {
@@ -75,7 +90,7 @@ export async function PUT(
 
 export async function DELETE(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const session = await getServerSession(authOptions)
@@ -83,10 +98,17 @@ export async function DELETE(
             return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 })
         }
 
+        const { id } = await params
+
+        // Validate ID
+        if (!id || id === 'undefined' || !mongoose.Types.ObjectId.isValid(id)) {
+            return NextResponse.json({ success: false, message: "Invalid class ID" }, { status: 400 })
+        }
+
         await connectDB()
 
         // Check ownership
-        const existingClass = await ClassService.getClassById(params.id)
+        const existingClass = await ClassService.getClassById(id)
         if (!existingClass) {
             return NextResponse.json({ success: false, message: "Class not found" }, { status: 404 })
         }
@@ -95,7 +117,7 @@ export async function DELETE(
             return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 403 })
         }
 
-        await ClassService.deleteClass(params.id)
+        await ClassService.deleteClass(id)
         return NextResponse.json({ success: true, message: "Class deleted successfully" })
 
     } catch (error: any) {

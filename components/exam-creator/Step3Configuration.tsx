@@ -15,10 +15,11 @@ export function Step3Configuration({ data, onUpdate }: Step3Props) {
     const [duration, setDuration] = useState(data.duration || 60)
     const [startTime, setStartTime] = useState(data.startTime || "")
     const [endTime, setEndTime] = useState(data.endTime || "")
-    const [closeMode, setCloseMode] = useState(data.closeMode || "MANUAL")
-    const [pedagogicalObjective, setPedagogicalObjective] = useState(data.pedagogicalObjective || "FORMATIVE")
+    const [closeMode, setCloseMode] = useState(data.closeMode === "MANUAL" ? "STRICT" : (data.closeMode || "STRICT"))
+    const [pedagogicalObjective, setPedagogicalObjective] = useState(data.pedagogicalObjective || "FORMATIVE_EVAL")
     const [evaluationType, setEvaluationType] = useState(data.evaluationType || "QCM")
-    const [difficultyLevel, setDifficultyLevel] = useState(data.difficultyLevel || "MEDIUM")
+    const [difficultyLevel, setDifficultyLevel] = useState(data.difficultyLevel || "INTERMEDIATE")
+    const [learningMode, setLearningMode] = useState(data.learningMode || "EXAM")
 
     // Anti-cheat settings
     const [antiCheatEnabled, setAntiCheatEnabled] = useState(data.config?.antiCheat?.fullscreenRequired || false)
@@ -39,6 +40,7 @@ export function Step3Configuration({ data, onUpdate }: Step3Props) {
             pedagogicalObjective,
             evaluationType,
             difficultyLevel,
+            learningMode,
             config: {
                 shuffleQuestions: false,
                 shuffleOptions: false,
@@ -59,7 +61,7 @@ export function Step3Configuration({ data, onUpdate }: Step3Props) {
             }
         })
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [title, description, duration, startTime, endTime, closeMode, pedagogicalObjective, evaluationType, difficultyLevel, antiCheatEnabled, disableCopyPaste, trackTabSwitches])
+    }, [title, description, duration, startTime, endTime, closeMode, pedagogicalObjective, evaluationType, difficultyLevel, learningMode, antiCheatEnabled, disableCopyPaste, trackTabSwitches])
 
     const nextStep = () => {
         setDirection(1)
@@ -276,6 +278,67 @@ export function Step3Configuration({ data, onUpdate }: Step3Props) {
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* Close Mode Selector */}
+                                <div className="mt-6">
+                                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">
+                                        Mode de fermeture
+                                    </label>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <button
+                                            type="button"
+                                            onClick={() => setCloseMode("STRICT")}
+                                            className={cn(
+                                                "p-4 rounded-xl border-2 text-left transition-all",
+                                                closeMode === "STRICT"
+                                                    ? "border-red-500 bg-red-50 dark:bg-red-900/20"
+                                                    : "border-gray-200 dark:border-gray-700 hover:border-red-300"
+                                            )}
+                                        >
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <div className={cn(
+                                                    "w-10 h-10 rounded-full flex items-center justify-center",
+                                                    closeMode === "STRICT" ? "bg-red-100 text-red-600" : "bg-gray-100 text-gray-500"
+                                                )}>
+                                                    <Lock className="w-5 h-5" />
+                                                </div>
+                                                <span className={cn(
+                                                    "font-bold",
+                                                    closeMode === "STRICT" ? "text-red-700 dark:text-red-300" : "text-gray-700 dark:text-gray-300"
+                                                )}>Strict</span>
+                                            </div>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                                L'examen ferme automatiquement à l'heure exacte. Aucun accès tardif.
+                                            </p>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setCloseMode("PERMISSIVE")}
+                                            className={cn(
+                                                "p-4 rounded-xl border-2 text-left transition-all",
+                                                closeMode === "PERMISSIVE"
+                                                    ? "border-green-500 bg-green-50 dark:bg-green-900/20"
+                                                    : "border-gray-200 dark:border-gray-700 hover:border-green-300"
+                                            )}
+                                        >
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <div className={cn(
+                                                    "w-10 h-10 rounded-full flex items-center justify-center",
+                                                    closeMode === "PERMISSIVE" ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-500"
+                                                )}>
+                                                    <Clock className="w-5 h-5" />
+                                                </div>
+                                                <span className={cn(
+                                                    "font-bold",
+                                                    closeMode === "PERMISSIVE" ? "text-green-700 dark:text-green-300" : "text-gray-700 dark:text-gray-300"
+                                                )}>Permissif (avec code)</span>
+                                            </div>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                                Permet l'accès tardif via un code que vous générerez après création.
+                                            </p>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                             <div className="flex justify-between pt-4">
                                 <Button variant="ghost" onClick={prevStep} className="gap-2">
@@ -311,18 +374,22 @@ export function Step3Configuration({ data, onUpdate }: Step3Props) {
                                 <div className="space-y-2">
                                     <label className="block text-sm font-bold text-gray-700 dark:text-gray-300">Objectif</label>
                                     <div className="grid grid-cols-3 gap-2">
-                                        {["FORMATIVE", "SUMMATIVE", "DIAGNOSTIC"].map((obj) => (
+                                        {[
+                                            { value: "FORMATIVE_EVAL", label: "Formatif" },
+                                            { value: "SUMMATIVE_EVAL", label: "Sommatif" },
+                                            { value: "DIAGNOSTIC_EVAL", label: "Diagnostic" }
+                                        ].map((obj) => (
                                             <button
-                                                key={obj}
-                                                onClick={() => setPedagogicalObjective(obj)}
+                                                key={obj.value}
+                                                onClick={() => setPedagogicalObjective(obj.value)}
                                                 className={cn(
                                                     "p-3 rounded-xl border-2 text-sm font-bold transition-all",
-                                                    pedagogicalObjective === obj
+                                                    pedagogicalObjective === obj.value
                                                         ? "border-purple-500 bg-purple-50 text-purple-700"
                                                         : "border-gray-200 hover:border-purple-300"
                                                 )}
                                             >
-                                                {obj === "FORMATIVE" ? "Formatif" : obj === "SUMMATIVE" ? "Sommatif" : "Diagnostic"}
+                                                {obj.label}
                                             </button>
                                         ))}
                                     </div>
@@ -336,14 +403,14 @@ export function Step3Configuration({ data, onUpdate }: Step3Props) {
                                     >
                                         <option value="QCM">QCM</option>
                                         <option value="TRUE_FALSE">Vrai/Faux</option>
-                                        <option value="OPEN_ENDED">Réponse Ouverte</option>
+                                        <option value="OPEN_QUESTION">Réponse Ouverte</option>
                                         <option value="MIXED">Mixte</option>
                                     </select>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="block text-sm font-bold text-gray-700 dark:text-gray-300">Difficulté</label>
                                     <div className="grid grid-cols-3 gap-2">
-                                        {["EASY", "MEDIUM", "HARD"].map((diff) => (
+                                        {["BEGINNER", "INTERMEDIATE", "ADVANCED"].map((diff) => (
                                             <button
                                                 key={diff}
                                                 onClick={() => setDifficultyLevel(diff)}
@@ -354,7 +421,7 @@ export function Step3Configuration({ data, onUpdate }: Step3Props) {
                                                         : "border-gray-200 hover:border-purple-300"
                                                 )}
                                             >
-                                                {diff === "EASY" ? "Facile" : diff === "MEDIUM" ? "Moyen" : "Difficile"}
+                                                {diff === "BEGINNER" ? "Débutant" : diff === "INTERMEDIATE" ? "Intermédiaire" : "Avancé"}
                                             </button>
                                         ))}
                                     </div>

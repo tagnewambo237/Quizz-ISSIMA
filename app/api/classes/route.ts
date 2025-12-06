@@ -41,7 +41,7 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json()
-        const { name, school, level, academicYear, field } = body
+        const { name, school, level, academicYear, field, specialty } = body
 
         if (!name || !school || !level || !academicYear) {
             return NextResponse.json(
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
         await connectDB()
 
         const newClass = await ClassService.createClass(
-            { name, school, level, academicYear, field },
+            { name, school, level, academicYear, field, specialty },
             session.user.id
         )
 

@@ -48,6 +48,22 @@ export class SyllabusBuilder {
     }
 
     /**
+     * Clear the current structure
+     */
+    resetStructure(): SyllabusBuilder {
+        this.structure = { chapters: [] }
+        return this
+    }
+
+    /**
+     * Clear learning objectives
+     */
+    resetObjectives(): SyllabusBuilder {
+        this.syllabus.learningObjectives = []
+        return this
+    }
+
+    /**
      * Set basic information
      */
     setBasicInfo(title: string, description?: string): SyllabusBuilder {
@@ -65,6 +81,14 @@ export class SyllabusBuilder {
         if (schoolId) {
             this.syllabus.school = new mongoose.Types.ObjectId(schoolId)
         }
+        return this
+    }
+
+    /**
+     * Assign to classes
+     */
+    setClasses(classIds: string[]): SyllabusBuilder {
+        this.syllabus.classes = classIds.map(id => new mongoose.Types.ObjectId(id))
         return this
     }
 

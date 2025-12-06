@@ -3,6 +3,7 @@ import { EmailNotificationObserver } from './observers/EmailNotificationObserver
 import { StatsUpdateObserver } from './observers/StatsUpdateObserver'
 import { BadgeAwardObserver } from './observers/BadgeAwardObserver'
 import { XPUpdateObserver } from './observers/XPUpdateObserver'
+import { NotificationObserver } from './observers/NotificationObserver'
 
 export * from './types'
 export * from './interfaces/IObserver'
@@ -20,6 +21,7 @@ export const initEventSystem = (): void => {
     console.log('[EventSystem] Initializing observers...')
 
     // Enregistrer les observateurs
+    publisher.subscribe(new NotificationObserver())
     publisher.subscribe(new EmailNotificationObserver())
     publisher.subscribe(new StatsUpdateObserver())
     publisher.subscribe(new BadgeAwardObserver())

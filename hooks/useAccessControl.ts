@@ -22,7 +22,18 @@ export function useAccessControl() {
         if (session?.user?.role === UserRole.TEACHER && !pedagogicalProfile && !profileLoading) {
             setProfileLoading(true)
             fetch('/api/profiles/pedagogical')
-                .then(res => res.json())
+                .then(async res => {
+                    const contentType = res.headers.get("content-type");
+                    if (contentType && contentType.indexOf("application/json") !== -1) {
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data.message || "API Error");
+                        return data;
+                    } else {
+                        const text = await res.text();
+                        console.error("[useAccessControl] Non-JSON response:", text.substring(0, 200));
+                        throw new Error("Invalid response format (not JSON)");
+                    }
+                })
                 .then(data => {
                     if (data.success) {
                         setPedagogicalProfile(data.data)

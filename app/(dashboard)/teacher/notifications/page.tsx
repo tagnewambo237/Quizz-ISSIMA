@@ -7,12 +7,12 @@ import { useSession } from "next-auth/react"
 
 interface Notification {
     id: string
-    type: 'badge' | 'xp' | 'level_up' | 'achievement' | 'info' | 'system'
+    type: 'badge' | 'xp' | 'level_up' | 'achievement' | 'info' | 'exam' | 'class' | 'alert' | 'success'
     title: string
     message: string
     timestamp: Date
     read: boolean
-    icon?: any
+    data?: any
 }
 
 export default function NotificationsPage() {
@@ -27,46 +27,16 @@ export default function NotificationsPage() {
 
     const fetchNotifications = async () => {
         try {
-            // Mock data - Replace with API call
-            const mockNotifications: Notification[] = [
-                {
-                    id: '1',
-                    type: 'badge',
-                    title: 'Nouveau Badge!',
-                    message: 'Badge "Mentor Expert" débloqué',
-                    timestamp: new Date(Date.now() - 5 * 60000),
-                    read: false,
-                    icon: Trophy
-                },
-                {
-                    id: '2',
-                    type: 'xp',
-                    title: '+200 XP',
-                    message: 'Classe complétée avec succès',
-                    timestamp: new Date(Date.now() - 60 * 60000),
-                    read: false,
-                    icon: Zap
-                },
-                {
-                    id: '3',
-                    type: 'level_up',
-                    title: 'Level Up!',
-                    message: 'Vous êtes maintenant niveau 15',
-                    timestamp: new Date(Date.now() - 2 * 60 * 60000),
-                    read: true,
-                    icon: Star
-                },
-                {
-                    id: '4',
-                    type: 'system',
-                    title: 'Maintenance Prévue',
-                    message: 'La plateforme sera en maintenance ce soir à 22h.',
-                    timestamp: new Date(Date.now() - 24 * 60 * 60000),
-                    read: true,
-                    icon: Info
-                },
-            ]
-            setNotifications(mockNotifications)
+            const response = await fetch('/api/notifications')
+            const result = await response.json()
+
+            if (result.success) {
+                const notifs = result.data.map((notif: any) => ({
+                    ...notif,
+                    timestamp: new Date(notif.timestamp)
+                }))
+                setNotifications(notifs)
+            }
         } catch (error) {
             console.error('Failed to fetch notifications:', error)
         } finally {
@@ -74,45 +44,113 @@ export default function NotificationsPage() {
         }
     }
 
-    const markAsRead = (id: string) => {
-        setNotifications(prev =>
-            prev.map(n => n.id === id ? { ...n, read: true } : n)
-        )
+    const markAsRead = async (id: string) => {
+        try {
+            // Optimistic update
+            setNotifications(prev =>
+                prev.map(n => n.id === id ? { ...n, read: true } : n)
+            )
+
+            // Update server
+            await fetch('/api/notifications', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notificationId: id })
+            })
+        } catch (error) {
+            console.error('Failed to mark notification as read:', error)
+            fetchNotifications()
+        }
     }
 
-    const markAllAsRead = () => {
-        setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+    const markAllAsRead = async () => {
+        try {
+            // Optimistic update
+            setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+
+            // Update server
+            await fetch('/api/notifications', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ markAllAsRead: true })
+            })
+        } catch (error) {
+            console.error('Failed to mark all notifications as read:', error)
+            fetchNotifications()
+        }
     }
 
-    const deleteNotification = (id: string) => {
-        setNotifications(prev => prev.filter(n => n.id !== id))
+    const deleteNotification = async (id: string) => {
+        try {
+            // Optimistic update
+            setNotifications(prev => prev.filter(n => n.id !== id))
+
+            // Update server
+            await fetch(`/api/notifications?id=${id}`, {
+                method: 'DELETE'
+            })
+        } catch (error) {
+            console.error('Failed to delete notification:', error)
+            fetchNotifications()
+        }
     }
 
     const getNotificationColor = (type: string) => {
         switch (type) {
-            case 'badge': return 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/20 dark:text-yellow-400'
-            case 'xp': return 'bg-purple-100 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400'
-            case 'level_up': return 'bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
-            case 'achievement': return 'bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-400'
-            case 'system': return 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
-            default: return 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+            case 'badge':
+            case 'achievement':
+                return 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/20 dark:text-yellow-400'
+            case 'xp':
+                return 'bg-purple-100 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400'
+            case 'level_up':
+                return 'bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+            case 'success':
+                return 'bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-400'
+            case 'alert':
+                return 'bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400'
+            case 'exam':
+            case 'class':
+                return 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400'
+            case 'info':
+            default:
+                return 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
         }
     }
 
     const getIcon = (type: string) => {
         switch (type) {
-            case 'badge': return Trophy
-            case 'xp': return Zap
-            case 'level_up': return Star
-            case 'achievement': return Trophy
-            case 'system': return AlertCircle
-            default: return Bell
+            case 'badge':
+            case 'achievement':
+                return Trophy
+            case 'xp':
+                return Zap
+            case 'level_up':
+                return Star
+            case 'success':
+                return Check
+            case 'alert':
+                return AlertCircle
+            case 'exam':
+            case 'class':
+            case 'info':
+                return Info
+            default:
+                return Bell
         }
+    }
+
+    const getTimeAgo = (date: Date) => {
+        const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000)
+
+        if (seconds < 60) return 'À l\'instant'
+        if (seconds < 3600) return `Il y a ${Math.floor(seconds / 60)} min`
+        if (seconds < 86400) return `Il y a ${Math.floor(seconds / 3600)}h`
+        if (seconds < 604800) return `Il y a ${Math.floor(seconds / 86400)}j`
+        return date.toLocaleDateString()
     }
 
     const filteredNotifications = notifications.filter(n => {
         if (filter === 'unread') return !n.read
-        if (filter === 'system') return n.type === 'system'
         return true
     })
 
@@ -144,7 +182,6 @@ export default function NotificationsPage() {
                 {[
                     { id: 'all', label: 'Toutes' },
                     { id: 'unread', label: 'Non lues' },
-                    { id: 'system', label: 'Système' },
                 ].map((f) => (
                     <button
                         key={f.id}
@@ -201,7 +238,7 @@ export default function NotificationsPage() {
                                                     </p>
                                                 </div>
                                                 <span className="text-xs text-gray-400 whitespace-nowrap">
-                                                    {new Date(notif.timestamp).toLocaleDateString()}
+                                                    {getTimeAgo(notif.timestamp)}
                                                 </span>
                                             </div>
                                         </div>

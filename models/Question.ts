@@ -3,7 +3,7 @@ import { DifficultyLevel, EvaluationType } from './enums'
 
 /**
  * Interface pour les statistiques d'une question
- * Permet de tracker la performance des étudiants sur chaque question
+ * Permet de tracker la Performance des Apprenants sur chaque question
  */
 export interface QuestionStats {
   timesAsked: number // Nombre de fois que la question a été posée

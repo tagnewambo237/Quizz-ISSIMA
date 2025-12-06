@@ -32,55 +32,82 @@ export function NotificationCenter() {
 
     const fetchNotifications = async () => {
         try {
-            // Simuler des notifications basées sur les événements
-            // Dans une vraie implémentation, cela viendrait de votre API
-            const mockNotifications: Notification[] = [
-                {
-                    id: '1',
-                    type: 'badge',
-                    title: 'Nouveau Badge!',
-                    message: 'Badge "Mentor Expert" débloqué',
-                    timestamp: new Date(Date.now() - 5 * 60000),
-                    read: false,
-                    icon: Trophy
-                },
-                {
-                    id: '2',
-                    type: 'xp',
-                    title: '+200 XP',
-                    message: 'Classe complétée avec succès',
-                    timestamp: new Date(Date.now() - 60 * 60000),
-                    read: false,
-                    icon: Zap
-                },
-                {
-                    id: '3',
-                    type: 'level_up',
-                    title: 'Level Up!',
-                    message: 'Vous êtes maintenant niveau 15',
-                    timestamp: new Date(Date.now() - 2 * 60 * 60000),
-                    read: true,
-                    icon: Star
-                },
-            ]
+            const response = await fetch('/api/notifications')
+            const result = await response.json()
 
-            setNotifications(mockNotifications)
-            setUnreadCount(mockNotifications.filter(n => !n.read).length)
+            if (result.success) {
+                // Mapper les icônes selon le type
+                const notificationsWithIcons = result.data.map((notif: any) => ({
+                    ...notif,
+                    timestamp: new Date(notif.timestamp),
+                    icon: getIconForType(notif.type)
+                }))
+
+                setNotifications(notificationsWithIcons)
+                setUnreadCount(result.unreadCount)
+            }
         } catch (error) {
             console.error('Failed to fetch notifications:', error)
         }
     }
 
-    const markAsRead = (id: string) => {
-        setNotifications(prev =>
-            prev.map(n => n.id === id ? { ...n, read: true } : n)
-        )
-        setUnreadCount(prev => Math.max(0, prev - 1))
+    const getIconForType = (type: string) => {
+        switch (type) {
+            case 'badge':
+            case 'achievement':
+                return Trophy
+            case 'xp':
+                return Zap
+            case 'level_up':
+                return Star
+            case 'success':
+            case 'exam':
+            case 'class':
+            case 'info':
+            case 'alert':
+            default:
+                return Bell
+        }
     }
 
-    const markAllAsRead = () => {
-        setNotifications(prev => prev.map(n => ({ ...n, read: true })))
-        setUnreadCount(0)
+    const markAsRead = async (id: string) => {
+        try {
+            // Optimistic update
+            setNotifications(prev =>
+                prev.map(n => n.id === id ? { ...n, read: true } : n)
+            )
+            setUnreadCount(prev => Math.max(0, prev - 1))
+
+            // Update server
+            await fetch('/api/notifications', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notificationId: id })
+            })
+        } catch (error) {
+            console.error('Failed to mark notification as read:', error)
+            // Revert on error
+            fetchNotifications()
+        }
+    }
+
+    const markAllAsRead = async () => {
+        try {
+            // Optimistic update
+            setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+            setUnreadCount(0)
+
+            // Update server
+            await fetch('/api/notifications', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ markAllAsRead: true })
+            })
+        } catch (error) {
+            console.error('Failed to mark all notifications as read:', error)
+            // Revert on error
+            fetchNotifications()
+        }
     }
 
     const getNotificationColor = (type: string) => {

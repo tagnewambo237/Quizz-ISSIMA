@@ -1,11 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Plus, Users, School, BookOpen, Loader2, TrendingUp, Calendar, MoreVertical, Trash2, Edit, X } from "lucide-react"
+import { Plus, Users, School, BookOpen, Loader2, TrendingUp, Calendar, MoreVertical, Trash2, Edit, X, GraduationCap } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { AreaChart, Area, ResponsiveContainer } from "recharts"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { ClassFormModal } from "@/components/classes/ClassFormModal"
+import { DeleteConfirmModal } from "@/components/DeleteConfirmModal"
 
 // Mock data for charts (can be replaced with real stats later)
 const mockChartData = [
@@ -16,18 +18,12 @@ export default function TeacherClassesPage() {
     const router = useRouter()
     const [classes, setClasses] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
+
+    // Modals State
     const [showCreateModal, setShowCreateModal] = useState(false)
-    const [schools, setSchools] = useState<any[]>([])
-    const [levels, setLevels] = useState<any[]>([])
-    
-    // Form State
-    const [formData, setFormData] = useState({
-        name: "",
-        school: "",
-        level: "",
-        academicYear: "2024-2025" // Default
-    })
-    const [submitting, setSubmitting] = useState(false)
+    const [classToEdit, setClassToEdit] = useState<any>(null)
+    const [classToDelete, setClassToDelete] = useState<string | null>(null)
+    const [isDeleting, setIsDeleting] = useState(false)
 
     const fetchClasses = async () => {
         try {
@@ -43,65 +39,27 @@ export default function TeacherClassesPage() {
         }
     }
 
-    const fetchDependencies = async () => {
-        try {
-            const [schoolsRes, levelsRes] = await Promise.all([
-                fetch("/api/schools"),
-                fetch("/api/education-levels")
-            ])
-            const schoolsData = await schoolsRes.json()
-            const levelsData = await levelsRes.json()
-
-            if (schoolsData.success) setSchools(schoolsData.data)
-            if (levelsData.success) setLevels(levelsData.data)
-        } catch (error) {
-            console.error("Failed to fetch dependencies", error)
-        }
-    }
-
     useEffect(() => {
         fetchClasses()
-        fetchDependencies()
     }, [])
 
-    const handleCreateClass = async (e: React.FormEvent) => {
-        e.preventDefault()
-        setSubmitting(true)
+    const confirmDelete = async () => {
+        if (!classToDelete) return
+        setIsDeleting(true)
         try {
-            const res = await fetch("/api/classes", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(formData)
-            })
-            const data = await res.json()
-            if (data.success) {
-                setShowCreateModal(false)
-                setFormData({ name: "", school: "", level: "", academicYear: "2024-2025" })
-                fetchClasses() // Refresh list
-            } else {
-                alert(data.message || "Failed to create class")
-            }
-        } catch (error) {
-            console.error("Create class error", error)
-            alert("An error occurred")
-        } finally {
-            setSubmitting(false)
-        }
-    }
-
-    const handleDeleteClass = async (classId: string) => {
-        if (!confirm("Êtes-vous sûr de vouloir supprimer cette classe ?")) return
-        try {
-            const res = await fetch(`/api/classes/${classId}`, {
+            const res = await fetch(`/api/classes/${classToDelete}`, {
                 method: "DELETE"
             })
             if (res.ok) {
                 fetchClasses()
+                setClassToDelete(null)
             } else {
                 alert("Impossible de supprimer la classe")
             }
         } catch (error) {
             console.error("Delete error", error)
+        } finally {
+            setIsDeleting(false)
         }
     }
 
@@ -155,10 +113,20 @@ export default function TeacherClassesPage() {
                             transition={{ delay: index * 0.1 }}
                             className="group bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-xl hover:border-secondary/20 transition-all duration-300 relative overflow-hidden"
                         >
-                             {/* Actions Dropdown (Simplified for now) */}
-                             <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                                <button 
-                                    onClick={() => handleDeleteClass(cls._id)}
+                            {/* Actions Dropdown */}
+                            <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                <button
+                                    onClick={() => {
+                                        setClassToEdit(cls)
+                                        setShowCreateModal(true)
+                                    }}
+                                    className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+                                    title="Modifier"
+                                >
+                                    <Edit className="h-4 w-4" />
+                                </button>
+                                <button
+                                    onClick={() => setClassToDelete(cls._id)}
                                     className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors"
                                     title="Supprimer"
                                 >
@@ -172,18 +140,33 @@ export default function TeacherClassesPage() {
                                         <div className="h-14 w-14 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-2xl flex items-center justify-center text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform duration-300">
                                             <Users className="h-7 w-7" />
                                         </div>
-                                        <span className="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-xs font-medium text-gray-600 dark:text-gray-300">
-                                            {cls.academicYear}
-                                        </span>
+                                        <div className="flex flex-col items-end gap-1">
+                                            <span className="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-xs font-medium text-gray-600 dark:text-gray-300">
+                                                {cls.academicYear}
+                                            </span>
+                                            {cls.field && (
+                                                <span className="text-[10px] text-gray-400 font-medium px-2 py-0.5 border border-gray-200 dark:border-gray-700 rounded-full">
+                                                    {cls.field.code}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
 
                                     <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1 group-hover:text-secondary transition-colors">
                                         {cls.name}
                                     </h3>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 flex items-center gap-2">
-                                        <School className="h-4 w-4" />
-                                        {cls.school?.name || "École inconnue"}
-                                    </p>
+                                    <div className="space-y-1 mb-6">
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                                            <School className="h-4 w-4" />
+                                            {cls.school?.name || "École inconnue"}
+                                        </p>
+                                        {cls.specialty && (
+                                            <p className="text-xs text-gray-400 flex items-center gap-2">
+                                                <GraduationCap className="h-3 w-3" />
+                                                {cls.specialty.name}
+                                            </p>
+                                        )}
+                                    </div>
 
                                     {/* Mini Chart */}
                                     <div className="h-16 mb-6 -mx-2">
@@ -211,14 +194,14 @@ export default function TeacherClassesPage() {
                                         <div>
                                             <p className="text-xs text-gray-500 mb-1">Niveau</p>
                                             <div className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white">
-                                                <BookOpen className="h-4 w-4 text-gray-400" />
+                                                <BookOpen className="h-4 w-4" />
                                                 <span>{cls.level?.name || "N/A"}</span>
                                             </div>
                                         </div>
                                         <div>
                                             <p className="text-xs text-gray-500 mb-1">Élèves</p>
                                             <div className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white">
-                                                <Users className="h-4 w-4 text-gray-400" />
+                                                <Users className="h-4 w-4" />
                                                 <span>{cls.students?.length || 0}</span>
                                             </div>
                                         </div>
@@ -230,100 +213,26 @@ export default function TeacherClassesPage() {
                 </div>
             )}
 
-            {/* Create Modal */}
-            <AnimatePresence>
-                {showCreateModal && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            className="bg-white dark:bg-gray-800 p-8 rounded-3xl max-w-md w-full shadow-2xl relative"
-                        >
-                            <button 
-                                onClick={() => setShowCreateModal(false)}
-                                className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
-                            >
-                                <X className="h-5 w-5 text-gray-500" />
-                            </button>
+            {/* Modals */}
+            <ClassFormModal
+                isOpen={showCreateModal}
+                onClose={() => {
+                    setShowCreateModal(false)
+                    setClassToEdit(null)
+                }}
+                onSuccess={fetchClasses}
+                initialData={classToEdit}
+            />
 
-                            <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Créer une classe</h2>
-                            
-                            <form onSubmit={handleCreateClass} className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nom de la classe</label>
-                                    <input 
-                                        type="text" 
-                                        required
-                                        placeholder="Ex: Terminale C 2"
-                                        value={formData.name}
-                                        onChange={(e) => setFormData({...formData, name: e.target.value})}
-                                        className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-secondary/20 outline-none transition-all"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">École</label>
-                                    <select 
-                                        required
-                                        value={formData.school}
-                                        onChange={(e) => setFormData({...formData, school: e.target.value})}
-                                        className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-secondary/20 outline-none transition-all"
-                                    >
-                                        <option value="">Sélectionner une école</option>
-                                        {schools.map(school => (
-                                            <option key={school._id} value={school._id}>{school.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Niveau</label>
-                                    <select 
-                                        required
-                                        value={formData.level}
-                                        onChange={(e) => setFormData({...formData, level: e.target.value})}
-                                        className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-secondary/20 outline-none transition-all"
-                                    >
-                                        <option value="">Sélectionner un niveau</option>
-                                        {levels.map(level => (
-                                            <option key={level._id} value={level._id}>{level.name} ({level.code})</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Année Académique</label>
-                                    <input 
-                                        type="text" 
-                                        required
-                                        value={formData.academicYear}
-                                        onChange={(e) => setFormData({...formData, academicYear: e.target.value})}
-                                        className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-secondary/20 outline-none transition-all"
-                                    />
-                                </div>
-
-                                <div className="flex gap-4 pt-4">
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowCreateModal(false)}
-                                        className="flex-1 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                                    >
-                                        Annuler
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={submitting}
-                                        className="flex-1 py-3 bg-secondary text-white rounded-xl font-medium hover:bg-secondary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                                    >
-                                        {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "Créer"}
-                                    </button>
-                                </div>
-                            </form>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
+            <DeleteConfirmModal
+                isOpen={!!classToDelete}
+                onClose={() => setClassToDelete(null)}
+                onConfirm={confirmDelete}
+                title="Supprimer la classe"
+                message="Êtes-vous sûr de vouloir supprimer cette classe ? Cette action est irréversible et supprimera toutes les données associées (examens, devoirs, etc.)."
+                confirmText="Supprimer"
+                isLoading={isDeleting}
+            />
         </div>
     )
 }

@@ -8,6 +8,8 @@ export interface IClass extends Document {
 
     level: mongoose.Types.ObjectId // Ref: 'EducationLevel'
     field?: mongoose.Types.ObjectId // Ref: 'Field'
+    specialty?: mongoose.Types.ObjectId // Ref: 'Field' (Sous-spécialité)
+
 
     students: mongoose.Types.ObjectId[] // Ref: 'User'
     academicYear: string // Ex: "2024-2025"
@@ -40,6 +42,10 @@ const ClassSchema = new Schema<IClass>(
             required: true
         },
         field: {
+            type: Schema.Types.ObjectId,
+            ref: 'Field'
+        },
+        specialty: {
             type: Schema.Types.ObjectId,
             ref: 'Field'
         },

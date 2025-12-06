@@ -1,66 +1,150 @@
-import School, { ISchool, SchoolType } from "@/models/School"
-import { SchoolStatus } from "@/models/enums"
-import User from "@/models/User"
-import mongoose from "mongoose"
+import School, { ISchool } from "@/models/School";
+import User, { IUser } from "@/models/User";
+import Class from "@/models/Class";
+import mongoose from "mongoose";
 
 export class SchoolService {
+
     /**
-     * Create a new school (Pending Validation)
+     * Get School Stats
+     * Returns: Total Students, Total Teachers, Active Classes, Average Score
      */
-    static async createSchool(data: Partial<ISchool>, ownerId: string) {
-        const schools = await School.create([{
-            ...data,
-            owner: ownerId,
-            status: SchoolStatus.PENDING,
-            admins: [ownerId],
-            teachers: [ownerId]
-        }] as any) as any
+    /**
+     * Get School Stats & Details
+     */
+    static async getSchoolStats(schoolId: string) {
+        const Attempt = mongoose.models.Attempt || mongoose.model('Attempt');
 
-        const school = schools[0]
+        // 1. Basic Counts
+        const school = await School.findById(schoolId).select('-teachers -admins'); // Exclude heavy arrays
+        if (!school) return null;
 
-        // Add to user's schools
-        await User.findByIdAndUpdate(ownerId, {
-            $addToSet: { schools: school._id }
-        })
+        // Re-fetch for counts if needed or rely on array lengths from a separate lightweight query?
+        // Better to count via DB queries if arrays are huge, but for now school.teachers.length is fine if we loaded it.
+        // Wait, I excluded them. Let's count via distinct queries.
 
-        return school
+        const teachersCount = await School.findById(schoolId).select('teachers').then(s => s?.teachers.length || 0);
+        const adminsCount = await School.findById(schoolId).select('admins').then(s => s?.admins.length || 0);
+
+        const classes = await Class.find({ school: schoolId });
+        const classesCount = classes.length;
+
+        // 2. Students Count (Unique students across all classes)
+        const allStudents = classes.flatMap((c: any) => c.students);
+        // Use Set to count unique IDs
+        const uniqueStudents = new Set(allStudents.map((id: any) => id.toString()));
+        const studentsCount = uniqueStudents.size;
+
+        // 3. Average Score (Global)
+        const studentIds = Array.from(uniqueStudents);
+
+        let averageScore = 0;
+        if (studentIds.length > 0) {
+            const stats = await Attempt.aggregate([
+                {
+                    $match: {
+                        userId: { $in: studentIds.map(id => new mongoose.Types.ObjectId(id as string)) },
+                        status: 'COMPLETED'
+                    }
+                },
+                {
+                    $group: {
+                        _id: null,
+                        avg: { $avg: "$percentage" }
+                    }
+                }
+            ]);
+            averageScore = stats.length > 0 ? stats[0].avg : 0;
+        }
+
+        return {
+            details: school,
+            stats: {
+                totalStudents: studentsCount,
+                totalTeachers: teachersCount,
+                adminsCount,
+                activeClasses: classesCount,
+                averageScore: Math.round(averageScore * 10) / 10
+            }
+        };
     }
 
     /**
-     * Validate a school (Admin only)
+     * Get Teachers List
      */
-    static async validateSchool(schoolId: string, adminId: string) {
-        // TODO: Check if adminId has rights (SuperAdmin)
+    static async getSchoolTeachers(schoolId: string) {
+        // Find all users who have this school in their schools array
+        const teachers = await User.find({
+            schools: schoolId,
+            role: 'TEACHER',
+            isActive: true
+        }).select('name email role isActive metadata.avatar lastLogin createdAt');
 
-        const school = await School.findByIdAndUpdate(
+        return teachers;
+    }
+
+    /**
+     * Add Teacher to School
+     */
+    static async addTeacherToSchool(schoolId: string, userId: string) {
+        return await School.findByIdAndUpdate(
             schoolId,
-            { status: SchoolStatus.VALIDATED },
+            { $addToSet: { teachers: userId } },
             { new: true }
-        )
-        return school
+        );
     }
 
     /**
-     * Get schools by owner
+     * Remove Teacher from School
      */
-    static async getMySchools(userId: string) {
+    static async removeTeacherFromSchool(schoolId: string, userId: string) {
+        // Also remove school from user?
+        await User.findByIdAndUpdate(userId, { $pull: { schools: schoolId } });
+
+        return await School.findByIdAndUpdate(
+            schoolId,
+            { $pull: { teachers: userId } },
+            { new: true }
+        );
+    }
+
+    /**
+     * Get Public Schools (for discovery)
+     */
+    static async getPublicSchools() {
+        return await School.find({
+            status: 'APPROVED',
+            isActive: true
+        })
+            .select('name type address logoUrl contactInfo createdAt applicants')
+            .sort({ name: 1 })
+            .limit(20);
+    }
+
+    /**
+     * Get Teacher's Schools (Owned or Member)
+     */
+    static async getTeacherSchools(userId: string) {
+        // Find schools where user is owner or in teachers list
         return await School.find({
             $or: [
                 { owner: userId },
-                { admins: userId },
-                { teachers: userId }
+                { teachers: userId },
+                { admins: userId }
             ]
-        }).sort({ createdAt: -1 })
+        }).select('name type logoUrl status type address');
     }
 
     /**
-     * Search schools (for students to join)
+     * Get School Classes
      */
-    static async searchSchools(query: string) {
-        return await School.find({
-            name: { $regex: query, $options: 'i' },
-            status: SchoolStatus.VALIDATED,
-            isActive: true
-        }).select('name type address logoUrl')
+    static async getSchoolClasses(schoolId: string) {
+        return await Class.find({ school: schoolId })
+            .populate('mainTeacher', 'name email') // Main teacher
+            .populate('level', 'name')
+            .populate('specialty', 'name')
+            .populate('field', 'code name')
+            .select('name level specialty field academicYear students mainTeacher')
+            .sort({ name: 1 });
     }
 }

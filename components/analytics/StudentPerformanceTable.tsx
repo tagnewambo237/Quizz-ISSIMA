@@ -21,7 +21,7 @@ export function StudentPerformanceTable({ attempts }: StudentPerformanceTablePro
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Performance des Étudiants</CardTitle>
+                <CardTitle>Performance des Apprenants</CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="overflow-x-auto">

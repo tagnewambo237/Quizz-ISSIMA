@@ -23,6 +23,7 @@ export interface ISchool extends Document {
     // Relationships
     teachers: mongoose.Types.ObjectId[] // Refs to User
     admins: mongoose.Types.ObjectId[] // Refs to User
+    applicants: mongoose.Types.ObjectId[] // Refs to User
 
     // Metadata
     logoUrl?: string
@@ -61,6 +62,10 @@ const SchoolSchema = new Schema<ISchool>(
             ref: 'User'
         }],
         admins: [{
+            type: Schema.Types.ObjectId,
+            ref: 'User'
+        }],
+        applicants: [{
             type: Schema.Types.ObjectId,
             ref: 'User'
         }],

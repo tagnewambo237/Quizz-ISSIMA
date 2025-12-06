@@ -22,6 +22,8 @@ export interface ISyllabus extends Document {
     // Example: { chapters: [{ title: "Ch1", topics: [...] }] }
     structure: any
 
+    classes: mongoose.Types.ObjectId[] // Assigned Classes
+
     learningObjectives: string[]
 
     status: SyllabusStatus
@@ -60,6 +62,10 @@ const SyllabusSchema = new Schema<ISyllabus>(
             type: Schema.Types.Mixed,
             default: {}
         },
+        classes: [{
+            type: Schema.Types.ObjectId,
+            ref: 'Class'
+        }],
         learningObjectives: [{
             type: String,
             trim: true

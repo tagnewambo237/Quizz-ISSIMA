@@ -121,7 +121,6 @@ const LearnerProfileSchema = new Schema<ILearnerProfile>(
 )
 
 // Indexes
-LearnerProfileSchema.index({ user: 1 })
 LearnerProfileSchema.index({ currentLevel: 1, currentField: 1 })
 LearnerProfileSchema.index({ subscriptionStatus: 1 })
 

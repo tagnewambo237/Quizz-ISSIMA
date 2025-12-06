@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Card } from "@/components/ui/card"
 import { Check, AlertCircle, Clock, BookOpen, Target, Shield, HelpCircle, Rocket } from "lucide-react"
@@ -9,6 +10,69 @@ interface Step5Props {
 
 export function Step5Preview({ data }: Step5Props) {
     const isValid = data.title && data.subject && data.questions && data.questions.length > 0
+
+    // Local state for resolved names
+    const [subjectName, setSubjectName] = useState(data.subject)
+    const [levelNames, setLevelNames] = useState<string[]>([])
+    const [systemName, setSystemName] = useState(data.subSystem)
+
+    useEffect(() => {
+        // Resolve Subject Name
+        if (data.subject && data.subject.length === 24) { // Basic ID check
+            fetch(`/api/subjects?id=${data.subject}`) // Assuming fetch all or specific endpoint supports filtering by ID effectively or we assume logic
+                // Actually existing api/subjects filters by level. 
+                // Let's try to fetch all subjects for the level if we have levels and find correct one, OR better:
+                // Just display the passed name if we can pass it, but Step1 only passed IDs.
+                // Let's iterate: Fetch subjects by level (which we have) and find the name.
+                .then(res => res.json())
+                .then(resData => {
+                    // The API returns a list. We need to find the one matching data.subject
+                    // Wait, `/api/subjects` filters by `level`.
+                    // Let's try to pass the subject ID if API supports it, or fetch by levels.
+                    // A cleaner way in unrelated component:
+                    // We probably don't want to re-fetch everything. 
+                    // Ideally Step1 should have passed names too.
+                    // BUT, for now let's fetch.
+                    if (resData.data) {
+                        const found = resData.data.find((s: any) => s._id === data.subject)
+                        if (found) setSubjectName(found.name)
+                    }
+                })
+        }
+    }, [data.subject, data.targetLevels])
+
+    useEffect(() => {
+        // Resolve Target Levels
+        if (data.targetLevels && data.targetLevels.length > 0) {
+            // We need to fetch levels. 
+            // `/api/education-levels?subSystem=${data.subSystem}` returns all levels for the system.
+            if (data.subSystem) {
+                fetch(`/api/education-levels?subSystem=${data.subSystem}`)
+                    .then(res => res.json())
+                    .then(resData => {
+                        if (resData.data) {
+                            const names = resData.data
+                                .filter((l: any) => data.targetLevels.includes(l._id))
+                                .map((l: any) => l.name)
+                            setLevelNames(names)
+                        }
+                    })
+            }
+        }
+    }, [data.targetLevels, data.subSystem])
+
+    useEffect(() => {
+        // Resolve System Name
+        // Hardcoded map or fetch if dynamic. Step1 hardcoded it.
+        const systems: Record<string, string> = {
+            "FRANCOPHONE": "Francophone",
+            "ANGLOPHONE": "Anglophone"
+        }
+        if (systems[data.subSystem]) {
+            setSystemName(systems[data.subSystem])
+        }
+    }, [data.subSystem])
+
 
     const container = {
         hidden: { opacity: 0 },
@@ -103,19 +167,19 @@ export function Step5Preview({ data }: Step5Props) {
                     <div className="grid grid-cols-2 gap-4">
                         <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-xl">
                             <p className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase mb-1">Matière</p>
-                            <p className="font-bold text-gray-900 dark:text-white">{data.subject || "Non défini"}</p>
+                            <p className="font-bold text-gray-900 dark:text-white">{subjectName || "Non défini"}</p>
                         </div>
                         <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl">
                             <p className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase mb-1">Système</p>
-                            <p className="font-bold text-gray-900 dark:text-white">{data.subSystem || "Non défini"}</p>
+                            <p className="font-bold text-gray-900 dark:text-white">{systemName || "Non défini"}</p>
                         </div>
                         <div className="col-span-2 bg-gray-50 dark:bg-gray-900 p-4 rounded-xl">
                             <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Niveaux Cibles</p>
                             <div className="flex flex-wrap gap-2">
-                                {data.targetLevels?.length > 0 ? (
-                                    data.targetLevels.map((l: string) => (
-                                        <span key={l} className="px-2 py-1 bg-white dark:bg-gray-800 rounded-md text-sm font-medium shadow-sm border border-gray-200 dark:border-gray-700">
-                                            {l}
+                                {levelNames.length > 0 ? (
+                                    levelNames.map((name: string) => (
+                                        <span key={name} className="px-2 py-1 bg-white dark:bg-gray-800 rounded-md text-sm font-medium shadow-sm border border-gray-200 dark:border-gray-700">
+                                            {name}
                                         </span>
                                     ))
                                 ) : (
@@ -142,18 +206,18 @@ export function Step5Preview({ data }: Step5Props) {
                 {data.questions && data.questions.length > 0 ? (
                     <div className="space-y-3 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
                         {data.questions.map((q: any, index: number) => (
-                            <div key={q.id} className="flex items-start gap-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                            <div key={q?.id || index} className="flex items-start gap-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                                 <div className="w-8 h-8 rounded-full bg-white dark:bg-gray-800 border-2 border-orange-200 dark:border-orange-800 flex items-center justify-center font-bold text-orange-600 dark:text-orange-400 shrink-0">
                                     {index + 1}
                                 </div>
                                 <div className="flex-1">
-                                    <p className="font-medium text-gray-900 dark:text-white">{q.text}</p>
+                                    <p className="font-medium text-gray-900 dark:text-white">{q?.text || "Question sans texte"}</p>
                                     <div className="flex gap-2 mt-2">
                                         <span className="text-xs font-medium px-2 py-1 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 text-gray-500">
-                                            {q.type}
+                                            {q?.type || "N/A"}
                                         </span>
                                         <span className="text-xs font-medium px-2 py-1 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 text-gray-500">
-                                            {q.points} pts
+                                            {q?.points || 0} pts
                                         </span>
                                     </div>
                                 </div>

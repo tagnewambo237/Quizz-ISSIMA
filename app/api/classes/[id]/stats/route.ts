@@ -4,10 +4,11 @@ import { authOptions } from "@/lib/auth"
 import connectDB from "@/lib/mongodb"
 import { ClassService } from "@/lib/services/ClassService"
 import { UserRole } from "@/models/enums"
+import mongoose from "mongoose"
 
 export async function GET(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const session = await getServerSession(authOptions)
@@ -15,8 +16,15 @@ export async function GET(
             return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 })
         }
 
+        const { id } = await params
+
+        // Validate ID
+        if (!id || id === 'undefined' || !mongoose.Types.ObjectId.isValid(id)) {
+            return NextResponse.json({ success: false, message: "Invalid class ID" }, { status: 400 })
+        }
+
         await connectDB()
-        const classData = await ClassService.getClassById(params.id)
+        const classData = await ClassService.getClassById(id)
 
         if (!classData) {
             return NextResponse.json({ success: false, message: "Class not found" }, { status: 404 })

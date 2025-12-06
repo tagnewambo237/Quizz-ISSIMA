@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useCallback, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { Step1Classification } from "@/components/exam-creator/Step1Classification"
 import { Step2TargetAudience } from "@/components/exam-creator/Step2TargetAudience"
@@ -20,6 +20,7 @@ interface ExamData {
     targetLevels?: string[]
     subject?: string
     learningUnit?: string
+    syllabus?: string // Linked Syllabus ID
 
     // Step 2: Target Audience
     targetFields?: string[]
@@ -51,6 +52,8 @@ const STEPS = [
 
 export default function CreateExamPage() {
     const router = useRouter()
+    const searchParams = useSearchParams()
+
     const [currentStep, setCurrentStep] = useState(1)
     const [examData, setExamData] = useState<ExamData>({})
     const [loading, setLoading] = useState(false)
@@ -74,8 +77,25 @@ export default function CreateExamPage() {
         return () => clearTimeout(timer)
     }, [examData])
 
-    // Load draft on mount
+    // Load draft or URL params on mount
     useEffect(() => {
+        const syllabusId = searchParams.get('syllabusId')
+        const subjectId = searchParams.get('subjectId')
+        const titleParam = searchParams.get('title')
+
+        if (syllabusId) {
+            // Initializing from Syllabus
+            setExamData(prev => ({
+                ...prev,
+                syllabus: syllabusId,
+                subject: subjectId || prev.subject,
+                title: titleParam || prev.title,
+            }))
+            // Optional: Clear draft if starting fresh from syllabus
+            localStorage.removeItem('exam-draft')
+            return // Skip loading draft
+        }
+
         const draft = localStorage.getItem('exam-draft')
         if (draft) {
             try {
@@ -88,7 +108,7 @@ export default function CreateExamPage() {
                 console.error("Failed to load draft", e)
             }
         }
-    }, [])
+    }, [searchParams])
 
     // Validation for each step
     const validateStep = (step: number): boolean => {
