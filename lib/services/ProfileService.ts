@@ -3,6 +3,10 @@ import PedagogicalProfile, { IPedagogicalProfile } from "@/models/PedagogicalPro
 import User from "@/models/User"
 import { UserRole } from "@/models/enums"
 import mongoose from "mongoose"
+// Import models to register their schemas for populate()
+import "@/models/Subject"
+import "@/models/EducationLevel"
+import "@/models/Field"
 
 export class ProfileService {
     /**

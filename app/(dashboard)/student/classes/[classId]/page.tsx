@@ -81,7 +81,7 @@ export default async function StudentClassPage(props: { params: Promise<{ classI
                         <div>
                             <div className="flex items-center gap-2 text-sm text-secondary font-medium mb-2">
                                 <School className="h-4 w-4" />
-                                {classData.school?.name}
+                                {(classData.school as any)?.name}
                             </div>
                             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
                                 {classData.name}
@@ -91,7 +91,7 @@ export default async function StudentClassPage(props: { params: Promise<{ classI
                                 {classData.level && (
                                     <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-700/50 px-3 py-1.5 rounded-lg">
                                         <BookOpen className="h-4 w-4" />
-                                        <span>{classData.level.name}</span>
+                                        <span>{(classData.level as any).name}</span>
                                     </div>
                                 )}
                                 <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-700/50 px-3 py-1.5 rounded-lg">
@@ -101,7 +101,7 @@ export default async function StudentClassPage(props: { params: Promise<{ classI
                                 {classData.mainTeacher && (
                                     <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-700/50 px-3 py-1.5 rounded-lg">
                                         <Users className="h-4 w-4" />
-                                        <span>Prof. {classData.mainTeacher.name}</span>
+                                        <span>Prof. {(classData.mainTeacher as any).name}</span>
                                     </div>
                                 )}
                             </div>

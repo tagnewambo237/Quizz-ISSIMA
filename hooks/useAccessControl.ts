@@ -68,6 +68,7 @@ export function useAccessControl() {
 
         // Admins ont toujours accès
         const adminRoles = [
+            UserRole.SCHOOL_ADMIN,
             UserRole.INSPECTOR,
             UserRole.PRINCIPAL,
             UserRole.DG_ISIMMA,

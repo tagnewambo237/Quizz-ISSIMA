@@ -1,5 +1,5 @@
 import { UserRole } from "@/models/enums"
-import { GraduationCap, School, Check } from "lucide-react"
+import { GraduationCap, School, Building2, Check } from "lucide-react"
 
 interface StepRoleSelectionProps {
     data: any
@@ -20,6 +20,12 @@ export function StepRoleSelection({ data, updateData, onNext }: StepRoleSelectio
             title: "Je suis un Enseignant",
             description: "Je veux créer des cours, des quiz et gérer mes classes.",
             icon: School
+        },
+        {
+            id: UserRole.SCHOOL_ADMIN,
+            title: "Je suis un Administrateur d'École",
+            description: "Je gère un établissement partenaire et valide les enseignants.",
+            icon: Building2
         }
     ]
 
@@ -48,8 +54,8 @@ export function StepRoleSelection({ data, updateData, onNext }: StepRoleSelectio
                             key={role.id}
                             onClick={() => handleSelect(role.id)}
                             className={`relative p-6 rounded-xl border-2 text-left transition-all ${isSelected
-                                    ? "border-secondary bg-secondary/5 ring-2 ring-secondary/20"
-                                    : "border-gray-200 dark:border-gray-700 hover:border-secondary/50 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                                ? "border-secondary bg-secondary/5 ring-2 ring-secondary/20"
+                                : "border-gray-200 dark:border-gray-700 hover:border-secondary/50 hover:bg-gray-50 dark:hover:bg-gray-700/50"
                                 }`}
                         >
                             <div className="flex items-start gap-4">

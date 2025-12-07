@@ -147,4 +147,61 @@ export class SchoolService {
             .select('name level specialty field academicYear students mainTeacher')
             .sort({ name: 1 });
     }
+
+    // ==========================================
+    // TEACHER APPROVAL METHODS (For School Admins)
+    // ==========================================
+
+    /**
+     * Get pending teacher applications for a school
+     */
+    static async getPendingTeachers(schoolId: string) {
+        const school = await School.findById(schoolId)
+            .populate('applicants', 'name email createdAt metadata.avatar')
+            .select('applicants');
+
+        return school?.applicants || [];
+    }
+
+    /**
+     * Approve a teacher application
+     */
+    static async approveTeacher(schoolId: string, teacherId: string) {
+        // Move from applicants to teachers
+        const school = await School.findByIdAndUpdate(
+            schoolId,
+            {
+                $pull: { applicants: teacherId },
+                $addToSet: { teachers: teacherId }
+            },
+            { new: true }
+        );
+
+        // Add school to teacher's schools list
+        await User.findByIdAndUpdate(teacherId, {
+            $addToSet: { schools: schoolId }
+        });
+
+        return school;
+    }
+
+    /**
+     * Reject a teacher application
+     */
+    static async rejectTeacher(schoolId: string, teacherId: string) {
+        // Remove from applicants
+        const school = await School.findByIdAndUpdate(
+            schoolId,
+            { $pull: { applicants: teacherId } },
+            { new: true }
+        );
+
+        // Remove school from teacher's schools list
+        await User.findByIdAndUpdate(teacherId, {
+            $pull: { schools: schoolId }
+        });
+
+        return school;
+    }
 }
+

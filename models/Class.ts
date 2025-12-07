@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document, Model } from 'mongoose'
+import { ClassValidationStatus } from './enums'
 
 export interface IClass extends Document {
     _id: mongoose.Types.ObjectId
@@ -13,6 +14,12 @@ export interface IClass extends Document {
 
     students: mongoose.Types.ObjectId[] // Ref: 'User'
     academicYear: string // Ex: "2024-2025"
+
+    // Validation by School Admin
+    validationStatus: ClassValidationStatus
+    validatedBy?: mongoose.Types.ObjectId // Ref: 'User' (School Admin)
+    validatedAt?: Date
+    rejectionReason?: string
 
     isActive: boolean
     createdAt: Date
@@ -57,6 +64,18 @@ const ClassSchema = new Schema<IClass>(
             type: String,
             required: true
         },
+        // Validation by School Admin
+        validationStatus: {
+            type: String,
+            enum: Object.values(ClassValidationStatus),
+            default: ClassValidationStatus.VALIDATED // Existing classes are considered validated
+        },
+        validatedBy: {
+            type: Schema.Types.ObjectId,
+            ref: 'User'
+        },
+        validatedAt: Date,
+        rejectionReason: String,
         isActive: {
             type: Boolean,
             default: true
@@ -71,6 +90,7 @@ const ClassSchema = new Schema<IClass>(
 ClassSchema.index({ school: 1, academicYear: 1 })
 ClassSchema.index({ mainTeacher: 1 })
 ClassSchema.index({ students: 1 })
+ClassSchema.index({ school: 1, validationStatus: 1 })
 
 const Class: Model<IClass> = mongoose.models.Class || mongoose.model<IClass>('Class', ClassSchema)
 

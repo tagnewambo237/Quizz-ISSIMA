@@ -1,6 +1,8 @@
+"use client"
+
 import { useState, useEffect } from "react"
 import { UserRole } from "@/models/enums"
-import { Search, Plus, School as SchoolIcon, Users } from "lucide-react"
+import { Search, School as SchoolIcon, Users, AlertCircle, CheckCircle2 } from "lucide-react"
 
 interface StepSchoolContextProps {
     data: any
@@ -10,13 +12,15 @@ interface StepSchoolContextProps {
 }
 
 export function StepSchoolContext({ data, updateData, onNext, onBack }: StepSchoolContextProps) {
-    const [mode, setMode] = useState<'SEARCH' | 'CREATE'>(data.newSchoolData ? 'CREATE' : 'SEARCH')
     const [searchQuery, setSearchQuery] = useState("")
     const [schools, setSchools] = useState<any[]>([])
     const [classes, setClasses] = useState<any[]>([])
     const [loading, setLoading] = useState(false)
 
-    // Search schools
+    // Determine if we need to filter for partner schools only (School Admin registration)
+    const isSchoolAdmin = data.role === UserRole.SCHOOL_ADMIN
+
+    // Search schools - Teachers see all active schools, School Admins see only VALIDATED partner schools
     useEffect(() => {
         const searchSchools = async () => {
             if (!searchQuery) {
@@ -25,7 +29,12 @@ export function StepSchoolContext({ data, updateData, onNext, onBack }: StepScho
             }
             setLoading(true)
             try {
-                const res = await fetch(`/api/schools?search=${searchQuery}`)
+                // For School Admins, filter to validated/partner schools only
+                const endpoint = isSchoolAdmin
+                    ? `/api/schools/public?search=${searchQuery}`
+                    : `/api/schools?search=${searchQuery}`
+
+                const res = await fetch(endpoint)
                 const result = await res.json()
                 if (result.success) {
                     setSchools(result.data)
@@ -39,7 +48,7 @@ export function StepSchoolContext({ data, updateData, onNext, onBack }: StepScho
 
         const timeoutId = setTimeout(searchSchools, 500)
         return () => clearTimeout(timeoutId)
-    }, [searchQuery])
+    }, [searchQuery, isSchoolAdmin])
 
     // Fetch classes when school is selected (for students)
     useEffect(() => {
@@ -61,19 +70,27 @@ export function StepSchoolContext({ data, updateData, onNext, onBack }: StepScho
 
     const handleSchoolSelect = (schoolId: string) => {
         updateData({ schoolId, newSchoolData: undefined })
-        if (data.role === UserRole.TEACHER) {
-            // Teachers can join immediately (pending validation)
+    }
+
+    // Get description text based on role
+    const getDescriptionText = () => {
+        switch (data.role) {
+            case UserRole.STUDENT:
+                return "Recherchez votre école et sélectionnez votre classe."
+            case UserRole.TEACHER:
+                return "Recherchez et sélectionnez l'établissement où vous enseignez."
+            case UserRole.SCHOOL_ADMIN:
+                return "Recherchez votre établissement partenaire. Seuls les établissements validés sont disponibles."
+            default:
+                return "Sélectionnez votre établissement."
         }
     }
 
-    const handleCreateSchool = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        updateData({
-            newSchoolData: {
-                ...data.newSchoolData,
-                [e.target.name]: e.target.value
-            },
-            schoolId: undefined
-        })
+    // Check if can proceed based on role requirements
+    const canProceed = () => {
+        if (!data.schoolId) return false
+        if (data.role === UserRole.STUDENT && !data.classId) return false
+        return true
     }
 
     return (
@@ -83,140 +100,115 @@ export function StepSchoolContext({ data, updateData, onNext, onBack }: StepScho
                     Votre Établissement
                 </h2>
                 <p className="text-gray-500 dark:text-gray-400 mt-2">
-                    {data.role === UserRole.STUDENT
-                        ? "Recherchez votre école et sélectionnez votre classe."
-                        : "Rejoignez un établissement existant ou créez le vôtre."}
+                    {getDescriptionText()}
                 </p>
             </div>
 
-            {/* Toggle Mode (Teacher only) */}
-            {data.role === UserRole.TEACHER && (
-                <div className="flex p-1 bg-gray-100 dark:bg-gray-700 rounded-xl mb-6">
-                    <button
-                        onClick={() => setMode('SEARCH')}
-                        className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${mode === 'SEARCH'
-                            ? "bg-white dark:bg-gray-600 shadow text-gray-900 dark:text-white"
-                            : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-                            }`}
-                    >
-                        Rejoindre une école
-                    </button>
-                    <button
-                        onClick={() => setMode('CREATE')}
-                        className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${mode === 'CREATE'
-                            ? "bg-white dark:bg-gray-600 shadow text-gray-900 dark:text-white"
-                            : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-                            }`}
-                    >
-                        Créer une école
-                    </button>
+            {/* Info banner for School Admins */}
+            {isSchoolAdmin && (
+                <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
+                    <AlertCircle className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-blue-700 dark:text-blue-300">
+                        <p className="font-medium">Établissements Partenaires</p>
+                        <p className="mt-1">Seuls les établissements officiellement validés par QuizLock apparaissent ici. Si votre établissement n'est pas listé, contactez-nous.</p>
+                    </div>
                 </div>
             )}
 
-            {mode === 'SEARCH' ? (
-                <div className="space-y-4">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                        <input
-                            type="text"
-                            placeholder="Rechercher votre école..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-secondary outline-none"
-                        />
+            {/* Info banner for Teachers */}
+            {data.role === UserRole.TEACHER && (
+                <div className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+                    <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-amber-700 dark:text-amber-300">
+                        <p className="font-medium">Association Établissement</p>
+                        <p className="mt-1">Votre association à l'établissement sera en attente de validation par l'administrateur de l'école.</p>
                     </div>
+                </div>
+            )}
 
-                    <div className="space-y-2 max-h-60 overflow-y-auto">
-                        {schools.map((school) => (
-                            <button
-                                key={school._id}
-                                onClick={() => handleSchoolSelect(school._id)}
-                                className={`w-full p-4 rounded-xl border text-left transition-all flex items-center gap-4 ${data.schoolId === school._id
-                                    ? "border-secondary bg-secondary/5"
-                                    : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
-                                    }`}
-                            >
-                                <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                                    {school.logoUrl ? (
-                                        <img src={school.logoUrl} alt="" className="h-full w-full rounded-full object-cover" />
-                                    ) : (
-                                        <SchoolIcon className="h-5 w-5 text-gray-500" />
+            <div className="space-y-4">
+                {/* Search Input */}
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <input
+                        type="text"
+                        placeholder={isSchoolAdmin ? "Rechercher un établissement partenaire..." : "Rechercher votre école..."}
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-secondary outline-none"
+                    />
+                </div>
+
+                {/* Schools List */}
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {loading && (
+                        <div className="text-center py-4 text-gray-500">
+                            <div className="animate-spin inline-block w-5 h-5 border-2 border-gray-300 border-t-secondary rounded-full" />
+                        </div>
+                    )}
+
+                    {!loading && schools.map((school) => (
+                        <button
+                            key={school._id}
+                            onClick={() => handleSchoolSelect(school._id)}
+                            className={`w-full p-4 rounded-xl border text-left transition-all flex items-center gap-4 ${data.schoolId === school._id
+                                ? "border-secondary bg-secondary/5"
+                                : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
+                                }`}
+                        >
+                            <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center flex-shrink-0">
+                                {school.logoUrl ? (
+                                    <img src={school.logoUrl} alt="" className="h-full w-full rounded-full object-cover" />
+                                ) : (
+                                    <SchoolIcon className="h-5 w-5 text-gray-500" />
+                                )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                    <h4 className="font-semibold text-gray-900 dark:text-white truncate">{school.name}</h4>
+                                    {school.status === 'VALIDATED' && (
+                                        <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
                                     )}
                                 </div>
-                                <div>
-                                    <h4 className="font-semibold text-gray-900 dark:text-white">{school.name}</h4>
-                                    <p className="text-sm text-gray-500">{school.address || "Adresse non renseignée"}</p>
-                                </div>
-                            </button>
-                        ))}
-                        {searchQuery && schools.length === 0 && !loading && (
-                            <div className="text-center py-4 text-gray-500">
-                                Aucune école trouvée.
+                                <p className="text-sm text-gray-500 truncate">{school.address || "Adresse non renseignée"}</p>
                             </div>
-                        )}
-                    </div>
+                            {data.schoolId === school._id && (
+                                <div className="text-secondary">
+                                    <CheckCircle2 className="h-5 w-5" />
+                                </div>
+                            )}
+                        </button>
+                    ))}
 
-                    {/* Class Selection (Student only) */}
-                    {data.role === UserRole.STUDENT && data.schoolId && (
-                        <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700">
-                            <h3 className="font-semibold mb-3 flex items-center gap-2">
-                                <Users className="h-4 w-4" />
-                                Sélectionnez votre classe
-                            </h3>
-                            <select
-                                value={data.classId || ""}
-                                onChange={(e) => updateData({ classId: e.target.value })}
-                                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-secondary outline-none"
-                            >
-                                <option value="">Choisir une classe...</option>
-                                {classes.map((cls) => (
-                                    <option key={cls._id} value={cls._id}>
-                                        {cls.name} ({cls.level?.name})
-                                    </option>
-                                ))}
-                            </select>
+                    {!loading && searchQuery && schools.length === 0 && (
+                        <div className="text-center py-4 text-gray-500">
+                            Aucune école trouvée.
                         </div>
                     )}
                 </div>
-            ) : (
-                <div className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Nom de l'école</label>
-                        <input
-                            name="name"
-                            value={data.newSchoolData?.name || ""}
-                            onChange={handleCreateSchool}
-                            className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-secondary outline-none"
-                            placeholder="Ex: Lycée Classique de..."
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Type</label>
+
+                {/* Class Selection (Student only) */}
+                {data.role === UserRole.STUDENT && data.schoolId && (
+                    <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700">
+                        <h3 className="font-semibold mb-3 flex items-center gap-2">
+                            <Users className="h-4 w-4" />
+                            Sélectionnez votre classe
+                        </h3>
                         <select
-                            name="type"
-                            value={data.newSchoolData?.type || ""}
-                            onChange={handleCreateSchool}
+                            value={data.classId || ""}
+                            onChange={(e) => updateData({ classId: e.target.value })}
                             className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-secondary outline-none"
                         >
-                            <option value="">Sélectionner un type...</option>
-                            <option value="PRIMARY">Primaire</option>
-                            <option value="SECONDARY">Secondaire (Collège/Lycée)</option>
-                            <option value="HIGHER_ED">Supérieur</option>
-                            <option value="TRAINING_CENTER">Centre de Formation</option>
+                            <option value="">Choisir une classe...</option>
+                            {classes.map((cls) => (
+                                <option key={cls._id} value={cls._id}>
+                                    {cls.name} ({cls.level?.name})
+                                </option>
+                            ))}
                         </select>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Adresse</label>
-                        <input
-                            name="address"
-                            value={data.newSchoolData?.address || ""}
-                            onChange={handleCreateSchool}
-                            className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-secondary outline-none"
-                            placeholder="Ville, Quartier..."
-                        />
-                    </div>
-                </div>
-            )}
+                )}
+            </div>
 
             <div className="flex justify-between pt-6">
                 <button
@@ -227,11 +219,7 @@ export function StepSchoolContext({ data, updateData, onNext, onBack }: StepScho
                 </button>
                 <button
                     onClick={onNext}
-                    disabled={
-                        (mode === 'SEARCH' && !data.schoolId) ||
-                        (mode === 'SEARCH' && data.role === UserRole.STUDENT && !data.classId) ||
-                        (mode === 'CREATE' && (!data.newSchoolData?.name || !data.newSchoolData?.type))
-                    }
+                    disabled={!canProceed()}
                     className="px-8 py-3 bg-secondary text-white rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-secondary/90 transition-colors"
                 >
                     Continuer

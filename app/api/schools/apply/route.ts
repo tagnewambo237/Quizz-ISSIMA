@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import School from "@/models/School";
-import { connectToDB } from "@/lib/db";
+import connectDB from "@/lib/mongodb";
 
 export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions);
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "School ID is required" }, { status: 400 });
         }
 
-        await connectToDB();
+        await connectDB();
 
         const school = await School.findById(schoolId);
         if (!school) {

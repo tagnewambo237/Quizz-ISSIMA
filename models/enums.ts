@@ -86,6 +86,7 @@ export enum UserRole {
 
     // Pédagogiques
     TEACHER = 'TEACHER',
+    SCHOOL_ADMIN = 'SCHOOL_ADMIN',
     INSPECTOR = 'INSPECTOR',
     SURVEILLANT = 'SURVEILLANT',
     PREFET = 'PREFET',
@@ -96,6 +97,12 @@ export enum UserRole {
     // Technique
     DG_M4M = 'DG_M4M',
     TECH_SUPPORT = 'TECH_SUPPORT'
+}
+
+export enum ClassValidationStatus {
+    PENDING = 'PENDING',
+    VALIDATED = 'VALIDATED',
+    REJECTED = 'REJECTED'
 }
 
 export enum SchoolStatus {

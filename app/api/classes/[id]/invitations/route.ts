@@ -50,8 +50,9 @@ export async function POST(
         }
 
         if (type === 'LINK') {
-            const invitation = await InvitationService.getOrCreateLink(id, session.user.id);
-            const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/invitations/${invitation.token}/join`;
+            const { options } = body;
+            const invitation = await InvitationService.getOrCreateLink(id, session.user.id, options);
+            const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/join/${invitation.token}`;
             return NextResponse.json({ invitation, url: inviteUrl });
         }
 
@@ -65,11 +66,29 @@ export async function POST(
         }
 
         if (type === 'BATCH') {
-            const { students } = body; // Array of { name, email }
+            const { students, fileInfo } = body; // Array of { name, email }
             if (!students || !Array.isArray(students)) {
                 return NextResponse.json({ error: "Liste d'étudiants requise" }, { status: 400 });
             }
-            const result = await InvitationService.processBatch(id, students, session.user.id);
+
+            // Security: Limit batch size
+            const MAX_BATCH_SIZE = 500;
+            if (students.length > MAX_BATCH_SIZE) {
+                return NextResponse.json({
+                    error: `Trop d'étudiants. Maximum: ${MAX_BATCH_SIZE}`
+                }, { status: 400 });
+            }
+
+            // Security: Basic server-side validation of each student
+            const sanitizedStudents = students
+                .filter((s: any) => s && typeof s.name === 'string' && typeof s.email === 'string')
+                .map((s: any) => ({
+                    name: String(s.name).trim().substring(0, 100),
+                    email: String(s.email).trim().toLowerCase().substring(0, 254)
+                }))
+                .filter((s: any) => s.name.length >= 2 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.email));
+
+            const result = await InvitationService.processBatch(id, sanitizedStudents, session.user.id, fileInfo);
             return NextResponse.json(result);
         }
 
