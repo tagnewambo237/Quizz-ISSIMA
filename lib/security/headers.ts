@@ -26,7 +26,7 @@ export const SECURITY_HEADERS = {
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data: https:",
         "font-src 'self' data:",
-        "connect-src 'self'",
+        "connect-src 'self' https://*.pusher.com wss://*.pusher.com", // Allow Pusher for real-time chat
         "frame-ancestors 'none'",
         "base-uri 'self'",
         "form-action 'self'"

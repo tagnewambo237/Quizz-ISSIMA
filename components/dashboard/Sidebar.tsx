@@ -3,7 +3,7 @@
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { LayoutDashboard, PlusCircle, BookOpen, Users, Settings, LogOut, School, FileText, GraduationCap, ChevronDown, Check } from "lucide-react"
+import { LayoutDashboard, PlusCircle, BookOpen, Users, Settings, LogOut, School, FileText, GraduationCap, ChevronDown, Check, MessageSquare } from "lucide-react"
 import { signOut, useSession } from "next-auth/react"
 import { cn } from "@/lib/utils"
 import { ThemeToggle } from "@/components/ThemeToggle"
@@ -67,6 +67,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () =>
         { href: `/teacher/school?schoolId=${selectedSchool?._id || ''}`, label: "My School", icon: School },
         { href: "/teacher/syllabus", label: "Syllabus", icon: BookOpen },
         { href: "/teacher/exams", label: "Exams", icon: FileText },
+        { href: "/teacher/messages", label: "Messages", icon: MessageSquare },
         { href: "/teacher/students", label: "All Students", icon: GraduationCap },
     ]
 

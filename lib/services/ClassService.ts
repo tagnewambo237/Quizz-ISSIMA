@@ -2,6 +2,9 @@ import Class, { IClass } from "@/models/Class"
 import User from "@/models/User"
 import Attempt from "@/models/Attempt"
 import Exam from "@/models/Exam"
+import EducationLevel from "@/models/EducationLevel"
+import School from "@/models/School"
+import Field from "@/models/Field"
 import mongoose from "mongoose"
 
 export class ClassService {
