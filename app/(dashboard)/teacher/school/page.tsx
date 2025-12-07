@@ -4,7 +4,8 @@ import { useState, useEffect } from "react"
 import { TeacherInvitationModal } from "@/components/school/TeacherInvitationModal"
 import { ClassFormModal } from "@/components/classes/ClassFormModal"
 import { useSession } from "next-auth/react"
-import { Award, Camera, Edit2, Globe, Mail, MapPin, MoreVertical, Phone, Plus, School, Search, Shield, Users, ChevronDown, Check } from "lucide-react"
+import { Award, Camera, Edit2, Globe, Mail, MapPin, MoreVertical, Phone, Plus, School, Search, Shield, Users, ChevronDown, Check, TrendingUp, BookOpen, Clock, BarChart3, CalendarDays } from "lucide-react"
+import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 
@@ -112,7 +113,13 @@ export default function TeacherSchoolPage() {
 
     // Get current school from mySchools or from data
     const school = mySchools.find(s => s._id === schoolId) || data?.details || {}
-    const stats = data?.stats || { totalStudents: 0, totalTeachers: 0, activeClasses: 0, averageScore: 0 }
+    const stats = data?.stats || { totalStudents: 0, totalTeachers: 0, activeClasses: 0, averageScore: 0, examsCount: 0, completionRate: 0 }
+    const charts = data?.charts || {
+        scoreDistribution: [],
+        recentPerformance: [],
+        classDistribution: [],
+        recentExams: []
+    }
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
@@ -293,32 +300,302 @@ export default function TeacherSchoolPage() {
                     transition={{ duration: 0.2 }}
                 >
                     {activeTab === 'overview' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                            <StatCard
-                                title="Apprenants"
-                                value={stats.totalStudents}
-                                icon={Users}
-                                color="blue"
-                                trend="+12% ce mois" // Mock trend
-                            />
-                            <StatCard
-                                title="Enseignants"
-                                value={stats.totalTeachers}
-                                icon={Shield}
-                                color="purple"
-                            />
-                            <StatCard
-                                title="Classes Actives"
-                                value={stats.activeClasses}
-                                icon={School}
-                                color="orange"
-                            />
-                            <StatCard
-                                title="Moyenne Globale"
-                                value={`${stats.averageScore}/20`}
-                                icon={Award}
-                                color="green"
-                            />
+                        <div className="space-y-8">
+                            {/* Stats Cards Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+                                <StatCard
+                                    title="Apprenants"
+                                    value={stats.totalStudents}
+                                    icon={Users}
+                                    color="blue"
+                                />
+                                <StatCard
+                                    title="Enseignants"
+                                    value={stats.totalTeachers}
+                                    icon={Shield}
+                                    color="purple"
+                                />
+                                <StatCard
+                                    title="Classes"
+                                    value={stats.activeClasses}
+                                    icon={School}
+                                    color="orange"
+                                />
+                                <StatCard
+                                    title="Examens"
+                                    value={stats.examsCount || 0}
+                                    icon={BookOpen}
+                                    color="cyan"
+                                />
+                                <StatCard
+                                    title="Moyenne"
+                                    value={`${stats.averageScore}%`}
+                                    icon={Award}
+                                    color="green"
+                                />
+                                <StatCard
+                                    title="Taux de Complétion"
+                                    value={`${stats.completionRate || 0}%`}
+                                    icon={TrendingUp}
+                                    color="pink"
+                                />
+                            </div>
+
+                            {/* Charts Row */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                {/* Performance Trend Chart */}
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.1 }}
+                                    className="bg-white dark:bg-gray-800 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-sm p-6"
+                                >
+                                    <div className="flex items-center justify-between mb-6">
+                                        <div>
+                                            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Performance Hebdomadaire</h3>
+                                            <p className="text-sm text-gray-500">Évolution des scores sur 8 semaines</p>
+                                        </div>
+                                        <div className="p-2.5 bg-gradient-to-br from-[#114D5A] to-[#1a7a8f] rounded-xl">
+                                            <TrendingUp className="h-5 w-5 text-white" />
+                                        </div>
+                                    </div>
+                                    <div className="h-[280px]">
+                                        {charts.recentPerformance.length > 0 ? (
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <AreaChart data={charts.recentPerformance}>
+                                                    <defs>
+                                                        <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
+                                                            <stop offset="5%" stopColor="#114D5A" stopOpacity={0.3} />
+                                                            <stop offset="95%" stopColor="#114D5A" stopOpacity={0} />
+                                                        </linearGradient>
+                                                    </defs>
+                                                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                                                    <XAxis
+                                                        dataKey="name"
+                                                        axisLine={false}
+                                                        tickLine={false}
+                                                        tick={{ fill: '#6b7280', fontSize: 12 }}
+                                                    />
+                                                    <YAxis
+                                                        axisLine={false}
+                                                        tickLine={false}
+                                                        tick={{ fill: '#6b7280', fontSize: 12 }}
+                                                        domain={[0, 100]}
+                                                    />
+                                                    <Tooltip
+                                                        contentStyle={{
+                                                            backgroundColor: '#fff',
+                                                            border: 'none',
+                                                            borderRadius: '12px',
+                                                            boxShadow: '0 10px 40px rgba(0,0,0,0.1)'
+                                                        }}
+                                                        formatter={(value: any) => [`${value}%`, 'Score moyen']}
+                                                    />
+                                                    <Area
+                                                        type="monotone"
+                                                        dataKey="score"
+                                                        stroke="#114D5A"
+                                                        strokeWidth={3}
+                                                        fill="url(#colorScore)"
+                                                    />
+                                                </AreaChart>
+                                            </ResponsiveContainer>
+                                        ) : (
+                                            <div className="h-full flex items-center justify-center text-gray-400">
+                                                <div className="text-center">
+                                                    <BarChart3 className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                                                    <p className="text-sm">Aucune donnée de performance disponible</p>
+                                                    <p className="text-xs mt-1">Les données apparaîtront après les premiers examens</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </motion.div>
+
+                                {/* Score Distribution Chart */}
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.2 }}
+                                    className="bg-white dark:bg-gray-800 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-sm p-6"
+                                >
+                                    <div className="flex items-center justify-between mb-6">
+                                        <div>
+                                            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Répartition des Scores</h3>
+                                            <p className="text-sm text-gray-500">Distribution par tranche de notes</p>
+                                        </div>
+                                        <div className="p-2.5 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl">
+                                            <BarChart3 className="h-5 w-5 text-white" />
+                                        </div>
+                                    </div>
+                                    <div className="h-[280px]">
+                                        {charts.scoreDistribution.some((d: any) => d.count > 0) ? (
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <BarChart data={charts.scoreDistribution}>
+                                                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                                                    <XAxis
+                                                        dataKey="range"
+                                                        axisLine={false}
+                                                        tickLine={false}
+                                                        tick={{ fill: '#6b7280', fontSize: 11 }}
+                                                    />
+                                                    <YAxis
+                                                        axisLine={false}
+                                                        tickLine={false}
+                                                        tick={{ fill: '#6b7280', fontSize: 12 }}
+                                                    />
+                                                    <Tooltip
+                                                        contentStyle={{
+                                                            backgroundColor: '#fff',
+                                                            border: 'none',
+                                                            borderRadius: '12px',
+                                                            boxShadow: '0 10px 40px rgba(0,0,0,0.1)'
+                                                        }}
+                                                        formatter={(value: any) => [`${value} élèves`, 'Nombre']}
+                                                    />
+                                                    <Bar dataKey="count" fill="#8b5cf6" radius={[8, 8, 0, 0]}>
+                                                        {charts.scoreDistribution.map((entry: any, index: number) => (
+                                                            <Cell key={`cell-${index}`} fill={entry.color} />
+                                                        ))}
+                                                    </Bar>
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        ) : (
+                                            <div className="h-full flex items-center justify-center text-gray-400">
+                                                <div className="text-center">
+                                                    <BarChart3 className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                                                    <p className="text-sm">Aucune donnée de distribution</p>
+                                                    <p className="text-xs mt-1">Créez des examens pour voir les résultats</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </motion.div>
+                            </div>
+
+                            {/* Bottom Row: Pie Chart + Recent Activity */}
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                {/* Class Distribution Pie Chart */}
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.3 }}
+                                    className="bg-white dark:bg-gray-800 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-sm p-6"
+                                >
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div>
+                                            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Classes par Niveau</h3>
+                                            <p className="text-sm text-gray-500">Répartition des classes</p>
+                                        </div>
+                                    </div>
+                                    <div className="h-[200px]">
+                                        {charts.classDistribution.length > 0 ? (
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <PieChart>
+                                                    <Pie
+                                                        data={charts.classDistribution}
+                                                        cx="50%"
+                                                        cy="50%"
+                                                        innerRadius={50}
+                                                        outerRadius={80}
+                                                        paddingAngle={5}
+                                                        dataKey="value"
+                                                    >
+                                                        {charts.classDistribution.map((_: any, index: number) => (
+                                                            <Cell
+                                                                key={`cell-${index}`}
+                                                                fill={['#114D5A', '#1a7a8f', '#22c55e', '#f97316', '#8b5cf6', '#ec4899'][index % 6]}
+                                                            />
+                                                        ))}
+                                                    </Pie>
+                                                    <Tooltip
+                                                        contentStyle={{
+                                                            backgroundColor: '#fff',
+                                                            border: 'none',
+                                                            borderRadius: '12px',
+                                                            boxShadow: '0 10px 40px rgba(0,0,0,0.1)'
+                                                        }}
+                                                        formatter={(value: any, name: any) => [`${value} classe(s)`, name]}
+                                                    />
+                                                    <Legend
+                                                        verticalAlign="bottom"
+                                                        height={36}
+                                                        formatter={(value) => <span className="text-xs text-gray-600">{value}</span>}
+                                                    />
+                                                </PieChart>
+                                            </ResponsiveContainer>
+                                        ) : (
+                                            <div className="h-full flex items-center justify-center text-gray-400">
+                                                <div className="text-center">
+                                                    <School className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                                                    <p className="text-sm">Aucune classe</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </motion.div>
+
+                                {/* Recent Exams Activity */}
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.4 }}
+                                    className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-sm p-6"
+                                >
+                                    <div className="flex items-center justify-between mb-6">
+                                        <div>
+                                            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Examens Récents</h3>
+                                            <p className="text-sm text-gray-500">Dernières évaluations de l'établissement</p>
+                                        </div>
+                                        <div className="p-2.5 bg-gradient-to-br from-orange-400 to-orange-500 rounded-xl">
+                                            <CalendarDays className="h-5 w-5 text-white" />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {charts.recentExams.length > 0 ? (
+                                            charts.recentExams.map((exam: any, index: number) => (
+                                                <motion.div
+                                                    key={exam.id}
+                                                    initial={{ opacity: 0, x: -20 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                    transition={{ delay: 0.1 * index }}
+                                                    className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                                                >
+                                                    <div className="flex items-center gap-4">
+                                                        <div className={`p-2.5 rounded-xl ${exam.status === 'COMPLETED'
+                                                            ? 'bg-green-100 text-green-600'
+                                                            : 'bg-blue-100 text-blue-600'
+                                                            }`}>
+                                                            <BookOpen className="h-4 w-4" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-semibold text-gray-900 dark:text-white group-hover:text-[#114D5A] transition-colors">{exam.title}</p>
+                                                            <p className="text-sm text-gray-500">{exam.subject}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${exam.status === 'COMPLETED'
+                                                            ? 'bg-green-100 text-green-700'
+                                                            : 'bg-blue-100 text-blue-700'
+                                                            }`}>
+                                                            {exam.status === 'COMPLETED' ? 'Terminé' : 'En cours'}
+                                                        </span>
+                                                        <p className="text-xs text-gray-400 mt-1">
+                                                            {exam.date ? new Date(exam.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : 'N/A'}
+                                                        </p>
+                                                    </div>
+                                                </motion.div>
+                                            ))
+                                        ) : (
+                                            <div className="py-12 text-center text-gray-400">
+                                                <BookOpen className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                                                <p className="text-sm">Aucun examen récent</p>
+                                                <p className="text-xs mt-1">Les examens apparaîtront ici une fois créés</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </motion.div>
+                            </div>
                         </div>
                     )}
 
@@ -656,30 +933,64 @@ export default function TeacherSchoolPage() {
     )
 }
 
-function StatCard({ title, value, icon: Icon, color, trend }: any) {
+function StatCard({ title, value, icon: Icon, color }: any) {
     const colors: any = {
-        blue: "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400",
-        purple: "bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400",
-        orange: "bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400",
-        green: "bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400",
+        blue: {
+            bg: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20",
+            icon: "bg-blue-500 text-white",
+            text: "text-blue-600 dark:text-blue-400"
+        },
+        purple: {
+            bg: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/20",
+            icon: "bg-purple-500 text-white",
+            text: "text-purple-600 dark:text-purple-400"
+        },
+        orange: {
+            bg: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/30 dark:to-orange-800/20",
+            icon: "bg-orange-500 text-white",
+            text: "text-orange-600 dark:text-orange-400"
+        },
+        green: {
+            bg: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/20",
+            icon: "bg-green-500 text-white",
+            text: "text-green-600 dark:text-green-400"
+        },
+        cyan: {
+            bg: "bg-gradient-to-br from-cyan-50 to-cyan-100 dark:from-cyan-900/30 dark:to-cyan-800/20",
+            icon: "bg-cyan-500 text-white",
+            text: "text-cyan-600 dark:text-cyan-400"
+        },
+        pink: {
+            bg: "bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-900/30 dark:to-pink-800/20",
+            icon: "bg-pink-500 text-white",
+            text: "text-pink-600 dark:text-pink-400"
+        },
     }
 
+    const colorStyle = colors[color] || colors.blue;
+
     return (
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-start mb-4">
-                <div className={`p-3.5 rounded-2xl ${colors[color]}`}>
-                    <Icon className="h-6 w-6" />
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            whileHover={{ y: -4, scale: 1.02 }}
+            transition={{ duration: 0.2 }}
+            className={`${colorStyle.bg} p-5 rounded-2xl border border-white/50 dark:border-gray-700/50 shadow-sm hover:shadow-lg transition-all cursor-pointer relative overflow-hidden group`}
+        >
+            {/* Decorative circle */}
+            <div className="absolute -top-4 -right-4 w-20 h-20 rounded-full bg-white/20 dark:bg-white/5 blur-xl group-hover:scale-150 transition-transform duration-500" />
+
+            <div className="relative z-10">
+                <div className="flex items-center justify-between mb-3">
+                    <div className={`p-2.5 rounded-xl ${colorStyle.icon} shadow-lg`}>
+                        <Icon className="h-5 w-5" />
+                    </div>
                 </div>
-                {trend && (
-                    <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg text-xs font-bold">
-                        {trend}
-                    </span>
-                )}
+                <div>
+                    <p className="text-gray-600 dark:text-gray-400 font-medium text-xs uppercase tracking-wider mb-1">{title}</p>
+                    <h4 className={`text-2xl font-extrabold ${colorStyle.text}`}>{value}</h4>
+                </div>
             </div>
-            <div>
-                <p className="text-gray-500 dark:text-gray-400 font-medium text-sm mb-1">{title}</p>
-                <h4 className="text-3xl font-extrabold text-[#114D5A] dark:text-white">{value}</h4>
-            </div>
-        </div>
+        </motion.div>
     )
 }

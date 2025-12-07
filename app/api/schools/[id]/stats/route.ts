@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { SchoolService } from "@/lib/services/SchoolService";
+import connectDB from "@/lib/mongodb";
 import mongoose from "mongoose";
 
 export async function GET(
@@ -20,9 +21,9 @@ export async function GET(
         return NextResponse.json({ error: "Invalid school ID" }, { status: 400 });
     }
 
-    // TODO: Verify user belongs to this school or is admin?
-
     try {
+        await connectDB();
+
         const stats = await SchoolService.getSchoolStats(id);
         if (!stats) return NextResponse.json({ error: "School not found" }, { status: 404 });
 
