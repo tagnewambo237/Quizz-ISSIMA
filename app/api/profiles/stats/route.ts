@@ -23,8 +23,8 @@ export async function GET(req: Request) {
         if (session.user.role === UserRole.STUDENT) {
             stats = await ProfileService.getLearnerStats(session.user.id)
         } else {
-            // Tous les autres rôles ont un profil pédagogique
-            stats = await ProfileService.getPedagogicalStats(session.user.id)
+            // Use real-time stats for detailed dashboard
+            stats = await ProfileService.getRealTimeTeacherStats(session.user.id)
         }
 
         if (!stats) {

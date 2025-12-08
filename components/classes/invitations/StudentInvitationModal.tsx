@@ -34,7 +34,7 @@ export function StudentInvitationModal({ isOpen, onClose }: StudentInvitationMod
                         >
                             {/* Header */}
                             <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-900/50">
-                                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Inviter des élèves</h2>
+                                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Inviter des Apprenants</h2>
                                 <button
                                     onClick={onClose}
                                     className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors"

@@ -35,6 +35,8 @@ export interface SubjectPerformance {
     masteryLevel: MasteryLevel
     conceptsCount: number
     conceptsMastered: number
+    passRate?: number
+    examCount?: number
 }
 
 export interface ClassComparison {
@@ -522,6 +524,89 @@ export class AnalyticsEngine {
             discriminationIndex,
             commonErrors
         }
+    }
+
+    /**
+     * Get global subject statistics for a teacher across all their classes
+     */
+    static async getTeacherGlobalSubjectStats(teacherId: string): Promise<SubjectPerformance[]> {
+        const Class = mongoose.models.Class
+        const Exam = mongoose.models.Exam
+        const Attempt = mongoose.models.Attempt
+        const Subject = mongoose.models.Subject
+
+        // 1. Get all classes for this teacher
+        const classes = await Class.find({ mainTeacher: new mongoose.Types.ObjectId(teacherId) }).lean()
+        const classIds = classes.map((c: any) => c._id)
+        const allStudentIds = classes.flatMap((c: any) => c.students || [])
+
+        if (allStudentIds.length === 0) return []
+
+        // 2. Get all exams created by this teacher OR used in these classes
+        // For simplicity, let's look at attempts by these students on any exam linked to a subject
+
+        // Aggregate attempts by subject
+        const stats = await Attempt.aggregate([
+            {
+                $match: {
+                    userId: { $in: allStudentIds },
+                    status: 'COMPLETED'
+                }
+            },
+            {
+                $lookup: {
+                    from: 'exams',
+                    localField: 'exam',
+                    foreignField: '_id',
+                    as: 'examData'
+                }
+            },
+            { $unwind: '$examData' },
+            {
+                $group: {
+                    _id: '$examData.subject',
+                    averageScore: { $avg: { $multiply: [{ $divide: ['$score', '$maxScore'] }, 100] } },
+                    totalAttempts: { $sum: 1 },
+                    passedAttempts: {
+                        $sum: {
+                            $cond: [{ $gte: [{ $divide: ['$score', '$maxScore'] }, 0.5] }, 1, 0]
+                        }
+                    },
+                    scores: { $push: { $multiply: [{ $divide: ['$score', '$maxScore'] }, 100] } } // For trend
+                }
+            }
+        ])
+
+        const results: SubjectPerformance[] = []
+
+        for (const stat of stats) {
+            const subject = await Subject.findById(stat._id).lean()
+            if (!subject) continue
+
+            const passRate = Math.round((stat.passedAttempts / stat.totalAttempts) * 100)
+
+            // Calculate trend (simplified)
+            // Ideally we'd sort by date, but aggregate grouped everything. 
+            // We can check if we have enough data or just default to STABLE for now if dates aren't preserved readily in this group
+            // A better way for trend is to query separately or keep dates in array.
+            // Let's keep it 'STABLE' for now unless we do a time-series aggregation.
+            // Actually, let's try to infer trend from the scores array if we assume they are roughly chronological or random? No, that's bad.
+            // Let's separate trend calculation.
+
+            results.push({
+                subjectId: stat._id.toString(),
+                subjectName: (subject as any).name,
+                averageScore: Math.round(stat.averageScore * 10) / 10,
+                trend: 'STABLE', // Placeholder, implementing real trend would require heavier query
+                masteryLevel: MasteryLevel.UNKNOWN, // Not calculated here
+                conceptsCount: 0,
+                conceptsMastered: 0,
+                passRate: passRate,
+                examCount: stat.totalAttempts
+            })
+        }
+
+        return results
     }
 
     /**

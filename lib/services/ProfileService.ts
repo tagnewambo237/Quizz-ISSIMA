@@ -180,5 +180,76 @@ export class ProfileService {
 
         return activities
     }
+    /**
+     * Calculates real-time statistics for a teacher by querying related collections directly.
+     * This ensures the dashboard shows up-to-date information without relying on cached profile stats.
+     */
+    static async getRealTimeTeacherStats(userId: string): Promise<any> {
+        const Exam = mongoose.model('Exam')
+        const Class = mongoose.model('Class')
+        const Attempt = mongoose.model('Attempt')
+
+        // 1. Total Exams Created
+        const totalExamsCreated = await Exam.countDocuments({ createdById: userId })
+
+        // 2. Active Exams (Published and currently ongoing)
+        const now = new Date()
+        const activeExams = await Exam.countDocuments({
+            createdById: userId,
+            status: 'PUBLISHED',
+            startTime: { $lte: now },
+            endTime: { $gte: now }
+        })
+
+        // 3. Total Students Reached (Unique students in teacher's classes)
+        // Find classes owned by teacher
+        const classes = await Class.find({ mainTeacher: userId }).select('_id')
+        const classIds = classes.map(c => c._id)
+
+        // Count distinct students in these classes
+        // Note: This assumes Class model has a 'students' array of IDs. 
+        // If it's a virtual or reverse relationship, this might need adjustment.
+        // Based on previous files, Class has `students` array.
+        const classesWithStudents = await Class.find({ mainTeacher: userId }).select('students')
+        const studentIds = new Set<string>()
+        classesWithStudents.forEach((c: any) => {
+            if (c.students && Array.isArray(c.students)) {
+                c.students.forEach((s: any) => studentIds.add(s.toString()))
+            }
+        })
+        const totalStudentsReached = studentIds.size
+
+        // 4. Average Class Score (across all attempts for teacher's exams)
+        // Find all exams by teacher
+        const teacherExams = await Exam.find({ createdById: userId }).select('_id')
+        const teacherExamIds = teacherExams.map(e => e._id)
+
+        const avgScoreResult = await Attempt.aggregate([
+            { $match: { examId: { $in: teacherExamIds }, status: 'COMPLETED' } },
+            { $group: { _id: null, avgScore: { $avg: '$score' } } }
+        ])
+        const averageClassScore = avgScoreResult.length > 0 ? Math.round(avgScoreResult[0].avgScore) : 0
+
+        // 5. Calculate Gamification Level (Mock logic based on activity)
+        // 1 Exam = 50 XP, 1 Student = 10 XP, 1% Avg Score = 5 XP
+        const xp = (totalExamsCreated * 50) + (totalStudentsReached * 10) + (averageClassScore * 5)
+        const level = Math.floor(xp / 500) + 1
+        const nextLevelXp = level * 500
+
+        return {
+            basic: {
+                totalExamsCreated,
+                totalStudentsReached,
+                averageStudentScore: averageClassScore,
+                activeExams
+            },
+            gamification: {
+                xp,
+                level,
+                nextLevelXp,
+                title: level > 10 ? "Maître Pédagogue" : level > 5 ? "Professeur Expert" : "Enseignant Certifié"
+            }
+        }
+    }
 }
 

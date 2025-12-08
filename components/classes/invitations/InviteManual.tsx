@@ -50,7 +50,7 @@ export function InviteManual() {
         <div className="space-y-6">
             <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl text-sm text-gray-600 dark:text-gray-400">
                 <p>
-                    L'élève recevra un email contenant ses identifiants temporaires et un lien d'activation.
+                    L'Apprenant recevra un email contenant ses identifiants temporaires et un lien d'activation.
                     Il sera automatiquement ajouté à la classe dès sa première connexion.
                 </p>
             </div>
@@ -58,7 +58,7 @@ export function InviteManual() {
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Nom complet de l'élève
+                        Nom complet de l'Apprenant
                     </label>
                     <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -99,8 +99,8 @@ export function InviteManual() {
                         type="submit"
                         disabled={loading}
                         className={`w-full py-3 rounded-xl font-medium text-white flex items-center justify-center gap-2 transition-all ${success
-                                ? "bg-green-600 hover:bg-green-700"
-                                : "bg-secondary hover:bg-secondary/90"
+                            ? "bg-green-600 hover:bg-green-700"
+                            : "bg-secondary hover:bg-secondary/90"
                             }`}
                     >
                         {loading ? (

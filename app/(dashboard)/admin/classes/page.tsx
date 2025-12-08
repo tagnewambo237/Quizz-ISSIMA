@@ -149,8 +149,8 @@ export default function AdminClassesPage() {
                 <div
                     onClick={() => setStatusFilter(ClassValidationStatus.PENDING)}
                     className={`p-4 rounded-xl border cursor-pointer transition-all ${statusFilter === ClassValidationStatus.PENDING
-                            ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20'
-                            : 'border-gray-200 dark:border-gray-700 hover:border-amber-300'
+                        ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-amber-300'
                         }`}
                 >
                     <div className="flex items-center gap-3">
@@ -167,8 +167,8 @@ export default function AdminClassesPage() {
                 <div
                     onClick={() => setStatusFilter(ClassValidationStatus.VALIDATED)}
                     className={`p-4 rounded-xl border cursor-pointer transition-all ${statusFilter === ClassValidationStatus.VALIDATED
-                            ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                            : 'border-gray-200 dark:border-gray-700 hover:border-green-300'
+                        ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-green-300'
                         }`}
                 >
                     <div className="flex items-center gap-3">
@@ -185,8 +185,8 @@ export default function AdminClassesPage() {
                 <div
                     onClick={() => setStatusFilter(ClassValidationStatus.REJECTED)}
                     className={`p-4 rounded-xl border cursor-pointer transition-all ${statusFilter === ClassValidationStatus.REJECTED
-                            ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                            : 'border-gray-200 dark:border-gray-700 hover:border-red-300'
+                        ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-red-300'
                         }`}
                 >
                     <div className="flex items-center gap-3">
@@ -261,7 +261,7 @@ export default function AdminClassesPage() {
                                             </p>
                                         </div>
                                         <div>
-                                            <span className="text-gray-500">Élèves</span>
+                                            <span className="text-gray-500">Apprenants</span>
                                             <p className="font-medium text-gray-900 dark:text-white flex items-center gap-1">
                                                 <Users className="h-4 w-4" /> {classData.students?.length || 0}
                                             </p>

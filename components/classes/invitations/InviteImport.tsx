@@ -196,7 +196,7 @@ export function InviteImport() {
             const result = await res.json();
 
             if (res.ok) {
-                toast.success(`${result.invited + result.enrolled} élèves traités avec succès`);
+                toast.success(`${result.invited + result.enrolled} Apprenants traités avec succès`);
                 if (result.errors > 0) {
                     toast.warning(`${result.errors} erreurs rencontrées`);
                 }
@@ -231,7 +231,7 @@ export function InviteImport() {
         } else {
             const ws = XLSX.utils.json_to_sheet(templateData);
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, 'Élèves');
+            XLSX.utils.book_append_sheet(wb, ws, 'Apprenants');
             XLSX.writeFile(wb, 'template_eleves.xlsx');
         }
         toast.success(`Template ${format.toUpperCase()} téléchargé`);
@@ -376,7 +376,7 @@ export function InviteImport() {
                             className="px-6 py-2 bg-secondary text-white rounded-xl font-medium hover:bg-secondary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
                         >
                             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                            Importer {validCount} élèves
+                            Importer {validCount} Apprenants
                         </button>
                     </div>
                 </div>

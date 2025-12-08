@@ -94,7 +94,7 @@ export default function TeacherClassesPage() {
                     </div>
                     <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Aucune classe</h3>
                     <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-md mx-auto">
-                        Commencez par créer votre première classe pour inviter des élèves et assigner des devoirs.
+                        Commencez par créer votre première classe pour inviter des Apprenants et assigner des devoirs.
                     </p>
                     <button
                         onClick={() => setShowCreateModal(true)}
@@ -199,7 +199,7 @@ export default function TeacherClassesPage() {
                                             </div>
                                         </div>
                                         <div>
-                                            <p className="text-xs text-gray-500 mb-1">Élèves</p>
+                                            <p className="text-xs text-gray-500 mb-1">Apprenants</p>
                                             <div className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white">
                                                 <Users className="h-4 w-4" />
                                                 <span>{cls.students?.length || 0}</span>

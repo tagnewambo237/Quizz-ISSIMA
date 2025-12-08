@@ -32,3 +32,12 @@ export const getConversationChannel = (conversationId: string) =>
 
 export const getUserChannel = (userId: string) =>
     `private-user-${userId}`
+
+export const getForumChannel = (forumId: string) =>
+    `forum-${forumId}`
+
+export const getRequestsChannel = (userId: string) =>
+    `requests-${userId}`
+
+export const getClassChannel = (classId: string) =>
+    `class-${classId}`

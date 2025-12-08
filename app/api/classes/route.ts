@@ -4,6 +4,11 @@ import { authOptions } from "@/lib/auth"
 import connectDB from "@/lib/mongodb"
 import { ClassService } from "@/lib/services/ClassService"
 import { UserRole } from "@/models/enums"
+// Import models to ensure they are registered
+import "@/models/Class"
+import "@/models/EducationLevel"
+import "@/models/School"
+import "@/models/Field"
 
 export async function GET(req: Request) {
     try {

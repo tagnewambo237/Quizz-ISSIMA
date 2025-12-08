@@ -1,11 +1,11 @@
 "use client"
 
 /**
- * Teacher Messages Hub
+ * Student Messages Hub
  * 
- * Comprehensive messaging system including:
- * - Direct messaging with students
- * - Class/subject forums
+ * Comprehensive communication system for students:
+ * - Direct messaging with teachers
+ * - Class/subject forums participation
  * - Assistance requests (tutoring, evaluations)
  * - Pedagogical assistance (coming soon)
  */
@@ -34,8 +34,9 @@ import {
     Sparkles,
     Target,
     Plus,
-    Calendar,
-    X
+    X,
+    ChevronRight,
+    AlertCircle
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
@@ -65,24 +66,33 @@ interface Forum {
     members: any[]
     lastPostAt?: string
     relatedClass?: { name: string }
-    createdBy: { name: string }
+    allowStudentPosts: boolean
 }
 
 interface Request {
     _id: string
-    studentId: { _id: string; name: string; image?: string; studentCode?: string }
+    teacherId: { _id: string; name: string; image?: string }
     type: string
     subject?: { name: string }
     title: string
     message: string
     priority: string
     status: string
+    responseMessage?: string
+    scheduledAt?: string
     createdAt: string
+}
+
+interface Teacher {
+    _id: string
+    name: string
+    image?: string
+    subjects?: { name: string }[]
 }
 
 type TabType = 'messages' | 'forums' | 'requests' | 'assistance'
 
-function MessagesContent() {
+function StudentMessagesContent() {
     const { data: session } = useSession()
     const [activeTab, setActiveTab] = useState<TabType>('messages')
     const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null)
@@ -92,18 +102,29 @@ function MessagesContent() {
     // Forums state
     const [forums, setForums] = useState<Forum[]>([])
     const [forumsLoading, setForumsLoading] = useState(false)
-    const [showCreateForum, setShowCreateForum] = useState(false)
 
     // Requests state
     const [requests, setRequests] = useState<Request[]>([])
     const [requestsLoading, setRequestsLoading] = useState(false)
+    const [showNewRequest, setShowNewRequest] = useState(false)
+
+    // New request form
+    const [newRequest, setNewRequest] = useState({
+        teacherId: '',
+        type: 'TUTORING',
+        title: '',
+        message: '',
+        priority: 'MEDIUM'
+    })
+    const [teachers, setTeachers] = useState<Teacher[]>([])
+    const [submitting, setSubmitting] = useState(false)
 
     // Listen for real-time request updates
     useChannel(
         session?.user?.id ? `requests-${session.user.id}` : null,
-        'request-created',
+        'request-updated',
         (data) => {
-            setRequests(prev => [data.request, ...prev])
+            setRequests(prev => prev.map(r => r._id === data.request._id ? data.request : r))
         }
     )
 
@@ -139,22 +160,52 @@ function MessagesContent() {
         }
     }
 
-    // Handle request action
-    const handleRequestAction = async (requestId: string, action: 'accept' | 'reject') => {
+    // Fetch teachers
+    const fetchTeachers = async () => {
         try {
-            const res = await fetch(`/api/requests/${requestId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    status: action === 'accept' ? 'ACCEPTED' : 'REJECTED',
-                    responseMessage: action === 'accept' ? 'Demande acceptée' : 'Demande refusée'
-                })
-            })
+            const res = await fetch('/api/teachers')
             if (res.ok) {
-                fetchRequests() // Refresh list
+                const data = await res.json()
+                if (data.success) setTeachers(data.data || data.teachers || [])
             }
         } catch (err) {
-            console.error('Error updating request:', err)
+            console.error('Error fetching teachers:', err)
+        }
+    }
+
+    // Submit new request
+    const handleSubmitRequest = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!newRequest.teacherId || !newRequest.title || !newRequest.message) return
+
+        setSubmitting(true)
+        try {
+            const res = await fetch('/api/requests', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newRequest)
+            })
+            if (res.ok) {
+                setShowNewRequest(false)
+                setNewRequest({ teacherId: '', type: 'TUTORING', title: '', message: '', priority: 'MEDIUM' })
+                fetchRequests()
+            }
+        } catch (err) {
+            console.error('Error creating request:', err)
+        } finally {
+            setSubmitting(false)
+        }
+    }
+
+    // Cancel request
+    const handleCancelRequest = async (requestId: string) => {
+        try {
+            const res = await fetch(`/api/requests/${requestId}`, { method: 'DELETE' })
+            if (res.ok) {
+                fetchRequests()
+            }
+        } catch (err) {
+            console.error('Error cancelling request:', err)
         }
     }
 
@@ -163,8 +214,9 @@ function MessagesContent() {
         if (activeTab === 'forums' && forums.length === 0) {
             fetchForums()
         }
-        if (activeTab === 'requests' && requests.length === 0) {
-            fetchRequests()
+        if (activeTab === 'requests') {
+            if (requests.length === 0) fetchRequests()
+            if (teachers.length === 0) fetchTeachers()
         }
     }, [activeTab])
 
@@ -193,7 +245,7 @@ function MessagesContent() {
     const tabs = [
         { id: 'messages', label: 'Messages', icon: MessageSquare, badge: 0 },
         { id: 'forums', label: 'Forums', icon: MessagesSquare, badge: forums.length },
-        { id: 'requests', label: 'Demandes', icon: HelpCircle, badge: pendingRequests },
+        { id: 'requests', label: 'Mes Demandes', icon: HelpCircle, badge: pendingRequests },
         { id: 'assistance', label: 'Assistance', icon: Lightbulb, badge: 0, comingSoon: true }
     ]
 
@@ -218,21 +270,15 @@ function MessagesContent() {
                         <div>
                             <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                 <MessageSquare className="w-6 h-6 text-[#2a3575]" />
-                                Centre de Communication
+                                Messagerie
                             </h1>
                             <p className="text-sm text-gray-500 mt-1">
-                                Messagerie, forums et demandes d'assistance
+                                Échangez avec vos enseignants et camarades
                             </p>
                         </div>
                         <div className="flex items-center gap-2">
-                            <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
-                                <Search className="w-5 h-5 text-gray-500" />
-                            </button>
                             <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors relative">
                                 <Bell className="w-5 h-5 text-gray-500" />
-                                {pendingRequests > 0 && (
-                                    <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-                                )}
                             </button>
                         </div>
                     </div>
@@ -259,7 +305,7 @@ function MessagesContent() {
                                             "px-1.5 py-0.5 text-xs font-bold rounded-full",
                                             activeTab === tab.id
                                                 ? "bg-white text-[#2a3575]"
-                                                : "bg-red-500 text-white"
+                                                : "bg-[#359a53] text-white"
                                         )}>
                                             {tab.badge}
                                         </span>
@@ -330,11 +376,8 @@ function MessagesContent() {
                                                 Vos Messages
                                             </h2>
                                             <p className="text-gray-500 max-w-sm mx-auto">
-                                                Sélectionnez une conversation ou démarrez une nouvelle discussion
+                                                Discutez avec vos enseignants et camarades
                                             </p>
-                                            <div className="mt-6">
-                                                <NewConversationModal onConversationCreated={handleConversationCreated} />
-                                            </div>
                                         </motion.div>
                                     </div>
                                 )}
@@ -352,32 +395,22 @@ function MessagesContent() {
                             className="flex-1 p-6 overflow-auto"
                         >
                             <div className="max-w-5xl mx-auto space-y-6">
-                                {/* Header */}
                                 <div className="flex items-center justify-between">
                                     <div>
                                         <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                             <MessagesSquare className="w-6 h-6 text-[#2a3575]" />
-                                            Forums de Discussion
+                                            Forums de ma Classe
                                         </h2>
                                         <p className="text-sm text-gray-500 mt-1">
-                                            Échanges par classe et par matière
+                                            Participez aux discussions de votre classe
                                         </p>
                                     </div>
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={fetchForums}
-                                            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                                        >
-                                            <RefreshCw className={cn("w-5 h-5 text-gray-500", forumsLoading && "animate-spin")} />
-                                        </button>
-                                        <Link
-                                            href="/teacher/forums/create"
-                                            className="px-4 py-2 bg-[#2a3575] text-white rounded-xl font-medium hover:bg-[#2a3575]/90 transition-colors flex items-center gap-2"
-                                        >
-                                            <Plus className="w-4 h-4" />
-                                            Créer un forum
-                                        </Link>
-                                    </div>
+                                    <button
+                                        onClick={fetchForums}
+                                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                                    >
+                                        <RefreshCw className={cn("w-5 h-5 text-gray-500", forumsLoading && "animate-spin")} />
+                                    </button>
                                 </div>
 
                                 {/* Forum Grid */}
@@ -389,21 +422,14 @@ function MessagesContent() {
                                     <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700">
                                         <MessagesSquare className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                                         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Aucun forum</h3>
-                                        <p className="text-gray-500 mb-4">Créez votre premier forum de discussion</p>
-                                        <Link
-                                            href="/teacher/forums/create"
-                                            className="inline-flex items-center gap-2 px-4 py-2 bg-[#2a3575] text-white rounded-xl font-medium"
-                                        >
-                                            <Plus className="w-4 h-4" />
-                                            Créer un forum
-                                        </Link>
+                                        <p className="text-gray-500">Vos enseignants n'ont pas encore créé de forum</p>
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         {forums.map((forum) => (
                                             <Link
                                                 key={forum._id}
-                                                href={`/teacher/forums/${forum._id}`}
+                                                href={`/student/forums/${forum._id}`}
                                                 className="p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 hover:shadow-lg hover:border-[#2a3575]/50 transition-all group"
                                             >
                                                 <div className="flex items-start gap-4">
@@ -417,9 +443,7 @@ function MessagesContent() {
                                                         <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-[#2a3575] transition-colors">
                                                             {forum.name}
                                                         </h3>
-                                                        <p className="text-sm text-gray-500">
-                                                            {forum.type === 'CLASS' ? forum.relatedClass?.name || 'Classe' : 'Matière'}
-                                                        </p>
+                                                        <p className="text-sm text-gray-500">{forum.relatedClass?.name || 'Forum général'}</p>
                                                         <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
                                                             <span className="flex items-center gap-1">
                                                                 <MessageSquare className="w-3 h-3" />
@@ -429,14 +453,9 @@ function MessagesContent() {
                                                                 <Users className="w-3 h-3" />
                                                                 {forum.members?.length || 0} membres
                                                             </span>
-                                                            {forum.lastPostAt && (
-                                                                <span className="flex items-center gap-1">
-                                                                    <Clock className="w-3 h-3" />
-                                                                    {formatDate(forum.lastPostAt)}
-                                                                </span>
-                                                            )}
                                                         </div>
                                                     </div>
+                                                    <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-[#2a3575]" />
                                                 </div>
                                             </Link>
                                         ))}
@@ -460,119 +479,183 @@ function MessagesContent() {
                                     <div>
                                         <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                             <HelpCircle className="w-6 h-6 text-[#2a3575]" />
-                                            Demandes d'Assistance
+                                            Mes Demandes d'Aide
                                         </h2>
                                         <p className="text-sm text-gray-500 mt-1">
-                                            Tutorat, évaluations supplémentaires et aide pédagogique
+                                            Demandez du tutorat ou des évaluations supplémentaires
                                         </p>
                                     </div>
-                                    <button
-                                        onClick={fetchRequests}
-                                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                                    >
-                                        <RefreshCw className={cn("w-5 h-5 text-gray-500", requestsLoading && "animate-spin")} />
-                                    </button>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={fetchRequests}
+                                            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                                        >
+                                            <RefreshCw className={cn("w-5 h-5 text-gray-500", requestsLoading && "animate-spin")} />
+                                        </button>
+                                        <button
+                                            onClick={() => setShowNewRequest(true)}
+                                            className="px-4 py-2 bg-[#2a3575] text-white rounded-xl font-medium hover:bg-[#2a3575]/90 transition-colors flex items-center gap-2"
+                                        >
+                                            <Plus className="w-4 h-4" />
+                                            Nouvelle demande
+                                        </button>
+                                    </div>
                                 </div>
 
-                                {/* Request Cards */}
+                                {/* New Request Modal */}
+                                {showNewRequest && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: -20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6"
+                                    >
+                                        <div className="flex items-center justify-between mb-4">
+                                            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Nouvelle Demande</h3>
+                                            <button onClick={() => setShowNewRequest(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+                                                <X className="w-5 h-5" />
+                                            </button>
+                                        </div>
+                                        <form onSubmit={handleSubmitRequest} className="space-y-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Enseignant</label>
+                                                    <select
+                                                        value={newRequest.teacherId}
+                                                        onChange={e => setNewRequest({ ...newRequest, teacherId: e.target.value })}
+                                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700"
+                                                        required
+                                                    >
+                                                        <option value="">Sélectionner...</option>
+                                                        {teachers.map(t => (
+                                                            <option key={t._id} value={t._id}>{t.name}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
+                                                    <select
+                                                        value={newRequest.type}
+                                                        onChange={e => setNewRequest({ ...newRequest, type: e.target.value })}
+                                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700"
+                                                    >
+                                                        <option value="TUTORING">Tutorat</option>
+                                                        <option value="EVALUATION">Évaluation supplémentaire</option>
+                                                        <option value="REMEDIATION">Remédiation</option>
+                                                        <option value="ASSISTANCE">Aide générale</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Titre</label>
+                                                <input
+                                                    type="text"
+                                                    value={newRequest.title}
+                                                    onChange={e => setNewRequest({ ...newRequest, title: e.target.value })}
+                                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700"
+                                                    placeholder="Ex: Aide sur les équations du second degré"
+                                                    required
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Message</label>
+                                                <textarea
+                                                    value={newRequest.message}
+                                                    onChange={e => setNewRequest({ ...newRequest, message: e.target.value })}
+                                                    rows={4}
+                                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700"
+                                                    placeholder="Décrivez votre besoin..."
+                                                    required
+                                                />
+                                            </div>
+                                            <div className="flex justify-end gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowNewRequest(false)}
+                                                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                                                >
+                                                    Annuler
+                                                </button>
+                                                <button
+                                                    type="submit"
+                                                    disabled={submitting}
+                                                    className="px-4 py-2 bg-[#359a53] text-white rounded-lg font-medium hover:bg-[#359a53]/90 disabled:opacity-50"
+                                                >
+                                                    {submitting ? 'Envoi...' : 'Envoyer'}
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </motion.div>
+                                )}
+
+                                {/* Requests List */}
                                 {requestsLoading ? (
                                     <div className="flex justify-center py-12">
                                         <RefreshCw className="w-8 h-8 text-[#2a3575] animate-spin" />
                                     </div>
-                                ) : requests.length === 0 ? (
+                                ) : requests.length === 0 && !showNewRequest ? (
                                     <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700">
-                                        <CheckCircle2 className="w-12 h-12 text-[#359a53] mx-auto mb-4" />
+                                        <HelpCircle className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                                         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Aucune demande</h3>
-                                        <p className="text-gray-500">Vous n'avez pas de demandes d'assistance en attente</p>
+                                        <p className="text-gray-500 mb-4">Besoin d'aide ? Créez votre première demande</p>
+                                        <button
+                                            onClick={() => setShowNewRequest(true)}
+                                            className="inline-flex items-center gap-2 px-4 py-2 bg-[#2a3575] text-white rounded-xl font-medium"
+                                        >
+                                            <Plus className="w-4 h-4" />
+                                            Nouvelle demande
+                                        </button>
                                     </div>
                                 ) : (
                                     <div className="space-y-3">
                                         {requests.map((request) => (
                                             <div
                                                 key={request._id}
-                                                className="p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all"
+                                                className="p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700"
                                             >
                                                 <div className="flex items-start justify-between gap-4">
                                                     <div className="flex items-start gap-4 flex-1">
                                                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#2a3575] to-[#359a53] flex items-center justify-center text-white font-bold">
-                                                            {request.studentId?.name?.charAt(0) || '?'}
+                                                            {request.teacherId?.name?.charAt(0) || '?'}
                                                         </div>
-                                                        <div className="flex-1 min-w-0">
+                                                        <div className="flex-1">
                                                             <div className="flex items-center gap-2 mb-1">
                                                                 <h3 className="font-semibold text-gray-900 dark:text-white">
-                                                                    {request.studentId?.name || 'Étudiant'}
+                                                                    {request.title}
                                                                 </h3>
                                                                 <span className={cn(
                                                                     "px-2 py-0.5 text-xs font-medium rounded-full",
-                                                                    request.priority === 'URGENT' || request.priority === 'HIGH'
-                                                                        ? "bg-red-100 text-red-700"
-                                                                        : request.priority === 'MEDIUM'
-                                                                            ? "bg-amber-100 text-amber-700"
-                                                                            : "bg-gray-100 text-gray-700"
+                                                                    request.status === 'PENDING' ? "bg-amber-100 text-amber-700" :
+                                                                        request.status === 'ACCEPTED' ? "bg-green-100 text-green-700" :
+                                                                            request.status === 'REJECTED' ? "bg-red-100 text-red-700" :
+                                                                                "bg-gray-100 text-gray-700"
                                                                 )}>
-                                                                    {request.priority === 'URGENT' ? 'Urgent' :
-                                                                        request.priority === 'HIGH' ? 'Élevé' :
-                                                                            request.priority === 'MEDIUM' ? 'Moyen' : 'Normal'}
+                                                                    {request.status === 'PENDING' ? 'En attente' :
+                                                                        request.status === 'ACCEPTED' ? 'Acceptée' :
+                                                                            request.status === 'REJECTED' ? 'Refusée' :
+                                                                                request.status === 'COMPLETED' ? 'Terminée' : request.status}
                                                                 </span>
                                                             </div>
-                                                            <div className="flex items-center gap-3 text-sm text-gray-500 mb-2">
-                                                                <span className="flex items-center gap-1">
-                                                                    <HelpCircle className="w-3 h-3" />
-                                                                    {request.type === 'TUTORING' ? 'Tutorat' :
-                                                                        request.type === 'EVALUATION' ? 'Évaluation' :
-                                                                            request.type === 'REMEDIATION' ? 'Remédiation' : 'Assistance'}
-                                                                </span>
-                                                                {request.subject && (
-                                                                    <span className="flex items-center gap-1">
-                                                                        <BookOpen className="w-3 h-3" />
-                                                                        {request.subject.name}
-                                                                    </span>
-                                                                )}
-                                                                <span className="flex items-center gap-1">
-                                                                    <Clock className="w-3 h-3" />
-                                                                    {formatDate(request.createdAt)}
-                                                                </span>
-                                                            </div>
-                                                            <p className="font-medium text-gray-800 dark:text-gray-200 mb-1">
-                                                                {request.title}
+                                                            <p className="text-sm text-gray-500 mb-2">
+                                                                À: {request.teacherId?.name} • {formatDate(request.createdAt)}
                                                             </p>
-                                                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                                                                {request.message}
-                                                            </p>
+                                                            <p className="text-sm text-gray-600 dark:text-gray-400">{request.message}</p>
+                                                            {request.responseMessage && (
+                                                                <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                                                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                                                                        <strong>Réponse:</strong> {request.responseMessage}
+                                                                    </p>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
-                                                    <div className="flex items-center gap-2">
-                                                        {request.status === 'PENDING' ? (
-                                                            <>
-                                                                <button
-                                                                    onClick={() => handleRequestAction(request._id, 'accept')}
-                                                                    className="px-3 py-1.5 bg-[#359a53] text-white rounded-lg text-sm font-medium hover:bg-[#359a53]/90 transition-colors"
-                                                                >
-                                                                    Accepter
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => handleRequestAction(request._id, 'reject')}
-                                                                    className="px-3 py-1.5 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                                                                >
-                                                                    Refuser
-                                                                </button>
-                                                            </>
-                                                        ) : (
-                                                            <span className={cn(
-                                                                "px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1",
-                                                                request.status === 'ACCEPTED' ? "bg-[#359a53]/10 text-[#359a53]" :
-                                                                    request.status === 'REJECTED' ? "bg-red-100 text-red-600" :
-                                                                        request.status === 'COMPLETED' ? "bg-blue-100 text-blue-600" :
-                                                                            "bg-gray-100 text-gray-600"
-                                                            )}>
-                                                                {request.status === 'ACCEPTED' && <CheckCircle2 className="w-3 h-3" />}
-                                                                {request.status === 'ACCEPTED' ? 'Acceptée' :
-                                                                    request.status === 'REJECTED' ? 'Refusée' :
-                                                                        request.status === 'COMPLETED' ? 'Terminée' :
-                                                                            request.status === 'CANCELLED' ? 'Annulée' : request.status}
-                                                            </span>
-                                                        )}
-                                                    </div>
+                                                    {request.status === 'PENDING' && (
+                                                        <button
+                                                            onClick={() => handleCancelRequest(request._id)}
+                                                            className="px-3 py-1.5 border border-gray-200 dark:border-gray-700 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700"
+                                                        >
+                                                            Annuler
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
                                         ))}
@@ -602,16 +685,15 @@ function MessagesContent() {
                                     Assistance Pédagogique
                                 </h2>
                                 <p className="text-gray-500 mb-8 max-w-lg mx-auto">
-                                    Un système complet d'aide et de ressources pédagogiques sera bientôt disponible.
+                                    Bientôt disponible: tutorat entre pairs, ressources en ligne, et exercices de remédiation.
                                 </p>
 
-                                {/* Features Preview */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
                                     {[
-                                        { icon: Users, title: 'Tutorat entre pairs', description: 'Mise en relation automatique' },
-                                        { icon: GraduationCap, title: 'Enseignants spécialisés', description: 'Accès à des experts' },
-                                        { icon: BookOpen, title: 'Ressources en ligne', description: 'Bibliothèque pédagogique' },
-                                        { icon: Target, title: 'Exercices de remédiation', description: 'Activités ciblées' }
+                                        { icon: Users, title: 'Tutorat entre pairs', description: 'Apprenez avec vos camarades' },
+                                        { icon: GraduationCap, title: 'Enseignants spécialisés', description: 'Aide d\'experts' },
+                                        { icon: BookOpen, title: 'Ressources en ligne', description: 'Supports pédagogiques' },
+                                        { icon: Target, title: 'Exercices ciblés', description: 'Remédiation personnalisée' }
                                     ].map((feature, idx) => {
                                         const Icon = feature.icon
                                         return (
@@ -629,12 +711,6 @@ function MessagesContent() {
                                         )
                                     })}
                                 </div>
-
-                                <div className="mt-8 p-4 bg-[#359a53]/10 rounded-xl border border-[#359a53]/20">
-                                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                                        <strong className="text-[#359a53]">Notification:</strong> Cette fonctionnalité sera disponible dans une prochaine mise à jour.
-                                    </p>
-                                </div>
                             </div>
                         </motion.div>
                     )}
@@ -644,10 +720,10 @@ function MessagesContent() {
     )
 }
 
-export default function MessagesPage() {
+export default function StudentMessagesPage() {
     return (
         <PusherProvider>
-            <MessagesContent />
+            <StudentMessagesContent />
         </PusherProvider>
     )
 }

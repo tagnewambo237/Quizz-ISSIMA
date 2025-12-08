@@ -451,7 +451,7 @@ export default function TeacherSchoolPage() {
                                                             borderRadius: '12px',
                                                             boxShadow: '0 10px 40px rgba(0,0,0,0.1)'
                                                         }}
-                                                        formatter={(value: any) => [`${value} élèves`, 'Nombre']}
+                                                        formatter={(value: any) => [`${value} Apprenants`, 'Nombre']}
                                                     />
                                                     <Bar dataKey="count" fill="#8b5cf6" radius={[8, 8, 0, 0]}>
                                                         {charts.scoreDistribution.map((entry: any, index: number) => (

@@ -55,12 +55,20 @@ export class ClassService {
      * Get classes for a teacher
      */
     static async getTeacherClasses(teacherId: string) {
-        return await Class.find({ mainTeacher: teacherId })
+        const classes = await Class.find({ mainTeacher: teacherId })
             .populate('level', 'name code')
             .populate('school', 'name')
             .populate('field', 'name code')
             .populate({ path: 'specialty', select: 'name code', strictPopulate: false })
+            .populate('students', '_id name')
             .sort({ createdAt: -1 })
+            .lean()
+
+        // Add studentsCount to each class
+        return classes.map((cls: any) => ({
+            ...cls,
+            studentsCount: cls.students?.length || 0
+        }))
     }
 
     /**

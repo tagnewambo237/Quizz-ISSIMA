@@ -226,9 +226,8 @@ export class AIInsightsService {
                 type: 'CONCEPT',
                 priority,
                 title: `Renforcer : ${concept.conceptTitle}`,
-                description: `Votre maîtrise est à ${concept.mastery}%. ${
-                    concept.trend === 'DECLINING' ? 'En baisse récemment.' : ''
-                }`,
+                description: `Votre maîtrise est à ${concept.mastery}%. ${concept.trend === 'DECLINING' ? 'En baisse récemment.' : ''
+                    }`,
                 estimatedImpact: 'HIGH',
                 difficulty,
                 timeRequired: difficulty === 'HARD' ? '2-3 heures' : '1 heure',
@@ -452,7 +451,7 @@ export class AIInsightsService {
                     description: `Amélioration significative de ${Math.round(improvement)}%`,
                     detectedAt: new Date(),
                     evidence: [`Score avant: ${Math.round(weeklyScores[i - 1])}%`, `Score après: ${Math.round(weeklyScores[i])}%`],
-                    recommendedAction: 'Féliciter l\'élève ou vérifier les conditions d\'examen'
+                    recommendedAction: 'Féliciter l\'Apprenant ou vérifier les conditions d\'examen'
                 })
             }
         }

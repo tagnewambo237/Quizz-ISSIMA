@@ -1,4 +1,4 @@
-# Système d'Ajout d'Élèves - Documentation Complète
+# Système d'Ajout d'Apprenants - Documentation Complète
 
 ## Table des Matières
 1. [Architecture Globale](#1-architecture-globale)
@@ -48,7 +48,7 @@
                            │
                            ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                          ÉLÈVE                                   │
+│                          Apprenant                                   │
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │  Page Publique /join/[token]                              │   │
 │  │  - Affiche infos classe                                   │   │
@@ -78,7 +78,7 @@
 ### Flow Détaillé
 
 ```
-ENSEIGNANT                    SYSTÈME                         ÉLÈVE
+ENSEIGNANT                    SYSTÈME                         Apprenant
     │                            │                               │
     │ 1. Ouvre modal             │                               │
     │────────────────────────────▶                               │
@@ -139,7 +139,7 @@ ENSEIGNANT                    SYSTÈME                         ÉLÈVE
 - Liste tous les liens créés
 - Statuts visuels (Actif/Expiré/Révoqué)
 - Actions: Copier, QR, Révoquer
-- Liste des élèves inscrits par lien
+- Liste des Apprenants inscrits par lien
 
 ---
 
@@ -148,7 +148,7 @@ ENSEIGNANT                    SYSTÈME                         ÉLÈVE
 ### Flow Détaillé
 
 ```
-ENSEIGNANT                    SYSTÈME                         ÉLÈVE
+ENSEIGNANT                    SYSTÈME                         Apprenant
     │                            │                               │
     │ 1. Remplit formulaire      │                               │
     │   - Nom: "Jean Dupont"     │                               │
@@ -171,7 +171,7 @@ ENSEIGNANT                    SYSTÈME                         ÉLÈVE
     │                            │                               │
     │◀──── "Invitation envoyée"  │                               │
     │                            │                               │
-    │                            │   7. Élève clique lien        │
+    │                            │   7. Apprenant clique lien        │
     │                            │◀──────────────────────────────┤
     │                            │                               │
     │                            │ 8. Active compte              │
@@ -377,12 +377,12 @@ Content-Type: application/json
 
 | Template | Destinataire | Déclencheur |
 |----------|--------------|-------------|
-| `sendWelcomeEmail` | Élève | Inscription via lien |
-| `sendInvitationEmail` | Élève | Partage de lien |
-| `sendAccountActivationEmail` | Élève | Ajout manuel |
+| `sendWelcomeEmail` | Apprenant | Inscription via lien |
+| `sendInvitationEmail` | Apprenant | Partage de lien |
+| `sendAccountActivationEmail` | Apprenant | Ajout manuel |
 | `sendTeacherNotification` | Enseignant | Nouvelle inscription |
 | `sendImportReportEmail` | Enseignant | Fin d'import batch |
-| `sendVerificationEmail` | Élève | Vérification OTP |
+| `sendVerificationEmail` | Apprenant | Vérification OTP |
 
 ### Design
 
@@ -476,7 +476,7 @@ npm start
 
 ## 10. FAQ
 
-**Q: Que se passe-t-il si un élève est déjà inscrit ?**
+**Q: Que se passe-t-il si un Apprenant est déjà inscrit ?**
 > Il est automatiquement ajouté à la classe sans créer de doublon.
 
 **Q: Les liens expirent-ils ?**
@@ -488,7 +488,7 @@ npm start
 **Q: L'enseignant est-il notifié des inscriptions ?**
 > Oui, un email est envoyé à chaque nouvelle inscription via lien.
 
-**Q: Combien d'élèves peut-on importer à la fois ?**
+**Q: Combien d'Apprenants peut-on importer à la fois ?**
 > Recommandé: 500 maximum par batch pour éviter les timeouts.
 
 **Q: Les emails sont-ils bloquants ?**

@@ -3,11 +3,12 @@
 import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { motion } from "framer-motion"
-import { Users, BookOpen, TrendingUp, Calendar, Settings, Search, MoreVertical, Loader2, Edit, Trash2, GraduationCap } from "lucide-react"
+import { Users, BookOpen, TrendingUp, Calendar, Settings, Search, MoreVertical, Loader2, Edit, Trash2, GraduationCap, BarChart3 } from "lucide-react"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import { ClassFormModal } from "@/components/classes/ClassFormModal"
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal"
 import { StudentInvitationModal } from "@/components/classes/invitations/StudentInvitationModal"
+import { ClassAnalytics } from "@/components/analytics/ClassAnalytics"
 import { Eye, MonitorX } from "lucide-react"
 
 // Mock Data removed - using real stats
@@ -138,33 +139,26 @@ export default function ClassDetailPage() {
 
             {/* Tabs */}
             <div className="flex gap-6 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
-                {['overview', 'students', 'exams', 'settings'].map((tab) => (
-                    tab === 'students' ? (
-                        <button
-                            key={tab}
-                            onClick={() => setActiveTab('students')}
-                            className={`pb-4 px-2 font-medium capitalize transition-colors relative whitespace-nowrap ${activeTab === 'students' ? 'text-secondary' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-                                }`}
-                        >
-                            Apprenants
-                            {activeTab === 'students' && (
-                                <motion.div
-                                    layoutId="activeTab"
-                                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-secondary"
-                                />
-                            )}
-                        </button>
-                    ) : (
+                {['overview', 'students', 'exams', 'analytics', 'settings'].map((tab) => {
+                    const tabLabels: Record<string, string> = {
+                        overview: "Vue d'ensemble",
+                        students: "Apprenants",
+                        exams: "Examens",
+                        analytics: "Analyse",
+                        settings: "Paramètres"
+                    }
+                    const TabIcon = tab === 'analytics' ? BarChart3 : null
+                    return (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
-                            className={`pb-4 px-2 font-medium capitalize transition-colors relative whitespace-nowrap ${activeTab === tab
+                            className={`pb-4 px-2 font-medium transition-colors relative whitespace-nowrap flex items-center gap-1.5 ${activeTab === tab
                                 ? "text-secondary"
                                 : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                                 }`}
                         >
-                            {tab === 'overview' ? 'Vue d\'ensemble' :
-                                tab === 'exams' ? 'Examens' : 'Paramètres'}
+                            {TabIcon && <TabIcon className="h-4 w-4" />}
+                            {tabLabels[tab]}
                             {activeTab === tab && (
                                 <motion.div
                                     layoutId="activeTab"
@@ -173,7 +167,7 @@ export default function ClassDetailPage() {
                             )}
                         </button>
                     )
-                ))}
+                })}
             </div>
 
             {/* Content */}
@@ -284,7 +278,7 @@ export default function ClassDetailPage() {
                                         style={{ width: `${stats?.attendanceRate || 0}%` }}
                                     ></div>
                                 </div>
-                                <p className="text-xs text-gray-500 mt-2 relative z-10">Basé sur les élèves ayant passé au moins un examen.</p>
+                                <p className="text-xs text-gray-500 mt-2 relative z-10">Basé sur les Apprenants ayant passé au moins un examen.</p>
                             </div>
 
                             <div className="bg-gradient-to-br from-secondary to-secondary/80 p-6 rounded-3xl text-white shadow-lg relative overflow-hidden">
@@ -335,7 +329,7 @@ export default function ClassDetailPage() {
                                     {classData.students?.length === 0 ? (
                                         <tr>
                                             <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
-                                                Aucun élève dans cette classe
+                                                Aucun Apprenant dans cette classe
                                             </td>
                                         </tr>
                                     ) : (
@@ -368,7 +362,7 @@ export default function ClassDetailPage() {
                                                     </button>
                                                     <button
                                                         onClick={async () => {
-                                                            if (confirm("Voulez-vous vraiment retirer cet élève de la classe ?")) {
+                                                            if (confirm("Voulez-vous vraiment retirer cet Apprenant de la classe ?")) {
                                                                 try {
                                                                     const res = await fetch(`/api/classes/${params.classId}/students/${student._id}`, {
                                                                         method: "DELETE"
@@ -464,6 +458,16 @@ export default function ClassDetailPage() {
                     </div>
                 )}
 
+                {activeTab === 'analytics' && (
+                    <div className="space-y-6">
+                        <ClassAnalytics
+                            classId={params.classId as string}
+                            schoolId={classData.school?._id}
+                            showStudentDetails={true}
+                        />
+                    </div>
+                )}
+
                 {activeTab === 'settings' && (
                     <div className="max-w-4xl mx-auto space-y-8">
                         {/* General Settings */}
@@ -526,7 +530,7 @@ export default function ClassDetailPage() {
                                     <div>
                                         <h4 className="font-semibold text-gray-900 dark:text-white">Supprimer la classe</h4>
                                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                            Cela supprimera définitivement la classe et désassociera tous les élèves.
+                                            Cela supprimera définitivement la classe et désassociera tous les Apprenants.
                                         </p>
                                     </div>
                                     <button

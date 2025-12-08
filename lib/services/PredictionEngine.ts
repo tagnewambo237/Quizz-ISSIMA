@@ -107,6 +107,16 @@ export interface SchoolBenchmark {
     }
 }
 
+export interface RiskStudentDetailed {
+    studentId: string
+    studentName: string
+    className: string
+    riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+    riskScore: number
+    indicators: RiskIndicator[]
+    lastActivity?: Date
+}
+
 // ==========================================
 // PREDICTION ENGINE
 // ==========================================
@@ -639,6 +649,45 @@ export class PredictionEngine {
             indicators,
             interventionRecommendations
         }
+    }
+
+
+    /**
+     * Get detailed list of at-risk students for a class
+     */
+    static async getAtRiskStudentsForClass(classId: string): Promise<RiskStudentDetailed[]> {
+        const Class = mongoose.models.Class
+        const User = mongoose.models.User
+
+        const classData = await Class.findById(classId).populate('students', 'name').lean()
+        if (!classData) return []
+
+        const students = (classData as any).students || []
+        const riskStudents: RiskStudentDetailed[] = []
+
+        const assessments = await Promise.all(
+            students.map((s: any) => this.detectDropoutRisk(s._id.toString()))
+        )
+
+        for (let i = 0; i < assessments.length; i++) {
+            const assessment = assessments[i]
+            const student = students[i]
+
+            // Include MEDIUM, HIGH, and CRITICAL risk students
+            if (assessment.riskLevel === 'MEDIUM' || assessment.riskLevel === 'HIGH' || assessment.riskLevel === 'CRITICAL') {
+                riskStudents.push({
+                    studentId: student._id.toString(),
+                    studentName: student.name,
+                    className: (classData as any).name,
+                    riskLevel: assessment.riskLevel,
+                    riskScore: assessment.riskScore,
+                    indicators: assessment.indicators,
+                    lastActivity: new Date() // Ideally fetch true last activity
+                })
+            }
+        }
+
+        return riskStudents.sort((a, b) => b.riskScore - a.riskScore)
     }
 
     /**

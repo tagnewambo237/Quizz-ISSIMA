@@ -262,7 +262,7 @@ export default function SyllabusDetailsPage() {
                     <div className="bg-blue-50 dark:bg-blue-900/10 p-6 rounded-3xl border border-blue-100 dark:border-blue-900/30">
                         <h3 className="font-bold text-blue-900 dark:text-blue-100 mb-2">Centre d'examen</h3>
                         <p className="text-sm text-blue-700 dark:text-blue-300 mb-4">
-                            Créez des examens basés directement sur ce programme pour évaluer vos élèves sur des chapitres spécifiques.
+                            Créez des examens basés directement sur ce programme pour évaluer vos Apprenants sur des chapitres spécifiques.
                         </p>
                         <button
                             onClick={handleCreateExam}

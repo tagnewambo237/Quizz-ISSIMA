@@ -128,8 +128,8 @@ export function InviteByLink() {
         <div className="space-y-6">
             <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl text-sm text-blue-700 dark:text-blue-300">
                 <p>
-                    Le lien d'invitation permet aux élèves de rejoindre la classe instantanément.
-                    Partagez ce lien avec vos élèves (par email, WhatsApp, etc.).
+                    Le lien d'invitation permet aux Apprenants de rejoindre la classe instantanément.
+                    Partagez ce lien avec vos Apprenants (par email, WhatsApp, etc.).
                 </p>
             </div>
 
@@ -193,7 +193,7 @@ export function InviteByLink() {
                     <div className="flex-1">
                         <h4 className="font-medium text-gray-900 dark:text-white mb-1">QR Code</h4>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                            Les élèves peuvent scanner ce code pour rejoindre la classe
+                            Les Apprenants peuvent scanner ce code pour rejoindre la classe
                         </p>
                         <button
                             onClick={downloadQRCode}
@@ -230,8 +230,8 @@ export function InviteByLink() {
                                     type="button"
                                     onClick={() => setOptions({ ...options, expiresIn: opt.value as any })}
                                     className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${options.expiresIn === opt.value
-                                            ? 'bg-secondary text-white'
-                                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                        ? 'bg-secondary text-white'
+                                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                                         }`}
                                 >
                                     {opt.label}

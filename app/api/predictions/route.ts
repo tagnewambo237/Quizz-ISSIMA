@@ -89,6 +89,17 @@ export async function GET(req: Request) {
                 result = await PredictionEngine.getBenchmark(schoolId)
                 break
 
+            case "risk-students":
+                if (!classId) {
+                    return NextResponse.json({ message: "classId required" }, { status: 400 })
+                }
+                // Only teachers/admins can access
+                if (!session.user?.role || !['TEACHER', 'SCHOOL_ADMIN', 'INSPECTOR', 'PRINCIPAL'].includes(session.user.role)) {
+                    return NextResponse.json({ message: "Access denied" }, { status: 403 })
+                }
+                result = await PredictionEngine.getAtRiskStudentsForClass(classId)
+                break
+
             default:
                 // Return all available predictions for a student
                 result = {
