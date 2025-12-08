@@ -39,14 +39,14 @@ export default function TeacherSyllabusPage() {
     const handleDuplicate = async (id: string, e: React.MouseEvent) => {
         e.preventDefault()
         e.stopPropagation()
-        
+
         try {
             const toastId = toast.loading("Duplication en cours...")
             const res = await fetch(`/api/syllabus/${id}/clone`, {
                 method: "POST"
             })
             const data = await res.json()
-            
+
             if (data.success) {
                 toast.success("Programme dupliqué avec succès", { id: toastId })
                 setSyllabuses(prev => [data.data, ...prev])

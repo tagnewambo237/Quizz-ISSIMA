@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-import { ArrowLeft, BookOpen, Layers, FileText, Plus, MoreVertical, Edit, Calendar, Trash2, ChevronDown, ChevronRight, Save, Link as LinkIcon, Video, File } from "lucide-react"
+import { ArrowLeft, BookOpen, Layers, FileText, Plus, MoreVertical, Edit, Calendar, Trash2, ChevronDown, ChevronRight, Save, Link as LinkIcon, Video, File, Brain } from "lucide-react"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
 import { SyllabusForm } from "@/components/syllabus/SyllabusForm"
@@ -171,19 +171,45 @@ export default function SyllabusDetailsPage() {
                                                         <h4 className="font-medium text-gray-800 dark:text-gray-200">{topic.title}</h4>
                                                         {topic.content && <p className="text-sm text-gray-500 mt-1 line-clamp-2">{topic.content}</p>}
 
+                                                        {/* Concepts Section */}
+                                                        {topic.concepts && topic.concepts.length > 0 && (
+                                                            <div className="mt-4 mb-3">
+                                                                <h5 className="text-xs font-bold text-purple-600 dark:text-purple-400 mb-2 flex items-center gap-1.5 uppercase tracking-wider">
+                                                                    <Brain className="h-3 w-3" /> Concepts Clés
+                                                                </h5>
+                                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                                    {topic.concepts.map((concept: any, cIdx: number) => (
+                                                                        <div key={cIdx} className="flex items-start gap-2 p-2 rounded-lg bg-purple-50/50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-900/20">
+                                                                            <div className="mt-1 h-1.5 w-1.5 rounded-full bg-purple-500 flex-shrink-0" />
+                                                                            <div>
+                                                                                <p className="text-sm font-medium text-gray-800 dark:text-gray-200 leading-tight">
+                                                                                    {concept.title}
+                                                                                </p>
+                                                                                {concept.description && (
+                                                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">
+                                                                                        {concept.description}
+                                                                                    </p>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
+
                                                         {/* Resources */}
                                                         {topic.resources?.length > 0 && (
-                                                            <div className="flex flex-wrap gap-2 mt-2">
+                                                            <div className="flex flex-wrap gap-2 mt-2 pt-2 border-t border-gray-100 dark:border-gray-700/50">
                                                                 {topic.resources.map((res: any, rIndex: number) => (
                                                                     <a
                                                                         key={rIndex}
                                                                         href={res.url}
                                                                         target="_blank"
                                                                         rel="noopener noreferrer"
-                                                                        className="inline-flex items-center gap-1.5 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-md text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-white hover:shadow-sm hover:text-secondary border border-transparent hover:border-gray-200 transition-all"
                                                                     >
                                                                         <ResourceIcon type={res.type} />
-                                                                        {res.title}
+                                                                        {res.title || "Ressource"}
                                                                     </a>
                                                                 ))}
                                                             </div>

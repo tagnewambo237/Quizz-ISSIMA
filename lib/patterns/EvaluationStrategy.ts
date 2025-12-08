@@ -3,10 +3,48 @@ import { EvaluationType } from '@/models/enums'
 import mongoose from 'mongoose'
 
 /**
- * Strategy Pattern pour l'évaluation des examens
+ * Strategy Pattern pour l'évaluation des examens et des concepts
  * 
  * Permet de définir différentes stratégies d'évaluation selon le type d'examen
  */
+
+// ==========================================
+// MASTERY LEVELS FOR CONCEPT SELF-EVALUATION
+// ==========================================
+
+export enum MasteryLevel {
+    UNKNOWN = 'UNKNOWN',                    // Je ne sais pas
+    TOTALLY_UNABLE = 'TOTALLY_UNABLE',      // Totalement incapable
+    UNABLE_WITH_HELP = 'UNABLE_WITH_HELP',  // Incapable même avec aide
+    UNABLE_ALONE = 'UNABLE_ALONE',          // Incapable sans aide
+    ABLE_WITH_HELP = 'ABLE_WITH_HELP',      // Capable avec aide
+    ABLE_ALONE = 'ABLE_ALONE',              // Capable sans aide
+    PERFECTLY_ABLE = 'PERFECTLY_ABLE'       // Je suis parfaitement capable
+}
+
+export const MASTERY_LEVEL_PERCENTAGES: Record<MasteryLevel, number> = {
+    [MasteryLevel.UNKNOWN]: 0,
+    [MasteryLevel.TOTALLY_UNABLE]: 10,
+    [MasteryLevel.UNABLE_WITH_HELP]: 25,
+    [MasteryLevel.UNABLE_ALONE]: 40,
+    [MasteryLevel.ABLE_WITH_HELP]: 60,
+    [MasteryLevel.ABLE_ALONE]: 80,
+    [MasteryLevel.PERFECTLY_ABLE]: 100
+}
+
+export const MASTERY_LEVEL_INFO: Record<MasteryLevel, { label: string; color: string; description: string }> = {
+    [MasteryLevel.UNKNOWN]: { label: "Je ne sais pas", color: "#9ca3af", description: "Niveau non évalué" },
+    [MasteryLevel.TOTALLY_UNABLE]: { label: "Totalement incapable", color: "#ef4444", description: "Aucune compréhension" },
+    [MasteryLevel.UNABLE_WITH_HELP]: { label: "Incapable même avec aide", color: "#f97316", description: "Difficultés persistantes" },
+    [MasteryLevel.UNABLE_ALONE]: { label: "Incapable sans aide", color: "#eab308", description: "Besoin d'accompagnement" },
+    [MasteryLevel.ABLE_WITH_HELP]: { label: "Capable avec aide", color: "#3b82f6", description: "Maîtrise partielle" },
+    [MasteryLevel.ABLE_ALONE]: { label: "Capable sans aide", color: "#6366f1", description: "Bonne maîtrise" },
+    [MasteryLevel.PERFECTLY_ABLE]: { label: "Parfaitement capable", color: "#22c55e", description: "Maîtrise totale" }
+}
+
+// ==========================================
+// INTERFACES
+// ==========================================
 
 export interface EvaluationResult {
     score: number
@@ -24,6 +62,28 @@ export interface EvaluationStrategy {
         questions: any[]
     ): Promise<EvaluationResult>
 }
+
+// Additional interface for concept self-evaluation
+export interface ConceptEvaluationInput {
+    userId: string
+    conceptId: string
+    syllabusId: string
+    level: MasteryLevel
+    reflection?: string
+}
+
+export interface ConceptEvaluationResult {
+    level: MasteryLevel
+    percentage: number
+    label: string
+    color: string
+    reflection?: string
+    evaluatedAt: Date
+}
+
+// ==========================================
+// EXAM EVALUATION STRATEGIES
+// ==========================================
 
 /**
  * Stratégie pour les QCM (Questions à Choix Multiples)
@@ -75,7 +135,6 @@ export class TrueFalseEvaluationStrategy implements EvaluationStrategy {
         responses: any[],
         questions: any[]
     ): Promise<EvaluationResult> {
-        // Même logique que QCM mais avec validation stricte
         let score = 0
         let maxScore = questions.length
 
@@ -108,7 +167,6 @@ export class TrueFalseEvaluationStrategy implements EvaluationStrategy {
 
 /**
  * Stratégie pour les évaluations adaptatives
- * Ajuste la difficulté en fonction des réponses
  */
 export class AdaptiveEvaluationStrategy implements EvaluationStrategy {
     async evaluate(
@@ -120,7 +178,6 @@ export class AdaptiveEvaluationStrategy implements EvaluationStrategy {
         let maxScore = 0
         let difficultyBonus = 0
 
-        // Trier les questions par ordre de réponse
         const orderedResponses = responses.sort((a, b) =>
             new Date(a.answeredAt).getTime() - new Date(b.answeredAt).getTime()
         )
@@ -137,7 +194,6 @@ export class AdaptiveEvaluationStrategy implements EvaluationStrategy {
             maxScore += basePoints
 
             if (response.isCorrect) {
-                // Bonus pour les questions difficiles réussies
                 const difficultyMultiplier = this.getDifficultyMultiplier(question.difficulty)
                 const earnedPoints = basePoints * difficultyMultiplier
                 score += earnedPoints
@@ -177,7 +233,6 @@ export class AdaptiveEvaluationStrategy implements EvaluationStrategy {
 
 /**
  * Stratégie pour les simulations d'examen
- * Évaluation stricte avec pénalités pour les erreurs
  */
 export class ExamSimulationStrategy implements EvaluationStrategy {
     async evaluate(
@@ -200,7 +255,6 @@ export class ExamSimulationStrategy implements EvaluationStrategy {
                 if (response.isCorrect) {
                     score += question.points || 1
                 } else {
-                    // Pénalité pour mauvaise réponse
                     const penalty = (question.points || 1) * 0.25
                     penalties += penalty
                     score = Math.max(0, score - penalty)
@@ -229,9 +283,74 @@ export class ExamSimulationStrategy implements EvaluationStrategy {
     }
 }
 
+// ==========================================
+// CONCEPT SELF-EVALUATION STRATEGY
+// ==========================================
+
 /**
- * Factory pour créer la stratégie appropriée
+ * Stratégie pour l'auto-évaluation des concepts (7 niveaux de maîtrise)
  */
+export class ConceptSelfEvaluationStrategy {
+    /**
+     * Evaluate a concept based on student self-assessment
+     */
+    evaluate(input: ConceptEvaluationInput): ConceptEvaluationResult {
+        const levelInfo = MASTERY_LEVEL_INFO[input.level]
+        const percentage = MASTERY_LEVEL_PERCENTAGES[input.level]
+
+        return {
+            level: input.level,
+            percentage,
+            label: levelInfo.label,
+            color: levelInfo.color,
+            reflection: input.reflection,
+            evaluatedAt: new Date()
+        }
+    }
+
+    /**
+     * Save the evaluation to database
+     */
+    async save(input: ConceptEvaluationInput): Promise<any> {
+        const ConceptEvaluation = mongoose.models.ConceptEvaluation
+
+        return await ConceptEvaluation.create({
+            student: input.userId,
+            concept: input.conceptId,
+            syllabus: input.syllabusId,
+            level: input.level,
+            reflection: input.reflection,
+            evaluatedAt: new Date()
+        })
+    }
+
+    /**
+     * Get all evaluations for a student on a syllabus
+     */
+    async getStudentProgress(studentId: string, syllabusId: string): Promise<any[]> {
+        const ConceptEvaluation = mongoose.models.ConceptEvaluation
+
+        return await ConceptEvaluation.find({
+            student: studentId,
+            syllabus: syllabusId
+        }).populate('concept', 'title').sort({ evaluatedAt: -1 })
+    }
+
+    /**
+     * Calculate overall mastery percentage for a syllabus
+     */
+    calculateOverallMastery(evaluations: ConceptEvaluationResult[]): number {
+        if (evaluations.length === 0) return 0
+
+        const totalPercentage = evaluations.reduce((sum, e) => sum + e.percentage, 0)
+        return Math.round(totalPercentage / evaluations.length)
+    }
+}
+
+// ==========================================
+// FACTORY
+// ==========================================
+
 export class EvaluationStrategyFactory {
     static getStrategy(evaluationType: EvaluationType): EvaluationStrategy {
         switch (evaluationType) {
@@ -253,6 +372,13 @@ export class EvaluationStrategyFactory {
     }
 
     /**
+     * Get the Concept Self-Evaluation Strategy
+     */
+    static getConceptSelfEvaluationStrategy(): ConceptSelfEvaluationStrategy {
+        return new ConceptSelfEvaluationStrategy()
+    }
+
+    /**
      * Évalue un examen avec la stratégie appropriée
      */
     static async evaluateExam(
@@ -263,4 +389,13 @@ export class EvaluationStrategyFactory {
         const strategy = this.getStrategy(exam.evaluationType)
         return strategy.evaluate(exam, responses, questions)
     }
+
+    /**
+     * Evaluate a concept self-assessment
+     */
+    static evaluateConcept(input: ConceptEvaluationInput): ConceptEvaluationResult {
+        const strategy = this.getConceptSelfEvaluationStrategy()
+        return strategy.evaluate(input)
+    }
 }
+
