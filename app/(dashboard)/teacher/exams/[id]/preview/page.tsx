@@ -17,6 +17,8 @@ interface Question {
     type: string
     points: number
     options: { _id: string; text: string; isCorrect?: boolean }[]
+    correctAnswer?: boolean
+    modelAnswer?: string
     mediaUrl?: string
 }
 
@@ -36,6 +38,7 @@ export default function ExamPreviewPage() {
     const [started, setStarted] = useState(false)
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
     const [answers, setAnswers] = useState<Record<string, string>>({})
+    const [textAnswers, setTextAnswers] = useState<Record<string, string>>({})
     const [showResults, setShowResults] = useState(false)
     const [timeLeft, setTimeLeft] = useState(0)
 
@@ -100,6 +103,14 @@ export default function ExamPreviewPage() {
         setAnswers(prev => ({ ...prev, [questionId]: optionId }))
     }
 
+    const handleTrueFalseSelect = (questionId: string, value: boolean) => {
+        setAnswers(prev => ({ ...prev, [questionId]: value ? 'true' : 'false' }))
+    }
+
+    const handleTextAnswer = (questionId: string, text: string) => {
+        setTextAnswers(prev => ({ ...prev, [questionId]: text }))
+    }
+
     const handleFinish = () => {
         setShowResults(true)
         toast.success("Preview terminée!")
@@ -114,12 +125,23 @@ export default function ExamPreviewPage() {
 
         exam.questions.forEach(q => {
             totalPoints += q.points || 1
-            const selectedOptionId = answers[q._id]
-            const correctOption = q.options?.find(o => o.isCorrect)
 
-            if (selectedOptionId && correctOption && selectedOptionId === correctOption._id) {
-                correct++
-                earnedPoints += q.points || 1
+            if (q.type === 'TRUE_FALSE') {
+                const studentAnswer = answers[q._id] === 'true'
+                if (studentAnswer === q.correctAnswer) {
+                    correct++
+                    earnedPoints += q.points || 1
+                }
+            } else if (q.type === 'OPEN_QUESTION') {
+                // Open questions need manual grading, skip for now
+            } else {
+                // QCM
+                const selectedOptionId = answers[q._id]
+                const correctOption = q.options?.find(o => o.isCorrect)
+                if (selectedOptionId && correctOption && selectedOptionId === correctOption._id) {
+                    correct++
+                    earnedPoints += q.points || 1
+                }
             }
         })
 
@@ -130,6 +152,105 @@ export default function ExamPreviewPage() {
             totalPoints,
             percentage: totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0
         }
+    }
+
+    // Render question content based on type
+    const renderQuestionContent = (question: Question) => {
+        switch (question.type) {
+            case 'TRUE_FALSE':
+                return (
+                    <div className="space-y-3">
+                        {[
+                            { value: true, label: 'Vrai', icon: '✓' },
+                            { value: false, label: 'Faux', icon: '✗' }
+                        ].map((option) => (
+                            <button
+                                key={option.label}
+                                onClick={() => handleTrueFalseSelect(question._id, option.value)}
+                                className={cn(
+                                    "w-full text-left p-4 rounded-xl border-2 transition-all",
+                                    answers[question._id] === (option.value ? 'true' : 'false')
+                                        ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                                        : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
+                                )}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <span className={cn(
+                                        "w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold",
+                                        answers[question._id] === (option.value ? 'true' : 'false')
+                                            ? "bg-blue-500 text-white"
+                                            : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
+                                    )}>
+                                        {option.icon}
+                                    </span>
+                                    <span className="flex-1 font-bold text-lg">{option.label}</span>
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                )
+
+            case 'OPEN_QUESTION':
+                return (
+                    <div className="space-y-4">
+                        <textarea
+                            value={textAnswers[question._id] || ''}
+                            onChange={(e) => handleTextAnswer(question._id, e.target.value)}
+                            placeholder="Tapez votre réponse ici..."
+                            className="w-full h-40 p-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 resize-none focus:border-blue-500 focus:outline-none transition-colors"
+                        />
+                        {question.modelAnswer && (
+                            <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                                <p className="text-sm font-medium text-blue-700 dark:text-blue-300 mb-1">💡 Réponse attendue (visible en mode preview)</p>
+                                <p className="text-blue-600 dark:text-blue-400 text-sm">{question.modelAnswer}</p>
+                            </div>
+                        )}
+                    </div>
+                )
+
+            default:
+                // QCM
+                return (
+                    <div className="space-y-3">
+                        {(question.options || []).map((option, idx) => (
+                            <button
+                                key={option._id}
+                                onClick={() => handleOptionSelect(question._id, option._id)}
+                                className={cn(
+                                    "w-full text-left p-4 rounded-xl border-2 transition-all",
+                                    answers[question._id] === option._id
+                                        ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                                        : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
+                                )}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <span className={cn(
+                                        "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold",
+                                        answers[question._id] === option._id
+                                            ? "bg-blue-500 text-white"
+                                            : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
+                                    )}>
+                                        {String.fromCharCode(65 + idx)}
+                                    </span>
+                                    <span className="flex-1">{option.text}</span>
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                )
+        }
+    }
+
+    // Type labels for display
+    const getTypeLabel = (type: string) => {
+        const labels: Record<string, string> = {
+            'QCM': 'Choix Multiple',
+            'TRUE_FALSE': 'Vrai / Faux',
+            'OPEN_QUESTION': 'Question Ouverte',
+            'CASE_STUDY': 'Étude de Cas',
+            'MIXED': 'Mixte'
+        }
+        return labels[type] || type
     }
 
     if (loading) {
@@ -372,39 +493,16 @@ export default function ExamPreviewPage() {
                             <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-sm font-medium">
                                 {currentQuestion.points} point{currentQuestion.points > 1 ? 's' : ''}
                             </span>
-                            <span className="text-sm text-gray-500">{currentQuestion.type}</span>
+                            <span className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg text-sm font-medium">
+                                {getTypeLabel(currentQuestion.type)}
+                            </span>
                         </div>
 
                         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
                             {currentQuestion.text}
                         </h2>
 
-                        <div className="space-y-3">
-                            {(currentQuestion.options || []).map((option, idx) => (
-                                <button
-                                    key={option._id}
-                                    onClick={() => handleOptionSelect(currentQuestion._id, option._id)}
-                                    className={cn(
-                                        "w-full text-left p-4 rounded-xl border-2 transition-all",
-                                        answers[currentQuestion._id] === option._id
-                                            ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                                            : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
-                                    )}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <span className={cn(
-                                            "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold",
-                                            answers[currentQuestion._id] === option._id
-                                                ? "bg-blue-500 text-white"
-                                                : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
-                                        )}>
-                                            {String.fromCharCode(65 + idx)}
-                                        </span>
-                                        <span className="flex-1">{option.text}</span>
-                                    </div>
-                                </button>
-                            ))}
-                        </div>
+                        {renderQuestionContent(currentQuestion)}
                     </motion.div>
 
                     {/* Navigation */}

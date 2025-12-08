@@ -70,6 +70,30 @@ export const sounds = {
             oscillator.start(startTime)
             oscillator.stop(startTime + 0.3)
         })
+    },
+
+    // Error/warning sound - descending harsh tones
+    error: () => {
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+        const notes = [440, 349.23, 261.63] // A4, F4, C4 - descending minor feel
+
+        notes.forEach((freq, index) => {
+            const oscillator = audioContext.createOscillator()
+            const gainNode = audioContext.createGain()
+
+            oscillator.connect(gainNode)
+            gainNode.connect(audioContext.destination)
+
+            oscillator.frequency.value = freq
+            oscillator.type = 'sawtooth' // Harsher sound for error
+
+            const startTime = audioContext.currentTime + (index * 0.12)
+            gainNode.gain.setValueAtTime(0.15, startTime)
+            gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.15)
+
+            oscillator.start(startTime)
+            oscillator.stop(startTime + 0.15)
+        })
     }
 }
 

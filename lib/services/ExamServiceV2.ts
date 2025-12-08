@@ -1,8 +1,25 @@
-import Exam, { IExam } from "@/models/Exam"
-import Question from "@/models/Question"
+import { IExam } from "@/models/Exam"
 import { ExamStatus, EvaluationType, DifficultyLevel, PedagogicalObjective, CloseMode } from "@/models/enums"
 import { EvaluationStrategyFactory } from "@/lib/patterns/EvaluationStrategy"
 import mongoose from "mongoose"
+
+// Helper to get models after DB connection
+const getExamModel = () => {
+    // Load all referenced models first to enable populate operations
+    require("@/models/EducationLevel")
+    require("@/models/Subject")
+    require("@/models/LearningUnit")
+    require("@/models/Field")
+    require("@/models/Competency")
+    require("@/models/User")
+    require("@/models/Exam")
+    return mongoose.model<IExam>('Exam')
+}
+
+const getQuestionModel = () => {
+    require("@/models/Question")
+    return mongoose.model('Question')
+}
 
 /**
  * Service V2 pour la gestion avancée des examens
@@ -42,6 +59,7 @@ export class ExamServiceV2 {
         const limit = filters.limit || 20
         const skip = filters.skip || 0
 
+        const Exam = getExamModel()
         const exams = await Exam.find(query)
             .populate('targetLevels', 'name code cycle')
             .populate('subject', 'name code')
@@ -63,6 +81,7 @@ export class ExamServiceV2 {
      * Récupère un examen par ID avec toutes les relations
      */
     static async getExamById(id: string, includeQuestions: boolean = false) {
+        const Exam = getExamModel()
         const exam = await Exam.findById(id)
             .populate('targetLevels', 'name code cycle')
             .populate('subject', 'name code')
@@ -75,6 +94,7 @@ export class ExamServiceV2 {
         if (!exam) return null
 
         if (includeQuestions) {
+            const Question = getQuestionModel()
             const questions = await Question.find({ examId: id })
                 .lean()
 
@@ -131,6 +151,7 @@ export class ExamServiceV2 {
 
         try {
             // Définir les valeurs par défaut V2
+            const Exam = getExamModel()
             const createdExam = await Exam.create({
                 ...examData,
                 createdById: createdBy,
@@ -167,6 +188,7 @@ export class ExamServiceV2 {
             // Create questions if provided
             if (examData.questions && examData.questions.length > 0) {
                 const Option = (await import("@/models/Option")).default
+                const Question = getQuestionModel()
 
                 for (let i = 0; i < examData.questions.length; i++) {
                     const qData = examData.questions[i]
@@ -216,6 +238,7 @@ export class ExamServiceV2 {
      * Met à jour un examen
      */
     static async updateExam(id: string, updateData: Partial<IExam>, userId: string) {
+        const Exam = getExamModel()
         const exam = await Exam.findById(id)
         if (!exam) throw new Error("Exam not found")
 
@@ -259,6 +282,7 @@ export class ExamServiceV2 {
      * Suppression douce (archive)
      */
     static async deleteExam(id: string, userId: string) {
+        const Exam = getExamModel()
         const exam = await Exam.findById(id)
         if (!exam) throw new Error("Exam not found")
 
@@ -291,6 +315,7 @@ export class ExamServiceV2 {
         if (filters.subject) searchQuery.subject = filters.subject
         if (filters.level) searchQuery.targetLevels = filters.level
 
+        const Exam = getExamModel()
         const exams = await Exam.find(searchQuery)
             .populate('targetLevels', 'name code')
             .populate('subject', 'name code')
@@ -341,6 +366,7 @@ export class ExamServiceV2 {
             query.status = criteria.status
         }
 
+        const Exam = getExamModel()
         const exams = await Exam.find(query)
             .populate('targetLevels', 'name code')
             .populate('subject', 'name code')

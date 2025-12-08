@@ -9,7 +9,7 @@ import { Step3Configuration } from "@/components/exam-creator/Step3Configuration
 import { Step4QuestionEditor } from "@/components/exam-creator/Step4QuestionEditor"
 import { Step5Preview } from "@/components/exam-creator/Step5Preview"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, ArrowRight, Check, Save } from "lucide-react"
+import { ArrowLeft, ArrowRight, Check, Save, Loader2 } from "lucide-react"
 import { RoleGuard } from "@/components/guards/RoleGuard"
 import { UserRole } from "@/models/enums"
 import { toast } from "sonner"
@@ -135,13 +135,23 @@ export default function CreateExamPage() {
         }
 
         if (currentStep < STEPS.length) {
-            setCurrentStep(currentStep + 1)
+            // Skip Step 2 (Target Audience) if no syllabus is selected
+            if (currentStep === 1 && !examData.syllabus) {
+                setCurrentStep(3) // Go directly to Configuration
+            } else {
+                setCurrentStep(currentStep + 1)
+            }
         }
     }
 
     const handlePrevious = () => {
         if (currentStep > 1) {
-            setCurrentStep(currentStep - 1)
+            // Skip Step 2 when going back if no syllabus was selected
+            if (currentStep === 3 && !examData.syllabus) {
+                setCurrentStep(1) // Go back to Classification
+            } else {
+                setCurrentStep(currentStep - 1)
+            }
         }
     }
 
@@ -173,11 +183,16 @@ export default function CreateExamPage() {
     const renderStep = () => {
         switch (currentStep) {
             case 1:
-                return <Step1Classification data={examData} onUpdate={updateExamData} />
+                return <Step1Classification data={examData} onUpdate={updateExamData} onNext={handleNext} onPrev={handlePrevious} />
             case 2:
-                return <Step2TargetAudience data={examData} onUpdate={updateExamData} />
+                return <Step2TargetAudience
+                    data={examData}
+                    onUpdate={updateExamData}
+                    onNext={handleNext}
+                    onPrev={handlePrevious}
+                />
             case 3:
-                return <Step3Configuration data={examData} onUpdate={updateExamData} />
+                return <Step3Configuration data={examData} onUpdate={updateExamData} onNext={handleNext} onPrev={handlePrevious} />
             case 4:
                 return <Step4QuestionEditor data={examData} onUpdate={updateExamData} />
             case 5:
@@ -197,6 +212,7 @@ export default function CreateExamPage() {
                         animate={{ opacity: 1, y: 0 }}
                         className="mb-8 bg-gradient-to-r from-[#3a4794] to-[#2a3575] rounded-2xl p-8 text-white shadow-xl"
                     >
+                        {/* ... (Header content remains same) ... */}
                         <div className="flex justify-between items-start">
                             <div>
                                 <h1 className="text-3xl md:text-4xl font-bold mb-2">
@@ -286,42 +302,53 @@ export default function CreateExamPage() {
                         </motion.div>
                     </AnimatePresence>
 
-                    {/* Navigation Buttons */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.4 }}
-                        className="flex justify-between gap-4"
-                    >
-                        <Button
-                            variant="outline"
-                            onClick={handlePrevious}
-                            disabled={currentStep === 1}
-                            className="px-6 py-6 text-base font-semibold border-2 hover:bg-gray-50 dark:hover:bg-gray-800"
+                    {/* Global Navigation Buttons - HIDDEN for Step 1 & 3 as they handle their own nav */}
+                    {[4, 5].includes(currentStep) && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.4 }}
+                            className="flex justify-between gap-4"
                         >
-                            <ArrowLeft className="mr-2 h-5 w-5" />
-                            Précédent
-                        </Button>
+                            <Button
+                                variant="outline"
+                                onClick={handlePrevious}
+                                disabled={currentStep === 1}
+                                className="px-6 py-6 text-base font-semibold border-2 hover:bg-gray-50 dark:hover:bg-gray-800"
+                            >
+                                <ArrowLeft className="mr-2 h-5 w-5" />
+                                Précédent
+                            </Button>
 
-                        {currentStep < STEPS.length ? (
-                            <Button
-                                onClick={handleNext}
-                                className="px-6 py-6 text-base font-semibold bg-[#3a4794] hover:bg-[#2a3575] text-white shadow-lg"
-                            >
-                                Suivant
-                                <ArrowRight className="ml-2 h-5 w-5" />
-                            </Button>
-                        ) : (
-                            <Button
-                                onClick={handleSubmit}
-                                disabled={loading}
-                                className="px-6 py-6 text-base font-semibold bg-[#359a53] hover:bg-[#2a7a43] text-white shadow-lg disabled:opacity-50"
-                            >
-                                {loading ? "Création..." : "Créer l'Examen"}
-                                <Check className="ml-2 h-5 w-5" />
-                            </Button>
-                        )}
-                    </motion.div>
+                            {currentStep < STEPS.length ? (
+                                <Button
+                                    onClick={handleNext}
+                                    className="px-6 py-6 text-base font-semibold bg-[#3a4794] hover:bg-[#2a3575] text-white shadow-lg"
+                                >
+                                    Suivant
+                                    <ArrowRight className="ml-2 h-5 w-5" />
+                                </Button>
+                            ) : (
+                                <Button
+                                    onClick={handleSubmit}
+                                    disabled={loading}
+                                    className="px-6 py-6 text-base font-semibold bg-[#359a53] hover:bg-[#2a7a43] text-white shadow-lg disabled:opacity-70 disabled:cursor-wait"
+                                >
+                                    {loading ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                            Création en cours...
+                                        </>
+                                    ) : (
+                                        <>
+                                            Créer l'Examen
+                                            <Check className="ml-2 h-5 w-5" />
+                                        </>
+                                    )}
+                                </Button>
+                            )}
+                        </motion.div>
+                    )}
                 </div>
             </div>
         </RoleGuard>

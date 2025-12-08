@@ -353,5 +353,24 @@ export class SchoolService {
 
         return school;
     }
+
+    // Validate a school (admin approval)
+    static async validateSchool(schoolId: string, adminId: string): Promise<ISchool | null> {
+        const school = await School.findByIdAndUpdate(
+            schoolId,
+            {
+                isValidated: true,
+                validatedBy: adminId,
+                validatedAt: new Date()
+            },
+            { new: true }
+        );
+
+        if (!school) {
+            throw new Error("School not found");
+        }
+
+        return school;
+    }
 }
 

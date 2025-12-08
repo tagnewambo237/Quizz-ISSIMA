@@ -2,14 +2,17 @@ import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Users, Target, Check, Briefcase, ArrowRight, ArrowLeft, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
 interface Step2Props {
     data: any
     onUpdate: (data: any) => void
+    onNext: () => void
+    onPrev: () => void
 }
 
-export function Step2TargetAudience({ data, onUpdate }: Step2Props) {
+export function Step2TargetAudience({ data, onUpdate, onNext, onPrev }: Step2Props) {
     const [fields, setFields] = useState<any[]>([])
     const [competencies, setCompetencies] = useState<any[]>([])
 
@@ -19,24 +22,31 @@ export function Step2TargetAudience({ data, onUpdate }: Step2Props) {
     const [internalStep, setInternalStep] = useState(0)
     const [direction, setDirection] = useState(0)
 
+    const [loadingFields, setLoadingFields] = useState(false)
+    const [loadingCompetencies, setLoadingCompetencies] = useState(false)
+
     // Fetch fields based on selected levels
     useEffect(() => {
         if (data.targetLevels && data.targetLevels.length > 0) {
+            setLoadingFields(true)
             const levelsParam = data.targetLevels.join(',')
             fetch(`/api/fields?level=${levelsParam}`)
                 .then(res => res.json())
                 .then(data => setFields(data.data || []))
                 .catch(err => console.error(err))
+                .finally(() => setLoadingFields(false))
         }
     }, [data.targetLevels])
 
     // Fetch competencies based on selected subject
     useEffect(() => {
         if (data.subject) {
+            setLoadingCompetencies(true)
             fetch(`/api/competencies?subject=${data.subject}`)
                 .then(res => res.json())
                 .then(data => setCompetencies(data.data || []))
                 .catch(err => console.error(err))
+                .finally(() => setLoadingCompetencies(false))
         }
     }, [data.subject])
 
@@ -49,14 +59,22 @@ export function Step2TargetAudience({ data, onUpdate }: Step2Props) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedFields, selectedCompetencies])
 
-    const nextStep = () => {
-        setDirection(1)
-        setInternalStep(prev => prev + 1)
+    const handleNext = () => {
+        if (internalStep < steps.length - 1) {
+            setDirection(1)
+            setInternalStep(prev => prev + 1)
+        } else {
+            onNext()
+        }
     }
 
-    const prevStep = () => {
-        setDirection(-1)
-        setInternalStep(prev => prev - 1)
+    const handlePrev = () => {
+        if (internalStep > 0) {
+            setDirection(-1)
+            setInternalStep(prev => prev - 1)
+        } else {
+            onPrev()
+        }
     }
 
     const variants = {
@@ -129,7 +147,13 @@ export function Step2TargetAudience({ data, onUpdate }: Step2Props) {
                                 <p className="text-gray-500 dark:text-gray-400">Optionnel : Ciblez des filières spécifiques</p>
                             </div>
 
-                            {fields.length > 0 ? (
+                            {loadingFields ? (
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                                        <Skeleton key={i} className="h-[72px] w-full rounded-xl" />
+                                    ))}
+                                </div>
+                            ) : fields.length > 0 ? (
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                     {fields.map((field) => {
                                         const isSelected = selectedFields.includes(field._id)
@@ -173,14 +197,7 @@ export function Step2TargetAudience({ data, onUpdate }: Step2Props) {
                                 </div>
                             )}
 
-                            <div className="flex justify-end pt-4">
-                                <Button
-                                    onClick={nextStep}
-                                    className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-8 rounded-full"
-                                >
-                                    Suivant <ArrowRight className="w-4 h-4" />
-                                </Button>
-                            </div>
+
                         </motion.div>
                     )}
 
@@ -201,7 +218,13 @@ export function Step2TargetAudience({ data, onUpdate }: Step2Props) {
                                 <p className="text-gray-500 dark:text-gray-400">Optionnel : Sélectionnez les compétences évaluées</p>
                             </div>
 
-                            {competencies.length > 0 ? (
+                            {loadingCompetencies ? (
+                                <div className="grid grid-cols-1 gap-3">
+                                    {[1, 2, 3].map((i) => (
+                                        <Skeleton key={i} className="h-[88px] w-full rounded-xl" />
+                                    ))}
+                                </div>
+                            ) : competencies.length > 0 ? (
                                 <div className="grid grid-cols-1 gap-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                                     {competencies.map((comp) => {
                                         const isSelected = selectedCompetencies.includes(comp._id)
@@ -252,17 +275,28 @@ export function Step2TargetAudience({ data, onUpdate }: Step2Props) {
                                 </div>
                             )}
 
-                            <div className="flex justify-between pt-4">
-                                <Button variant="ghost" onClick={prevStep} className="gap-2">
-                                    <ArrowLeft className="w-4 h-4" /> Retour
-                                </Button>
-                                <div className="text-green-600 font-medium flex items-center gap-2">
-                                    <CheckCircle2 className="w-5 h-5" /> Public défini
-                                </div>
-                            </div>
+
                         </motion.div>
                     )}
                 </AnimatePresence>
+            </div>
+
+            {/* Unified Navigation Bar */}
+            <div className="flex justify-between pt-8 border-t border-gray-100 dark:border-gray-800 mt-8">
+                <Button
+                    variant="outline"
+                    onClick={handlePrev}
+                    className="px-6 py-5 text-base font-semibold border-2"
+                >
+                    <ArrowLeft className="w-5 h-5 mr-2" /> Retour
+                </Button>
+
+                <Button
+                    onClick={handleNext}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-5 rounded-lg font-bold shadow-lg flex items-center gap-2"
+                >
+                    {internalStep === steps.length - 1 ? "Continuer" : "Suivant"} <ArrowRight className="w-5 h-5" />
+                </Button>
             </div>
         </div>
     )

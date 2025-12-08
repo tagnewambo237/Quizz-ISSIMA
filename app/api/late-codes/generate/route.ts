@@ -62,6 +62,7 @@ export async function POST(req: Request) {
         return NextResponse.json({
             success: true,
             data: {
+                _id: (lateCode as any)._id,
                 code: (lateCode as any).code,
                 examId: (lateCode as any).examId,
                 usagesRemaining: (lateCode as any).usagesRemaining,

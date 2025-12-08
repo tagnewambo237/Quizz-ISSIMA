@@ -13,6 +13,31 @@ export interface QuestionStats {
 }
 
 /**
+ * Configuration pour les questions ouvertes avec correction hybride
+ */
+export interface OpenQuestionKeyword {
+  word: string
+  weight: number  // Points attribués si le mot est présent (0-100%)
+  required: boolean  // Obligatoire pour obtenir la note
+  synonyms?: string[]  // Mots acceptés comme équivalents
+}
+
+export interface OpenQuestionConfig {
+  gradingMode: 'keywords' | 'semantic' | 'manual' | 'hybrid'
+
+  // Pour mode keywords
+  keywords?: OpenQuestionKeyword[]
+
+  // Pour mode semantic (IA)
+  semanticThreshold?: number  // 0-1, seuil de similarité requis (0.7 = 70%)
+
+  // Configuration
+  minLength?: number  // Longueur minimale requise (caractères)
+  maxLength?: number  // Longueur maximale acceptée
+  caseSensitive?: boolean  // Sensible à la casse pour les mots-clés
+}
+
+/**
  * Interface principale du modèle Question V2
  */
 export interface IQuestion extends Document {
@@ -33,6 +58,7 @@ export interface IQuestion extends Document {
   // Réponses (selon le type)
   correctAnswer?: boolean // Pour TRUE_FALSE
   modelAnswer?: string // Pour OPEN_QUESTION
+  openQuestionConfig?: OpenQuestionConfig // Configuration avancée pour OPEN_QUESTION
 
   // Aide pédagogique (NOUVEAUX CHAMPS V2)
   explanation?: string // Explication de la réponse correcte
@@ -99,6 +125,28 @@ const QuestionSchema = new Schema<IQuestion>(
     modelAnswer: {
       type: String,
       trim: true
+    },
+    openQuestionConfig: {
+      gradingMode: {
+        type: String,
+        enum: ['keywords', 'semantic', 'manual', 'hybrid'],
+        default: 'hybrid'
+      },
+      keywords: [{
+        word: { type: String, trim: true },
+        weight: { type: Number, min: 0, max: 100, default: 10 },
+        required: { type: Boolean, default: false },
+        synonyms: [{ type: String, trim: true }]
+      }],
+      semanticThreshold: {
+        type: Number,
+        min: 0,
+        max: 1,
+        default: 0.7
+      },
+      minLength: { type: Number, min: 0 },
+      maxLength: { type: Number, min: 0 },
+      caseSensitive: { type: Boolean, default: false }
     },
 
     // Aide pédagogique

@@ -1,22 +1,30 @@
 "use client"
 
 import * as React from "react"
+import * as ReactDOM from "react-dom"
 import { cn } from "@/lib/utils"
 
 const DropdownMenuContext = React.createContext<{
     open: boolean
     setOpen: (open: boolean) => void
-}>({ open: false, setOpen: () => { } })
+    triggerRef: React.RefObject<HTMLButtonElement | null> | null
+    contentRef: React.RefObject<HTMLDivElement | null> | null
+}>({ open: false, setOpen: () => { }, triggerRef: null, contentRef: null })
 
 const DropdownMenu: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [open, setOpen] = React.useState(false)
     const containerRef = React.useRef<HTMLDivElement>(null)
+    const triggerRef = React.useRef<HTMLButtonElement>(null)
+    const contentRef = React.useRef<HTMLDivElement>(null)
 
     React.useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
+            // Check if click is outside both the container AND the content (which is in a portal)
             if (
                 containerRef.current &&
-                !containerRef.current.contains(event.target as Node)
+                !containerRef.current.contains(event.target as Node) &&
+                contentRef.current &&
+                !contentRef.current.contains(event.target as Node)
             ) {
                 setOpen(false)
             }
@@ -26,7 +34,7 @@ const DropdownMenu: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     }, [])
 
     return (
-        <DropdownMenuContext.Provider value={{ open, setOpen }}>
+        <DropdownMenuContext.Provider value={{ open, setOpen, triggerRef, contentRef }}>
             <div ref={containerRef} className="relative inline-block text-left">
                 {children}
             </div>
@@ -38,11 +46,11 @@ const DropdownMenuTrigger = React.forwardRef<
     HTMLButtonElement,
     React.ButtonHTMLAttributes<HTMLButtonElement> & { asChild?: boolean }
 >(({ className, onClick, ...props }, ref) => {
-    const { open, setOpen } = React.useContext(DropdownMenuContext)
+    const { open, setOpen, triggerRef } = React.useContext(DropdownMenuContext)
 
     return (
         <button
-            ref={ref}
+            ref={triggerRef as React.RefObject<HTMLButtonElement>}
             onClick={(e) => {
                 setOpen(!open)
                 onClick?.(e)
@@ -60,21 +68,73 @@ const DropdownMenuContent = React.forwardRef<
     HTMLDivElement,
     React.HTMLAttributes<HTMLDivElement> & { align?: "start" | "end" | "center" }
 >(({ className, align = "center", ...props }, ref) => {
-    const { open } = React.useContext(DropdownMenuContext)
+    const { open, triggerRef, contentRef } = React.useContext(DropdownMenuContext)
+    const [position, setPosition] = React.useState({ top: 0, left: 0, right: 'auto' as string | number })
+
+    React.useEffect(() => {
+        if (open && triggerRef?.current) {
+            const rect = triggerRef.current.getBoundingClientRect()
+            const scrollTop = window.scrollY || document.documentElement.scrollTop
+            const scrollLeft = window.scrollX || document.documentElement.scrollLeft
+
+            if (align === "end") {
+                setPosition({
+                    top: rect.bottom + scrollTop + 4,
+                    left: 'auto' as unknown as number,
+                    right: window.innerWidth - rect.right - scrollLeft
+                })
+            } else if (align === "start") {
+                setPosition({
+                    top: rect.bottom + scrollTop + 4,
+                    left: rect.left + scrollLeft,
+                    right: 'auto'
+                })
+            } else {
+                setPosition({
+                    top: rect.bottom + scrollTop + 4,
+                    left: rect.left + scrollLeft + rect.width / 2,
+                    right: 'auto'
+                })
+            }
+        }
+    }, [open, align, triggerRef])
 
     if (!open) return null
 
-    return (
+    const content = (
         <div
-            ref={ref}
+            ref={(node) => {
+                // Set both the forwarded ref and the context ref
+                if (contentRef) {
+                    (contentRef as React.MutableRefObject<HTMLDivElement | null>).current = node
+                }
+                if (typeof ref === 'function') {
+                    ref(node)
+                } else if (ref) {
+                    (ref as React.MutableRefObject<HTMLDivElement | null>).current = node
+                }
+            }}
+            style={{
+                position: 'fixed',
+                top: position.top,
+                left: align === "end" ? 'auto' : position.left,
+                right: align === "end" ? position.right : 'auto',
+                transform: align === "center" ? 'translateX(-50%)' : undefined,
+            }}
             className={cn(
-                "absolute z-50 mt-2 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2",
-                align === "end" ? "right-0" : align === "start" ? "left-0" : "left-1/2 -translate-x-1/2",
+                "z-[9999] min-w-[8rem] overflow-hidden rounded-md border bg-white dark:bg-gray-800 p-1 text-popover-foreground shadow-lg",
                 className
             )}
             {...props}
         />
     )
+
+    // Use portal to render outside of any overflow container
+    if (typeof window !== 'undefined') {
+        return ReactDOM.createPortal(content, document.body)
+    }
+
+    return content
 })
 DropdownMenuContent.displayName = "DropdownMenuContent"
 
@@ -93,8 +153,11 @@ const DropdownMenuItem = React.forwardRef<
                 className
             )}
             onClick={(e) => {
-                setOpen(false)
+                // Execute the action
                 onClick?.(e)
+
+                // Close the menu after a brief delay to ensure action completes
+                setTimeout(() => setOpen(false), 0)
             }}
             {...props}
         />

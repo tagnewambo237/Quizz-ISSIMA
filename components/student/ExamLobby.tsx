@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Loader2, Lock, Play, AlertTriangle, Clock, HelpCircle, Calendar, Trophy } from "lucide-react"
+import { Loader2, Lock, Play, AlertTriangle, Clock, HelpCircle, Calendar, Trophy, Shield, Eye, Copy, Maximize, Sparkles } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 
@@ -134,6 +134,102 @@ export function ExamLobby({ exam, user }: ExamLobbyProps) {
                                 />
                             </div>
                         )}
+
+                        {/* Anti-Cheat Warning Section */}
+                        {exam.config?.antiCheat && (
+                            exam.config.antiCheat.fullscreenRequired ||
+                            exam.config.antiCheat.trackTabSwitches ||
+                            exam.config.antiCheat.disableCopyPaste ||
+                            exam.config.antiCheat.blockRightClick
+                        ) && (
+                                <div className="bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 p-5 rounded-2xl border-2 border-red-200 dark:border-red-800/50">
+                                    <div className="flex items-start gap-3 mb-4">
+                                        <div className="w-10 h-10 bg-red-100 dark:bg-red-800/50 rounded-xl flex items-center justify-center shrink-0">
+                                            <Shield className="h-5 w-5 text-red-600 dark:text-red-400" />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-red-800 dark:text-red-200 text-lg">
+                                                🔒 Examen Surveillé
+                                            </h3>
+                                            <p className="text-sm text-red-600 dark:text-red-400 mt-1">
+                                                Des mesures anti-triche sont activées pour cet examen
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        {exam.config.antiCheat.trackTabSwitches && (
+                                            <div className="flex items-center gap-3 bg-white/60 dark:bg-gray-800/60 p-3 rounded-xl">
+                                                <div className="w-8 h-8 bg-amber-100 dark:bg-amber-900/50 rounded-lg flex items-center justify-center">
+                                                    <Eye className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="text-sm font-bold text-gray-800 dark:text-gray-200">
+                                                        Changement d'onglet détecté
+                                                    </p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                        1er → Avertissement • 2nd → Question marquée "Sans réponse"
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {exam.config.antiCheat.disableCopyPaste && (
+                                            <div className="flex items-center gap-3 bg-white/60 dark:bg-gray-800/60 p-3 rounded-xl">
+                                                <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/50 rounded-lg flex items-center justify-center">
+                                                    <Copy className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="text-sm font-bold text-gray-800 dark:text-gray-200">
+                                                        Copier/Coller désactivé
+                                                    </p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                        Ctrl+C, Ctrl+V et clic droit sont bloqués
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {exam.config.antiCheat.fullscreenRequired && (
+                                            <div className="flex items-center gap-3 bg-white/60 dark:bg-gray-800/60 p-3 rounded-xl">
+                                                <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900/50 rounded-lg flex items-center justify-center">
+                                                    <Maximize className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="text-sm font-bold text-gray-800 dark:text-gray-200">
+                                                        Mode plein écran recommandé
+                                                    </p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                        Restez concentré sur votre examen
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {exam.config.antiCheat.aiReformulation && (
+                                            <div className="flex items-center gap-3 bg-white/60 dark:bg-gray-800/60 p-3 rounded-xl">
+                                                <div className="w-8 h-8 bg-violet-100 dark:bg-violet-900/50 rounded-lg flex items-center justify-center">
+                                                    <Sparkles className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="text-sm font-bold text-gray-800 dark:text-gray-200">
+                                                        Questions reformulées par IA
+                                                    </p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                        Chaque étudiant voit des questions uniques
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="mt-4 pt-3 border-t border-red-200 dark:border-red-800">
+                                        <p className="text-xs text-center text-red-600 dark:text-red-400 font-medium">
+                                            ⚠️ Toute tentative de triche sera enregistrée
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
 
                         {error && (
                             <div className="text-red-500 text-sm text-center bg-red-50 dark:bg-red-900/20 py-3 rounded-xl font-medium border border-red-100 dark:border-red-800">

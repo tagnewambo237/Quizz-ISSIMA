@@ -218,7 +218,7 @@ export function LateCodeManager({ examId, examStatus }: LateCodeManagerProps) {
                                 {codes.map((code) => {
                                     const valid = isValid(code)
                                     return (
-                                        <TableRow key={code._id} className={cn(!valid && "opacity-60 bg-gray-50 dark:bg-gray-800/50")}>
+                                        <TableRow key={code._id || code.code} className={cn(!valid && "opacity-60 bg-gray-50 dark:bg-gray-800/50")}>
                                             <TableCell className="font-mono font-bold text-lg tracking-wider text-blue-600 dark:text-blue-400">
                                                 {code.code}
                                             </TableCell>

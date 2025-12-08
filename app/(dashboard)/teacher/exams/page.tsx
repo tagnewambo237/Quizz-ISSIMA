@@ -6,7 +6,7 @@ import { RoleGuard } from "@/components/guards/RoleGuard"
 import { UserRole, ExamStatus, DifficultyLevel } from "@/models/enums"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { PlusCircle, Loader2, GripVertical, Clock, Users, BookOpen, Search, Eye, Edit, Send, CheckCircle2, AlertCircle, Sparkles, Calendar, Trophy, BarChart3, LayoutGrid, List as ListIcon, MoreHorizontal, Play, Activity } from "lucide-react"
+import { PlusCircle, Loader2, GripVertical, Clock, Users, BookOpen, Search, Eye, Edit, Send, CheckCircle2, AlertCircle, Sparkles, Calendar, Trophy, BarChart3, LayoutGrid, List as ListIcon, MoreHorizontal, Play, Activity, Copy } from "lucide-react"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
@@ -173,6 +173,30 @@ export default function ExamsManagementPage() {
         }
     }
 
+    const handleDuplicateExam = async (examId: string) => {
+        try {
+            const res = await fetch(`/api/exams/${examId}/duplicate`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" }
+            })
+
+            const data = await res.json()
+
+            if (data.success) {
+                toast.success("Examen dupliqué!", {
+                    description: `"${data.data.title}" a été créé avec succès.`
+                })
+                // Refresh the exam list
+                fetchExams()
+            } else {
+                toast.error(data.message || "Erreur lors de la duplication")
+            }
+        } catch (error) {
+            console.error("Error duplicating exam:", error)
+            toast.error("Erreur lors de la duplication de l'examen")
+        }
+    }
+
     return (
         <RoleGuard allowedRoles={[UserRole.TEACHER, UserRole.INSPECTOR]}>
             <div className="p-6 h-full flex flex-col bg-gray-50/50 dark:bg-black/20">
@@ -248,11 +272,13 @@ export default function ExamsManagementPage() {
                                     <KanbanView
                                         exams={filteredExams}
                                         onUpdateStatus={handleUpdateStatus}
+                                        onDuplicate={handleDuplicateExam}
                                     />
                                 ) : (
                                     <ListView
                                         exams={filteredExams}
                                         onUpdateStatus={handleUpdateStatus}
+                                        onDuplicate={handleDuplicateExam}
                                     />
                                 )}
                             </AnimatePresence>
@@ -264,7 +290,7 @@ export default function ExamsManagementPage() {
     )
 }
 
-function KanbanView({ exams, onUpdateStatus }: { exams: ExamData[], onUpdateStatus: (id: string, status: ExamStatus) => void }) {
+function KanbanView({ exams, onUpdateStatus, onDuplicate }: { exams: ExamData[], onUpdateStatus: (id: string, status: ExamStatus) => void, onDuplicate: (id: string) => void }) {
     const [movingExam, setMovingExam] = useState<string | null>(null)
 
     const getExamsByStatus = (status: ExamStatus) => {
@@ -295,13 +321,14 @@ function KanbanView({ exams, onUpdateStatus }: { exams: ExamData[], onUpdateStat
                     onDrop={handleDrop}
                     movingExam={movingExam}
                     onMoveExam={onUpdateStatus}
+                    onDuplicate={onDuplicate}
                 />
             ))}
         </motion.div>
     )
 }
 
-function ListView({ exams, onUpdateStatus }: { exams: ExamData[], onUpdateStatus: (id: string, status: ExamStatus) => void }) {
+function ListView({ exams, onUpdateStatus, onDuplicate }: { exams: ExamData[], onUpdateStatus: (id: string, status: ExamStatus) => void, onDuplicate: (id: string) => void }) {
     const router = useRouter()
 
     return (
@@ -309,7 +336,7 @@ function ListView({ exams, onUpdateStatus }: { exams: ExamData[], onUpdateStatus
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-visible"
+            className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-x-auto"
         >
             <Table>
                 <TableHeader>
@@ -373,7 +400,7 @@ function ListView({ exams, onUpdateStatus }: { exams: ExamData[], onUpdateStatus
                                             <span className="sr-only">Open menu</span>
                                             <MoreHorizontal className="h-4 w-4 text-gray-500" />
                                         </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
+                                        <DropdownMenuContent align="end" className="w-48 z-50">
                                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                             <DropdownMenuItem onClick={() => router.push(`/teacher/exams/${exam._id}`)}>
                                                 <Eye className="mr-2 h-4 w-4" /> Voir détails
@@ -383,6 +410,9 @@ function ListView({ exams, onUpdateStatus }: { exams: ExamData[], onUpdateStatus
                                             </DropdownMenuItem>
                                             <DropdownMenuItem onClick={() => router.push(`/teacher/exams/${exam._id}/edit`)}>
                                                 <Edit className="mr-2 h-4 w-4" /> Modifier
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => onDuplicate(exam._id)}>
+                                                <Copy className="mr-2 h-4 w-4" /> Dupliquer
                                             </DropdownMenuItem>
                                             <DropdownMenuSeparator />
                                             <DropdownMenuItem onClick={() => router.push(`/teacher/exams/${exam._id}/results`)}>
@@ -424,13 +454,15 @@ function KanbanColumn({
     exams,
     onDrop,
     movingExam,
-    onMoveExam
+    onMoveExam,
+    onDuplicate
 }: {
     column: typeof COLUMNS[0]
     exams: ExamData[]
     onDrop: (examId: string, status: ExamStatus) => void
     movingExam: string | null
     onMoveExam: (examId: string, status: ExamStatus) => void
+    onDuplicate: (examId: string) => void
 }) {
     const [isDragOver, setIsDragOver] = useState(false)
     const Icon = column.icon
@@ -509,6 +541,7 @@ function KanbanColumn({
                                 exam={exam}
                                 isMoving={movingExam === exam._id}
                                 onMove={onMoveExam}
+                                onDuplicate={onDuplicate}
                                 currentStatus={column.id}
                             />
                         ))
@@ -523,11 +556,13 @@ function ExamKanbanCard({
     exam,
     isMoving,
     onMove,
+    onDuplicate,
     currentStatus
 }: {
     exam: ExamData
     isMoving: boolean
     onMove: (examId: string, status: ExamStatus) => void
+    onDuplicate: (examId: string) => void
     currentStatus: ExamStatus
 }) {
     const router = useRouter()
@@ -631,35 +666,41 @@ function ExamKanbanCard({
 
                     {/* Footer Actions */}
                     <div className="flex items-center gap-2 pt-3 border-t border-gray-100 dark:border-gray-700">
-                        <div className="flex bg-gray-50 dark:bg-gray-700/50 rounded-lg p-1">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 text-gray-500 hover:text-blue-600 hover:bg-white dark:hover:bg-gray-600 rounded-md transition-all"
-                                onClick={() => router.push(`/teacher/exams/${exam._id}`)}
-                                title="Voir les détails"
-                            >
-                                <Eye className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 text-gray-500 hover:text-green-600 hover:bg-white dark:hover:bg-gray-600 rounded-md transition-all"
-                                onClick={() => router.push(`/teacher/exams/${exam._id}/preview`)}
-                                title="Tester l'examen"
-                            >
-                                <Play className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 text-gray-500 hover:text-amber-600 hover:bg-white dark:hover:bg-gray-600 rounded-md transition-all"
-                                onClick={() => router.push(`/teacher/exams/${exam._id}/edit`)}
-                                title="Modifier"
-                            >
-                                <Edit className="w-3.5 h-3.5" />
-                            </Button>
-                        </div>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger className="h-7 w-7 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-md transition-all">
+                                <MoreHorizontal className="w-3.5 h-3.5" />
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => router.push(`/teacher/exams/${exam._id}`)}>
+                                    <Eye className="mr-2 h-4 w-4" /> Voir détails
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => router.push(`/teacher/exams/${exam._id}/preview`)}>
+                                    <Play className="mr-2 h-4 w-4" /> Tester l'examen
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => router.push(`/teacher/exams/${exam._id}/edit`)}>
+                                    <Edit className="mr-2 h-4 w-4" /> Modifier
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => onDuplicate(exam._id)}>
+                                    <Copy className="mr-2 h-4 w-4" /> Dupliquer
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => router.push(`/teacher/exams/${exam._id}/results`)}>
+                                    <BarChart3 className="mr-2 h-4 w-4" /> Résultats
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => router.push(`/teacher/exams/${exam._id}/monitor`)}>
+                                    <Activity className="mr-2 h-4 w-4" /> Moniteur
+                                </DropdownMenuItem>
+                                {nextAction && (
+                                    <>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem onClick={() => onMove(exam._id, nextAction.status)}>
+                                            <nextAction.icon className="mr-2 h-4 w-4" /> {nextAction.label}
+                                        </DropdownMenuItem>
+                                    </>
+                                )}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
 
                         {nextAction && (
                             <Button

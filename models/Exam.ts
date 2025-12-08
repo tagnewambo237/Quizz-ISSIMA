@@ -32,6 +32,9 @@ export interface AntiCheatConfig {
     maxTabSwitches?: number // Nombre maximum de changements d'onglet autorisés
     preventScreenshot: boolean
     blockRightClick: boolean
+    // AI Reformulation (Hugging Face)
+    aiReformulation?: boolean // Reformuler les questions avec l'IA
+    reformulationIntensity?: 'LIGHT' | 'MODERATE' | 'STRONG' // Intensité de la reformulation
 }
 
 /**
@@ -45,7 +48,13 @@ export interface ExamConfig {
     passingScore: number // NOUVEAU - Pourcentage minimum
     maxAttempts: number // NOUVEAU
     timeBetweenAttempts: number // NOUVEAU - en heures
+    enableImmediateFeedback: boolean // Feedback immédiat pour évaluations formatives
     antiCheat: AntiCheatConfig
+
+    // Configuration Late Exam (retardataires)
+    lateDuration?: number // Durée additionnelle en minutes pour les retardataires
+    lateExamId?: mongoose.Types.ObjectId // Référence vers un examen alternatif pour retardataires
+    delayResultsUntilLateEnd?: boolean // Ne pas afficher les résultats avant fin de la période late
 }
 
 /**
@@ -67,6 +76,7 @@ export interface IExam extends Document {
     learningUnit?: mongoose.Types.ObjectId // Référence vers LearningUnit (optionnel)
     targetFields?: mongoose.Types.ObjectId[] // Références vers Field (Séries/Filières)
     targetedCompetencies?: mongoose.Types.ObjectId[] // Références vers Competency
+    linkedConcepts?: mongoose.Types.ObjectId[] // Références vers Concept (pour évaluations par concept)
 
     // Objectifs pédagogiques (NOUVEAUX CHAMPS V2)
     pedagogicalObjective: PedagogicalObjective
@@ -158,6 +168,13 @@ const ExamSchema = new Schema<IExam>(
             {
                 type: Schema.Types.ObjectId,
                 ref: 'Competency'
+            }
+        ],
+        // Concepts liés (pour évaluations basées sur concepts)
+        linkedConcepts: [
+            {
+                type: Schema.Types.ObjectId,
+                ref: 'Concept'
             }
         ],
 
@@ -262,6 +279,11 @@ const ExamSchema = new Schema<IExam>(
                 default: 0,
                 min: 0
             },
+            // Feedback immédiat pour évaluations formatives
+            enableImmediateFeedback: {
+                type: Boolean,
+                default: false
+            },
             antiCheat: {
                 fullscreenRequired: {
                     type: Boolean,
@@ -291,6 +313,20 @@ const ExamSchema = new Schema<IExam>(
                     type: Boolean,
                     default: true
                 }
+            },
+            // Configuration Late Exam (retardataires)
+            lateDuration: {
+                type: Number,
+                default: 0, // 0 = pas de période late
+                min: 0
+            },
+            lateExamId: {
+                type: Schema.Types.ObjectId,
+                ref: 'Exam'
+            },
+            delayResultsUntilLateEnd: {
+                type: Boolean,
+                default: true // Par défaut, cacher résultats jusqu'à fin de la période late
             }
         },
 
