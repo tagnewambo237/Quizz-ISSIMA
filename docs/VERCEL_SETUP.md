@@ -1,4 +1,4 @@
-# Configuration Vercel pour QuizLock
+# Configuration Vercel pour Xkorin School
 
 ## Variables d'environnement requises
 

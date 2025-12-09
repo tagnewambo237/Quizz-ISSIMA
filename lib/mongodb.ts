@@ -1,4 +1,5 @@
 import mongoose from 'mongoose'
+import { initEventSystem } from './events'
 
 const MONGODB_URI = process.env.DATABASE_URL!
 
@@ -18,6 +19,11 @@ if (!cached) {
 }
 
 async function connectDB() {
+    // If mongoose is already connected (e.g., in tests), return immediately
+    if (mongoose.connection.readyState === 1) {
+        return mongoose
+    }
+
     if (cached.conn) {
         return cached.conn
     }
@@ -34,6 +40,14 @@ async function connectDB() {
 
     try {
         cached.conn = await cached.promise
+
+        // Initialize event system after database connection
+        try {
+            initEventSystem()
+        } catch (eventError) {
+            console.error('[MongoDB] Event system initialization failed:', eventError)
+            // Don't throw - allow DB connection to continue
+        }
     } catch (e) {
         cached.promise = null
         throw e

@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { Clock, ChevronRight, ChevronLeft, CheckCircle, AlertCircle, Loader2, Image as ImageIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { differenceInSeconds } from "date-fns"
 import { playSound } from "@/lib/sounds"
+import { EvaluationType } from "@/models/enums"
 
 interface ExamTakerProps {
     exam: any
@@ -20,12 +21,14 @@ export function ExamTaker({ exam, attempt }: ExamTakerProps) {
     const [timeLeft, setTimeLeft] = useState(0)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [saving, setSaving] = useState(false)
+    const [savingText, setSavingText] = useState(false)
+    const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
     // Initialize answers from existing responses
     useEffect(() => {
         const initialAnswers: Record<string, string> = {}
         attempt.responses.forEach((r: any) => {
-            initialAnswers[r.questionId] = r.selectedOptionId
+            initialAnswers[r.questionId] = r.selectedOptionId || r.textResponse
         })
         setAnswers(initialAnswers)
     }, [attempt.responses])
@@ -78,6 +81,33 @@ export function ExamTaker({ exam, attempt }: ExamTakerProps) {
         }
     }
 
+    const handleTextAnswer = (questionId: string, text: string) => {
+        setAnswers(prev => ({ ...prev, [questionId]: text }))
+
+        if (debounceRef.current) {
+            clearTimeout(debounceRef.current)
+        }
+
+        setSavingText(true)
+        debounceRef.current = setTimeout(async () => {
+            try {
+                await fetch("/api/attempts/answer", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        attemptId: attempt.id,
+                        questionId,
+                        textResponse: text
+                    }),
+                })
+            } catch (error) {
+                console.error("Failed to save text answer", error)
+            } finally {
+                setSavingText(false)
+            }
+        }, 1000) // Debounce 1s
+    }
+
     const handleSubmit = useCallback(async (auto = false) => {
         if (isSubmitting) return
         setIsSubmitting(true)
@@ -106,15 +136,58 @@ export function ExamTaker({ exam, attempt }: ExamTakerProps) {
     const isLastQuestion = currentQuestionIndex === exam.questions.length - 1
 
     const [isWindowFocused, setIsWindowFocused] = useState(true)
+    const [tabSwitchCount, setTabSwitchCount] = useState<Record<number, number>>({}) // Track per question
+    const [showWarningPopup, setShowWarningPopup] = useState(false)
+    const [noAnswerQuestions, setNoAnswerQuestions] = useState<Set<number>>(new Set())
 
-    // Anti-cheating: Block copy/paste/right-click and detect focus
+    // Anti-cheating: Block copy/paste/right-click and detect focus with progressive penalties
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (document.hidden) {
                 setIsWindowFocused(false)
-                // Optional: You could auto-submit or log this event
+
+                // Count tab switches for current question
+                setTabSwitchCount(prev => {
+                    const currentCount = (prev[currentQuestionIndex] || 0) + 1
+                    const newCounts = { ...prev, [currentQuestionIndex]: currentCount }
+
+                    if (currentCount === 1) {
+                        // First tab switch: Show warning
+                        setShowWarningPopup(true)
+                        playSound('error')
+                    } else if (currentCount >= 2) {
+                        // Second tab switch: Mark as No Answer and move to next question
+                        playSound('error')
+
+                        // Clear any answer for this question
+                        setAnswers(prevAnswers => {
+                            const newAnswers = { ...prevAnswers }
+                            delete newAnswers[exam.questions[currentQuestionIndex].id]
+                            return newAnswers
+                        })
+
+                        // Mark question as "No Answer"
+                        setNoAnswerQuestions(prev => new Set([...prev, currentQuestionIndex]))
+
+                        // Auto-navigate to next question after a short delay
+                        setTimeout(() => {
+                            if (currentQuestionIndex < exam.questions.length - 1) {
+                                setCurrentQuestionIndex(p => p + 1)
+                            }
+                            setShowWarningPopup(false)
+                            setIsWindowFocused(true)
+                        }, 1500)
+                    }
+
+                    return newCounts
+                })
             } else {
-                setIsWindowFocused(true)
+                // Only auto-recover if it was just a warning (first switch)
+                const currentCount = tabSwitchCount[currentQuestionIndex] || 0
+                if (currentCount < 2) {
+                    setIsWindowFocused(true)
+                    setShowWarningPopup(false)
+                }
             }
         }
 
@@ -155,11 +228,11 @@ export function ExamTaker({ exam, attempt }: ExamTakerProps) {
             document.removeEventListener("cut", handleCopy)
             document.removeEventListener("paste", handleCopy)
         }
-    }, [])
+    }, [currentQuestionIndex, tabSwitchCount, exam.questions])
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col select-none">
-            {/* Security Overlay */}
+            {/* Security Overlay - Warning or Penalty */}
             <AnimatePresence>
                 {!isWindowFocused && (
                     <motion.div
@@ -168,19 +241,54 @@ export function ExamTaker({ exam, attempt }: ExamTakerProps) {
                         exit={{ opacity: 0 }}
                         className="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center text-center p-8"
                     >
-                        <div className="bg-red-500/20 p-6 rounded-full mb-6 animate-pulse">
-                            <AlertCircle className="h-20 w-20 text-red-500" />
-                        </div>
-                        <h2 className="text-3xl font-black text-white mb-4">Exam Paused</h2>
-                        <p className="text-xl text-gray-300 max-w-md">
-                            Please return to the exam window immediately. Leaving the exam page is not allowed.
-                        </p>
-                        <button
-                            onClick={() => setIsWindowFocused(true)}
-                            className="mt-8 bg-white text-black px-8 py-3 rounded-xl font-bold hover:scale-105 transition-transform"
-                        >
-                            Resume Exam
-                        </button>
+                        {(tabSwitchCount[currentQuestionIndex] || 0) >= 2 ? (
+                            // Second+ tab switch: No Answer penalty
+                            <>
+                                <div className="bg-red-600/30 p-6 rounded-full mb-6">
+                                    <AlertCircle className="h-20 w-20 text-red-500" />
+                                </div>
+                                <h2 className="text-3xl font-black text-red-500 mb-4">❌ Pas de réponse</h2>
+                                <p className="text-xl text-gray-300 max-w-md mb-4">
+                                    Vous avez quitté la fenêtre trop de fois pour cette question.
+                                </p>
+                                <div className="bg-red-900/50 border-2 border-red-500 rounded-2xl p-6 max-w-md">
+                                    <p className="text-lg text-red-300 font-bold">
+                                        🚫 Cette question sera marquée comme "Sans réponse"
+                                    </p>
+                                    <p className="text-sm text-red-200 mt-2">
+                                        Passage automatique à la question suivante...
+                                    </p>
+                                </div>
+                            </>
+                        ) : (
+                            // First tab switch: Warning
+                            <>
+                                <div className="bg-amber-500/20 p-6 rounded-full mb-6 animate-pulse">
+                                    <AlertCircle className="h-20 w-20 text-amber-500" />
+                                </div>
+                                <h2 className="text-3xl font-black text-amber-500 mb-4">⚠️ Avertissement</h2>
+                                <p className="text-xl text-gray-300 max-w-md mb-4">
+                                    Quitter la fenêtre d'examen n'est pas autorisé.
+                                </p>
+                                <div className="bg-amber-900/50 border-2 border-amber-500 rounded-2xl p-6 max-w-md mb-6">
+                                    <p className="text-lg text-amber-300 font-bold">
+                                        🔔 Ceci est votre premier avertissement pour cette question
+                                    </p>
+                                    <p className="text-sm text-amber-200 mt-2">
+                                        Si vous quittez à nouveau, votre réponse sera effacée et marquée "Sans réponse".
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        setIsWindowFocused(true)
+                                        setShowWarningPopup(false)
+                                    }}
+                                    className="bg-amber-500 hover:bg-amber-400 text-black px-8 py-3 rounded-xl font-bold hover:scale-105 transition-transform"
+                                >
+                                    Reprendre l'examen
+                                </button>
+                            </>
+                        )}
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -244,42 +352,87 @@ export function ExamTaker({ exam, attempt }: ExamTakerProps) {
                             </div>
                         )}
 
-                        <div className="grid gap-3 md:gap-4">
-                            {currentQuestion.options.map((option: any, idx: number) => {
-                                const isSelected = answers[currentQuestion.id] === option.id
-                                return (
-                                    <button
-                                        key={option.id}
-                                        onClick={() => handleOptionSelect(currentQuestion.id, option.id)}
-                                        className={cn(
-                                            "w-full text-left p-4 md:p-5 rounded-2xl border-2 transition-all flex items-center gap-3 md:gap-4 group relative overflow-hidden",
-                                            isSelected
-                                                ? "border-primary bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary shadow-[0_4px_0_0_#1e40af] translate-y-[-2px]"
-                                                : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600 shadow-[0_4px_0_0_rgb(0,0,0,0.05)] active:shadow-none active:translate-y-[2px]"
-                                        )}
-                                    >
-                                        <div className={cn(
-                                            "h-8 w-8 rounded-lg border-2 flex items-center justify-center flex-shrink-0 font-bold text-sm transition-colors",
-                                            isSelected
-                                                ? "border-primary bg-primary text-white"
-                                                : "border-gray-300 dark:border-gray-600 text-gray-400 group-hover:border-gray-400"
-                                        )}>
-                                            {String.fromCharCode(65 + idx)}
-                                        </div>
-                                        <span className="font-semibold text-base md:text-lg">{option.text}</span>
+                        {/* No Answer Indicator */}
+                        {noAnswerQuestions.has(currentQuestionIndex) && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border-2 border-red-300 dark:border-red-700 rounded-2xl"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="flex-shrink-0 w-10 h-10 bg-red-100 dark:bg-red-800 rounded-full flex items-center justify-center">
+                                        <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-300" />
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-red-800 dark:text-red-200">
+                                            ❌ Question marquée "Sans réponse"
+                                        </p>
+                                        <p className="text-sm text-red-600 dark:text-red-400">
+                                            Vous avez quitté la fenêtre trop de fois. Cette question ne sera pas comptée.
+                                        </p>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
 
-                                        {isSelected && (
-                                            <motion.div
-                                                initial={{ scale: 0 }}
-                                                animate={{ scale: 1 }}
-                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-primary"
+                        <div className={cn(
+                            "w-full",
+                            noAnswerQuestions.has(currentQuestionIndex) && "opacity-50 pointer-events-none"
+                        )}>
+                            {currentQuestion.type === EvaluationType.OPEN_QUESTION ? (
+                                <div className="space-y-2">
+                                    <textarea
+                                        value={answers[currentQuestion.id] || ''}
+                                        onChange={(e) => handleTextAnswer(currentQuestion.id, e.target.value)}
+                                        placeholder="Tapez votre réponse ici..."
+                                        className="w-full h-64 p-5 rounded-2xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 outline-none transition-all text-lg resize-none shadow-sm"
+                                        spellCheck={false}
+                                    />
+                                    {savingText && (
+                                        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 justify-end">
+                                            <Loader2 className="h-3 w-3 animate-spin" /> Enregistrement...
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="grid gap-3 md:gap-4">
+                                    {currentQuestion.options?.map((option: any, idx: number) => {
+                                        const isSelected = answers[currentQuestion.id] === option.id
+                                        return (
+                                            <button
+                                                key={option.id}
+                                                onClick={() => handleOptionSelect(currentQuestion.id, option.id)}
+                                                className={cn(
+                                                    "w-full text-left p-4 md:p-5 rounded-2xl border-2 transition-all flex items-center gap-3 md:gap-4 group relative overflow-hidden",
+                                                    isSelected
+                                                        ? "border-primary bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary shadow-[0_4px_0_0_#1e40af] translate-y-[-2px]"
+                                                        : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600 shadow-[0_4px_0_0_rgb(0,0,0,0.05)] active:shadow-none active:translate-y-[2px]"
+                                                )}
                                             >
-                                                <CheckCircle className="h-6 w-6 fill-current" />
-                                            </motion.div>
-                                        )}
-                                    </button>
-                                )
-                            })}
+                                                <div className={cn(
+                                                    "h-8 w-8 rounded-lg border-2 flex items-center justify-center flex-shrink-0 font-bold text-sm transition-colors",
+                                                    isSelected
+                                                        ? "border-primary bg-primary text-white"
+                                                        : "border-gray-300 dark:border-gray-600 text-gray-400 group-hover:border-gray-400"
+                                                )}>
+                                                    {String.fromCharCode(65 + idx)}
+                                                </div>
+                                                <span className="font-semibold text-base md:text-lg">{option.text}</span>
+
+                                                {isSelected && (
+                                                    <motion.div
+                                                        initial={{ scale: 0 }}
+                                                        animate={{ scale: 1 }}
+                                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-primary"
+                                                    >
+                                                        <CheckCircle className="h-6 w-6 fill-current" />
+                                                    </motion.div>
+                                                )}
+                                            </button>
+                                        )
+                                    })}
+                                </div>
+                            )}
                         </div>
                     </motion.div>
                 </AnimatePresence>

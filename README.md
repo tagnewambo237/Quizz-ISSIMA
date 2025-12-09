@@ -1,4 +1,4 @@
-# QuizLock
+# Xkorin School
 
 A secure, modern QCM platform built with Next.js 14, Prisma, MongoDB, and NextAuth.
 

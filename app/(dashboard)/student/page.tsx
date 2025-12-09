@@ -7,6 +7,7 @@ import { authOptions } from "@/lib/auth"
 import { Trophy, Star, BookOpen, Flame } from "lucide-react"
 import { isPast } from "date-fns"
 import { ExamCard } from "@/components/student/ExamCard"
+import { StudentAnalyticsSection } from "@/components/analytics/StudentAnalyticsSection"
 
 export default async function StudentDashboard() {
     const session = await getServerSession(authOptions)
@@ -181,6 +182,9 @@ export default async function StudentDashboard() {
                     </div>
                 </div>
             </div>
+
+            {/* Analytics & Predictions Section */}
+            <StudentAnalyticsSection />
         </div>
     )
 }

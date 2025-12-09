@@ -163,12 +163,86 @@ shuffleQuestionsForUser(questions, userId, examId)
 
 ---
 
+## 🤖 AI Question Reformulation (Hugging Face)
+
+### Overview
+Teachers can enable AI-powered question reformulation to prevent students from searching for identical questions online. Each student receives a uniquely worded version of each question while maintaining the same meaning.
+
+### How It Works
+
+#### For Teachers
+1. Navigate to the exam creator
+2. Go to **Step 3: Configuration** → **Sécurité Anti-Triche**
+3. Enable **"Reformuler les questions avec l'IA"**
+4. Choose an intensity level:
+   - **Légère** - Minor structure changes (fastest)
+   - **Modérée** - Synonyms and rephrasing (recommended)
+   - **Forte** - Complete rewrite (slowest, most unique)
+
+#### For Students
+- Questions appear slightly different for each student
+- The meaning and correct answers remain the same
+- You cannot copy-paste questions to search engines effectively
+
+### Technical Implementation
+
+```typescript
+// Each student gets unique reformulations
+const seed = `${userId}-${examId}-q${questionIndex}`
+const reformulatedText = await HuggingFaceService.reformulateText(
+    originalQuestion,
+    { intensity: 'MODERATE', language: 'fr' },
+    seed
+)
+```
+
+#### Key Features
+1. **Seeded Reformulation** - Same student + exam = same reformulation every time
+2. **Cached Results** - Reformulations are cached to avoid repeated API calls
+3. **Graceful Fallback** - If API fails, original questions are used
+4. **Intensity Levels** - Control how much questions are changed
+
+### Intensity Levels
+
+| Level | Description | Speed | Uniqueness |
+|-------|-------------|-------|------------|
+| LIGHT | Structure changes only | Fast | Low |
+| MODERATE | Synonyms + rephrasing | Medium | Medium |
+| STRONG | Complete rewrite | Slow | High |
+
+### API Configuration
+
+Add your Hugging Face API key to `.env`:
+```bash
+HUGGINGFACE_API_KEY=hf_xxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+Get a free API key at [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens)
+
+### Benefits
+
+#### Anti-Cheating
+- ✅ Students can't search for identical questions
+- ✅ Screenshot sharing becomes less useful
+- ✅ Each student sees unique wording
+- ✅ AI rewrites preserve meaning but change form
+
+#### Fairness
+- ✅ Same difficulty and content for all
+- ✅ Correct answers remain correct
+- ✅ Points and scoring unaffected
+
+---
+
 ## 💡 Future Enhancements
 
 ### Possible Additions
-- [ ] Option to randomize **option order** within questions
-- [ ] Teacher toggle to enable/disable randomization per exam
+- [x] ~~Option to randomize **option order** within questions~~ (implemented: shuffleOptions)
+- [x] ~~Teacher toggle to enable/disable randomization per exam~~ (implemented)
+- [x] ~~AI question reformulation~~ (implemented with Hugging Face)
 - [ ] Bulk duplicate multiple exams
 - [ ] Duplicate with date offset configuration
 - [ ] Show "shuffled" indicator to students
 - [ ] Analytics on question order effectiveness
+- [ ] Webcam proctoring integration
+- [ ] Browser lockdown mode

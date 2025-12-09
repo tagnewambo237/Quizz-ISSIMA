@@ -1,42 +1,55 @@
 import { NextResponse } from "next/server"
-import connectDB from "@/lib/mongodb"
-import Attempt from "@/models/Attempt"
-import Exam from "@/models/Exam"
-import Response from "@/models/Response"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
+import connectDB from "@/lib/mongodb"
+import { AttemptService } from "@/lib/services/AttemptService"
 
-export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+/**
+ * GET /api/attempts/[id]
+ * Récupère les détails d'une tentative
+ */
+export async function GET(
+    req: Request,
+    { params }: { params: Promise<{ id: string }> }
+) {
     try {
         const session = await getServerSession(authOptions)
-        if (!session || session.user.role !== "TEACHER") {
-            return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+        if (!session?.user?.id) {
+            return NextResponse.json(
+                { success: false, message: "Unauthorized" },
+                { status: 401 }
+            )
         }
 
         await connectDB()
-
         const { id } = await params
 
-        // Verify attempt belongs to an exam created by this teacher
-        const attempt = await Attempt.findById(id)
+        const attempt = await AttemptService.getAttempt(id, session.user.id)
 
-        if (!attempt) {
-            return NextResponse.json({ message: "Attempt not found" }, { status: 404 })
-        }
-
-        const exam = await Exam.findById(attempt.examId)
-
-        if (!exam || exam.createdById.toString() !== session.user.id) {
-            return NextResponse.json({ message: "Unauthorized" }, { status: 403 })
-        }
-
-        // Delete responses first (manual cascade)
-        await Response.deleteMany({ attemptId: id })
-        await Attempt.findByIdAndDelete(id)
-
-        return NextResponse.json({ message: "Attempt deleted" })
+        return NextResponse.json({
+            success: true,
+            data: attempt
+        })
     } catch (error: any) {
-        console.error(error)
-        return NextResponse.json({ message: "Error deleting attempt" }, { status: 500 })
+        console.error("[GetAttempt API] Error:", error)
+
+        if (error.message.includes("not found")) {
+            return NextResponse.json(
+                { success: false, message: error.message },
+                { status: 404 }
+            )
+        }
+
+        if (error.message.includes("Unauthorized")) {
+            return NextResponse.json(
+                { success: false, message: error.message },
+                { status: 403 }
+            )
+        }
+
+        return NextResponse.json(
+            { success: false, message: error.message || "Internal server error" },
+            { status: 500 }
+        )
     }
 }

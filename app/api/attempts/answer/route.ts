@@ -15,7 +15,7 @@ export async function POST(req: Request) {
 
         await connectDB()
 
-        const { attemptId, questionId, selectedOptionId } = await req.json()
+        const { attemptId, questionId, selectedOptionId, textResponse } = await req.json()
 
         const attempt = await Attempt.findById(attemptId)
 
@@ -27,12 +27,17 @@ export async function POST(req: Request) {
             return NextResponse.json({ message: "Attempt already completed" }, { status: 400 })
         }
 
-        // Check if the selected option is correct
-        const option = await Option.findById(selectedOptionId)
-
-        const isCorrect = option?.isCorrect || false
-
-        console.log(`[ANSWER] Question: ${questionId}, Option: ${selectedOptionId}, isCorrect: ${isCorrect}`)
+        let isCorrect = false
+        // Check if the selected option is correct (if provided)
+        if (selectedOptionId) {
+            const option = await Option.findById(selectedOptionId)
+            isCorrect = option?.isCorrect || false
+            console.log(`[ANSWER] Question: ${questionId}, Option: ${selectedOptionId}, isCorrect: ${isCorrect}`)
+        } else if (textResponse) {
+            console.log(`[ANSWER] Question: ${questionId}, Text Response: ${textResponse}`)
+            // Open questions are pending grading, so defaults to false or could be handled by AI later
+            isCorrect = false
+        }
 
         // Find existing response for this question in this attempt
         const existingResponse = await Response.findOne({
@@ -43,7 +48,8 @@ export async function POST(req: Request) {
         // Update existing response or create new one
         if (existingResponse) {
             await Response.findByIdAndUpdate(existingResponse._id, {
-                selectedOptionId,
+                selectedOptionId: selectedOptionId || undefined,
+                textResponse: textResponse || undefined,
                 isCorrect
             })
             console.log(`[ANSWER] Updated existing response: ${existingResponse._id}`)
@@ -51,7 +57,8 @@ export async function POST(req: Request) {
             const newResponse = await Response.create({
                 attemptId,
                 questionId,
-                selectedOptionId,
+                selectedOptionId: selectedOptionId || undefined,
+                textResponse: textResponse || undefined,
                 isCorrect,
             })
             console.log(`[ANSWER] Created new response: ${newResponse._id}`)

@@ -9,6 +9,7 @@ import { authOptions } from "@/lib/auth"
 import { notFound, redirect } from "next/navigation"
 import { ExamTaker } from "@/components/student/ExamTaker"
 import { shuffleQuestionsForUser } from "@/lib/shuffle"
+import { HuggingFaceService, type ReformulationIntensity } from "@/lib/services/HuggingFaceService"
 
 export default async function ExamTakePage({ params }: { params: Promise<{ id: string }> }) {
     const session = await getServerSession(authOptions)
@@ -27,6 +28,68 @@ export default async function ExamTakePage({ params }: { params: Promise<{ id: s
     const questionIds = questionsDoc.map(q => q._id)
     const optionsDoc = await Option.find({ questionId: { $in: questionIds } }).select('-isCorrect').lean()
 
+    // Build base questions array
+    let examQuestions = questionsDoc.map(q => ({
+        id: q._id.toString(),
+        examId: q.examId.toString(),
+        text: q.text,
+        imageUrl: q.imageUrl,
+        points: q.points,
+        options: optionsDoc
+            .filter(o => o.questionId.toString() === q._id.toString())
+            .map(o => ({
+                id: o._id.toString(),
+                questionId: o.questionId.toString(),
+                text: o.text,
+                // isCorrect is excluded via .select('-isCorrect')
+            }))
+    }))
+
+    // Check if AI reformulation is enabled
+    const aiReformulation = examDoc.config?.antiCheat?.aiReformulation
+    const reformulationIntensity = (examDoc.config?.antiCheat?.reformulationIntensity || 'MODERATE') as ReformulationIntensity
+
+    if (aiReformulation && session.user.id) {
+        // Apply AI reformulation to questions and options
+        // This creates unique versions for each student
+        try {
+            const reformulatedQuestions = await Promise.all(
+                examQuestions.map(async (q, qIndex) => {
+                    const seed = `${session.user.id}-${id}-q${qIndex}`
+
+                    // Reformulate question text
+                    const reformulatedText = await HuggingFaceService.reformulateText(
+                        q.text,
+                        { intensity: reformulationIntensity, language: 'fr' },
+                        seed
+                    )
+
+                    // Reformulate options
+                    const reformulatedOptions = await Promise.all(
+                        q.options.map(async (opt, optIndex) => ({
+                            ...opt,
+                            text: await HuggingFaceService.reformulateText(
+                                opt.text,
+                                { intensity: reformulationIntensity, language: 'fr' },
+                                `${seed}-opt${optIndex}`
+                            )
+                        }))
+                    )
+
+                    return {
+                        ...q,
+                        text: reformulatedText,
+                        options: reformulatedOptions
+                    }
+                })
+            )
+            examQuestions = reformulatedQuestions
+        } catch (error) {
+            console.error('[AI Reformulation] Error:', error)
+            // Fall back to original questions if reformulation fails
+        }
+    }
+
     const exam = {
         id: examDoc._id.toString(),
         title: examDoc.title,
@@ -38,21 +101,7 @@ export default async function ExamTakePage({ params }: { params: Promise<{ id: s
         createdById: examDoc.createdById.toString(),
         createdAt: examDoc.createdAt.toISOString(),
         updatedAt: examDoc.updatedAt.toISOString(),
-        questions: questionsDoc.map(q => ({
-            id: q._id.toString(),
-            examId: q.examId.toString(),
-            text: q.text,
-            imageUrl: q.imageUrl,
-            points: q.points,
-            options: optionsDoc
-                .filter(o => o.questionId.toString() === q._id.toString())
-                .map(o => ({
-                    id: o._id.toString(),
-                    questionId: o.questionId.toString(),
-                    text: o.text,
-                    // isCorrect is excluded via .select('-isCorrect')
-                }))
-        }))
+        questions: examQuestions
     }
 
     const attemptDoc = await Attempt.findOne({
@@ -77,7 +126,7 @@ export default async function ExamTakePage({ params }: { params: Promise<{ id: s
                 id: r._id.toString(),
                 attemptId: r.attemptId.toString(),
                 questionId: r.questionId.toString(),
-                selectedOptionId: r.selectedOptionId.toString(),
+                selectedOptionId: r.selectedOptionId?.toString() || "",
                 isCorrect: r.isCorrect,
             }))
         }

@@ -1,185 +1,287 @@
-import connectDB from "@/lib/mongodb"
-import Exam from "@/models/Exam"
-import Attempt from "@/models/Attempt"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
-import { Plus, Users, Clock, FileText, ArrowRight, TrendingUp } from "lucide-react"
+"use client"
+
+import { useEffect, useState } from "react"
+import { useSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
+import { UserRole } from "@/models/enums"
+import { RoleGuard } from "@/components/guards/RoleGuard"
+import { motion } from "framer-motion"
+import {
+    TrendingUp, Users, BookOpen, Award, Zap, Target,
+    Sparkles, Trophy, Star, Flame, BarChart3,
+    MoreHorizontal, ChevronRight, CheckCircle2,
+    Calendar, Lightbulb, GraduationCap, ArrowUpRight
+} from "lucide-react"
 import Link from "next/link"
-import { format } from "date-fns"
+import { TeacherAnalyticsDashboard } from "@/components/analytics/TeacherAnalyticsDashboard"
+import { cn } from "@/lib/utils"
 
-export default async function TeacherDashboard() {
-    const session = await getServerSession(authOptions)
+export default function TeacherDashboardPage() {
+    const { data: session, status } = useSession()
+    const router = useRouter()
+    const [stats, setStats] = useState<any>(null)
+    const [loading, setLoading] = useState(true)
 
-    await connectDB()
+    useEffect(() => {
+        if (status === "unauthenticated") {
+            router.push("/login")
+            return
+        }
 
-    // Fetch stats
-    const examsCount = await Exam.countDocuments({
-        createdById: session?.user?.id,
-    })
+        if (status === "authenticated" && session?.user?.role === UserRole.TEACHER) {
+            fetchStats()
+        }
+    }, [status, session, router])
 
-    const now = new Date()
-    const activeExams = await Exam.find({
-        createdById: session?.user?.id,
-        startTime: { $lte: now },
-        endTime: { $gte: now },
-    }).lean()
-
-    // Get attempt counts for active exams
-    const activeExamsWithCounts = await Promise.all(
-        activeExams.map(async (exam) => {
-            const attemptCount = await Attempt.countDocuments({ examId: exam._id })
-            return {
-                ...exam,
-                id: exam._id.toString(),
-                _count: { attempts: attemptCount }
+    const fetchStats = async () => {
+        try {
+            const res = await fetch("/api/profiles/stats")
+            const data = await res.json()
+            if (data.success) {
+                setStats(data.data)
             }
-        })
-    )
+        } catch (error) {
+            console.error("Failed to fetch stats:", error)
+        } finally {
+            setLoading(false)
+        }
+    }
 
-    // Calculate total students (unique users who attempted exams)
-    const uniqueStudents = await Attempt.distinct('userId', {
-        examId: { $in: await Exam.find({ createdById: session?.user?.id }).distinct('_id') }
-    })
-    const totalStudents = uniqueStudents.length
+    if (status === "loading" || loading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="h-8 w-8 rounded-full border-2 border-[#3a4794] border-t-transparent animate-spin"></div>
+            </div>
+        )
+    }
+
+    const container = {
+        hidden: { opacity: 0 },
+        show: {
+            opacity: 1,
+            transition: { staggerChildren: 0.1 }
+        }
+    }
+
+    const item = {
+        hidden: { y: 20, opacity: 0 },
+        show: { y: 0, opacity: 1 }
+    }
+
+    // Gaming & Stats Data from API
+    const game = stats?.gamification || { level: 1, xp: 0, nextLevelXp: 500, title: "Débutant" }
+    const basic = stats?.basic || { totalExamsCreated: 0, totalStudentsReached: 0, averageStudentScore: 0, activeExams: 0 }
+
+    // Calculate progress
+    const progressPercent = Math.min((game.xp / game.nextLevelXp) * 100, 100)
 
     return (
-        <div className="space-y-8 pb-10">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-                    <p className="text-gray-500 dark:text-gray-400 mt-1">
-                        Welcome back, <span className="font-semibold text-primary dark:text-primary">{session?.user?.name}</span>
-                    </p>
-                </div>
-                <Link
-                    href="/teacher/exams/create"
-                    className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white px-6 py-2.5 rounded-xl flex items-center gap-2 transition-all shadow-lg shadow-primary/25 font-medium group"
-                >
-                    <Plus className="h-5 w-5 group-hover:rotate-90 transition-transform" />
-                    Create Exam
-                </Link>
-            </div>
+        <RoleGuard allowedRoles={[UserRole.TEACHER, UserRole.INSPECTOR]} fallback={<div className="p-8">Accès refusé.</div>}>
+            <motion.div
+                variants={container}
+                initial="hidden"
+                animate="show"
+                className="space-y-8 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8"
+            >
+                {/* 1. HERO & GAMIFICATION SECTION */}
+                <motion.div variants={item} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Welcome Card */}
+                    <div className="lg:col-span-2 relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-[#3a4794] to-[#2a3575] text-white shadow-xl p-8 md:p-10 flex flex-col justify-between min-h-[300px]">
+                        {/* Abstract Background */}
+                        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+                        <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-[#359a53]/20 rounded-full blur-3xl translate-y-1/3 -translate-x-1/3 pointer-events-none" />
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all group">
-                    <div className="flex items-center justify-between mb-4">
-                        <div className="h-12 w-12 bg-primary/10 dark:bg-primary/20 rounded-2xl flex items-center justify-center text-primary dark:text-primary group-hover:scale-110 transition-transform">
-                            <FileText className="h-6 w-6" />
-                        </div>
-                        <span className="text-xs font-medium bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary px-2 py-1 rounded-lg">
-                            Total
-                        </span>
-                    </div>
-                    <div>
-                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Exams</p>
-                        <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{examsCount}</p>
-                    </div>
-                </div>
-
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all group">
-                    <div className="flex items-center justify-between mb-4">
-                        <div className="h-12 w-12 bg-secondary/10 dark:bg-secondary/20 rounded-2xl flex items-center justify-center text-secondary dark:text-secondary group-hover:scale-110 transition-transform">
-                            <Clock className="h-6 w-6" />
-                        </div>
-                        <span className="text-xs font-medium bg-secondary/10 dark:bg-secondary/20 text-secondary dark:text-secondary px-2 py-1 rounded-lg flex items-center gap-1">
-                            <div className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
-                            Live
-                        </span>
-                    </div>
-                    <div>
-                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Active Now</p>
-                        <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{activeExams.length}</p>
-                    </div>
-                </div>
-
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all group">
-                    <div className="flex items-center justify-between mb-4">
-                        <div className="h-12 w-12 bg-primary/10 dark:bg-primary/20 rounded-2xl flex items-center justify-center text-primary dark:text-primary group-hover:scale-110 transition-transform">
-                            <Users className="h-6 w-6" />
-                        </div>
-                        <span className="text-xs font-medium bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary px-2 py-1 rounded-lg">
-                            Students
-                        </span>
-                    </div>
-                    <div>
-                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Students</p>
-                        <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{totalStudents}</p>
-                    </div>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                            <div className="w-1 h-6 bg-primary rounded-full" />
-                            Active Exams
-                        </h2>
-                        <Link href="/teacher/exams" className="text-sm font-medium text-primary hover:text-primary/80 flex items-center gap-1 group">
-                            View All <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                        </Link>
-                    </div>
-
-                    {activeExamsWithCounts.length === 0 ? (
-                        <div className="bg-white dark:bg-gray-800 p-10 rounded-3xl border border-gray-100 dark:border-gray-700 text-center">
-                            <div className="w-16 h-16 bg-gray-50 dark:bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <Clock className="h-8 w-8 text-gray-400" />
+                        <div className="relative z-10">
+                            <div className="flex items-center gap-2 mb-4">
+                                <span className="px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-xs font-semibold flex items-center gap-2">
+                                    <Sparkles className="w-3 h-3 text-[#359a53]" />
+                                    <span>Espace Enseignant Innovant</span>
+                                </span>
                             </div>
-                            <p className="text-gray-500 dark:text-gray-400 font-medium">No exams currently active.</p>
-                            <p className="text-sm text-gray-400 mt-1">Scheduled exams will appear here.</p>
+                            <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
+                                Bonjour, {session?.user?.name?.split(' ')[0] || "Professeur"}
+                            </h1>
+                            <p className="text-blue-100 max-w-lg text-lg leading-relaxed">
+                                Votre impact grandit chaque jour. Continuez à inspirer vos étudiants et à suivre leur évolution.
+                            </p>
                         </div>
-                    ) : (
-                        <div className="space-y-4">
-                            {activeExamsWithCounts.map((exam) => (
-                                <div key={exam.id} className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm hover:shadow-md transition-all group">
-                                    <div className="flex items-center gap-4">
-                                        <div className="h-12 w-12 bg-primary/10 dark:bg-primary/20 rounded-xl flex items-center justify-center text-primary dark:text-primary font-bold text-lg shrink-0">
-                                            {exam.title[0]}
-                                        </div>
-                                        <div>
-                                            <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors line-clamp-1">{exam.title}</h3>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
-                                                <Clock className="h-3 w-3" />
-                                                Ends {format(new Date(exam.endTime), "h:mm a")}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center justify-between sm:justify-end gap-4 border-t sm:border-t-0 border-gray-100 dark:border-gray-700 pt-4 sm:pt-0">
-                                        <div className="text-right">
-                                            <p className="text-sm font-bold text-gray-900 dark:text-white">{exam._count.attempts}</p>
-                                            <p className="text-xs text-gray-500">Attempts</p>
-                                        </div>
-                                        <Link
-                                            href={`/teacher/exams/${exam.id}/monitor`}
-                                            className="px-4 py-2 bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary hover:bg-primary/20 dark:hover:bg-primary/30 rounded-xl text-sm font-bold transition-colors"
-                                        >
-                                            Monitor
-                                        </Link>
-                                    </div>
+
+                        {/* Gaming Stats Row */}
+                        <div className="relative z-10 mt-8 p-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 flex flex-col md:flex-row items-center gap-6">
+                            <div className="flex items-center gap-4 w-full md:w-auto">
+                                <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-[#359a53] to-green-600 flex items-center justify-center shadow-lg transform rotate-3 hover:rotate-0 transition-transform">
+                                    <Trophy className="w-8 h-8 text-white" />
                                 </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
+                                <div>
+                                    <p className="text-xs text-blue-200 uppercase tracking-widest font-bold">Niveau {game.level}</p>
+                                    <h3 className="text-xl font-bold text-white">{game.title}</h3>
+                                </div>
+                            </div>
 
-                <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                            <div className="w-1 h-6 bg-secondary rounded-full" />
-                            Recent Activity
-                        </h2>
+                            <div className="h-px w-full md:w-px md:h-12 bg-white/20" />
+
+                            <div className="flex-1 w-full">
+                                <div className="flex justify-between text-xs font-medium text-blue-200 mb-2">
+                                    <span>Progression XP</span>
+                                    <span>{game.xp.toLocaleString()} / {game.nextLevelXp.toLocaleString()} XP</span>
+                                </div>
+                                <div className="h-3 bg-black/20 rounded-full overflow-hidden backdrop-blur-sm">
+                                    <motion.div
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${progressPercent}%` }}
+                                        transition={{ duration: 1.5, ease: "easeOut" }}
+                                        className="h-full bg-gradient-to-r from-[#359a53] to-green-400 rounded-full shadow-[0_0_10px_rgba(53,154,83,0.5)]"
+                                    />
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl border border-gray-100 dark:border-gray-700 text-center">
-                        <div className="w-16 h-16 bg-secondary/10 dark:bg-secondary/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <TrendingUp className="h-8 w-8 text-secondary" />
+                    {/* Quick Actions Grid - Premium Design */}
+                    <div className="lg:col-span-1 grid grid-cols-2 gap-3">
+                        {[
+                            {
+                                href: "/teacher/exams/create",
+                                icon: BookOpen,
+                                label: "Créer Examen",
+                                color: "from-[#3a4794] to-indigo-600",
+                                iconBg: "bg-white/20",
+                                textColor: "text-white"
+                            },
+                            {
+                                href: "/teacher/classes",
+                                icon: Users,
+                                label: "Mes Classes",
+                                color: "from-[#359a53] to-emerald-600",
+                                iconBg: "bg-white/20",
+                                textColor: "text-white"
+                            },
+                            {
+                                href: "/teacher/syllabus",
+                                icon: Target,
+                                label: "Programme",
+                                color: "from-purple-500 to-purple-700",
+                                iconBg: "bg-white/20",
+                                textColor: "text-white"
+                            },
+                            {
+                                href: "/teacher/exams",
+                                icon: BarChart3,
+                                label: "Mes Examens",
+                                color: "from-amber-500 to-orange-600",
+                                iconBg: "bg-white/20",
+                                textColor: "text-white"
+                            }
+                        ].map((action, idx) => (
+                            <Link key={idx} href={action.href}>
+                                <motion.div
+                                    whileHover={{ scale: 1.03, y: -2 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    className={cn(
+                                        "relative overflow-hidden rounded-2xl p-5 h-full min-h-[120px]",
+                                        "bg-gradient-to-br shadow-lg hover:shadow-xl transition-all duration-300",
+                                        "flex flex-col items-center justify-center text-center gap-3 cursor-pointer",
+                                        action.color
+                                    )}
+                                >
+                                    {/* Decorative Elements */}
+                                    <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+                                    <div className="absolute bottom-0 left-0 w-16 h-16 bg-black/10 rounded-full translate-y-1/2 -translate-x-1/2" />
+
+                                    <div className={cn("p-3 rounded-xl", action.iconBg)}>
+                                        <action.icon className={cn("w-6 h-6", action.textColor)} />
+                                    </div>
+                                    <span className={cn("font-bold text-sm", action.textColor)}>{action.label}</span>
+                                </motion.div>
+                            </Link>
+                        ))}
+                    </div>
+                </motion.div>
+
+                {/* 2. DYNAMIC STATS GRID */}
+                <motion.div variants={item} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {[
+                        {
+                            label: "Examens Créés",
+                            value: basic.totalExamsCreated,
+                            icon: GraduationCap,
+                            color: "text-[#3a4794]",
+                            bg: "bg-[#3a4794]/10",
+                            trend: "Total à ce jour",
+                            trendColor: "text-gray-500"
+                        },
+                        {
+                            label: "Étudiants Touchés",
+                            value: basic.totalStudentsReached,
+                            icon: Users,
+                            color: "text-[#359a53]",
+                            bg: "bg-[#359a53]/10",
+                            trend: "Actifs dans vos classes",
+                            trendColor: "text-[#359a53]"
+                        },
+                        {
+                            label: "Moyenne Globale",
+                            value: `${basic.averageStudentScore}%`,
+                            icon: Award,
+                            color: "text-purple-600",
+                            bg: "bg-purple-100 dark:bg-purple-900/20",
+                            trend: `${(basic.averageStudentScore / 5).toFixed(1)}/20`,
+                            trendColor: "text-purple-600"
+                        },
+                        {
+                            label: "Examens En Cours",
+                            value: basic.activeExams,
+                            icon: Calendar,
+                            color: "text-orange-600",
+                            bg: "bg-orange-100 dark:bg-orange-900/20",
+                            trend: "Actuellement publiés",
+                            trendColor: "text-orange-600"
+                        }
+                    ].map((stat, i) => (
+                        <div key={i} className="bg-white dark:bg-gray-800 p-5 rounded-[1.5rem] border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                            <div className="flex justify-between items-start mb-4">
+                                <div className={cn("p-3 rounded-2xl", stat.bg)}>
+                                    <stat.icon className={cn("w-6 h-6", stat.color)} />
+                                </div>
+                                {i === 3 && stat.value > 0 && (
+                                    <span className="relative flex h-3 w-3">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-orange-500"></span>
+                                    </span>
+                                )}
+                            </div>
+                            <div>
+                                <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-1">{stat.value}</h3>
+                                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{stat.label}</p>
+                                <p className={cn("text-xs mt-2 font-medium flex items-center gap-1", stat.trendColor)}>
+                                    {stat.trend}
+                                </p>
+                            </div>
                         </div>
-                        <p className="text-gray-500 dark:text-gray-400 font-medium">No recent activity.</p>
-                        <p className="text-sm text-gray-400 mt-1">Student submissions will appear here.</p>
+                    ))}
+                </motion.div>
+
+                {/* 3. ANALYTICS PREVIEW & MAIN CONTENT */}
+                <div className="grid grid-cols-1 gap-8">
+                    {/* Analytics Dashboard Component Integration */}
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between px-2">
+                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                <BarChart3 className="w-6 h-6 text-[#3a4794]" />
+                                Analyses & Prédictions
+                            </h2>
+                            <div className="text-sm text-gray-500 flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-[#359a53]" />
+                                Données temps réel
+                            </div>
+                        </div>
+
+                        <div className="bg-white dark:bg-gray-800 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-sm p-2">
+                            <TeacherAnalyticsDashboard teacherId={session?.user?.id} />
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
+            </motion.div>
+        </RoleGuard>
     )
 }
-
