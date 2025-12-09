@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { Clock, ChevronRight, ChevronLeft, CheckCircle, AlertCircle, Loader2, Image as ImageIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { differenceInSeconds } from "date-fns"
 import { playSound } from "@/lib/sounds"
+import { EvaluationType } from "@/models/enums"
 
 interface ExamTakerProps {
     exam: any
@@ -20,12 +21,14 @@ export function ExamTaker({ exam, attempt }: ExamTakerProps) {
     const [timeLeft, setTimeLeft] = useState(0)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [saving, setSaving] = useState(false)
+    const [savingText, setSavingText] = useState(false)
+    const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
     // Initialize answers from existing responses
     useEffect(() => {
         const initialAnswers: Record<string, string> = {}
         attempt.responses.forEach((r: any) => {
-            initialAnswers[r.questionId] = r.selectedOptionId
+            initialAnswers[r.questionId] = r.selectedOptionId || r.textResponse
         })
         setAnswers(initialAnswers)
     }, [attempt.responses])
@@ -76,6 +79,33 @@ export function ExamTaker({ exam, attempt }: ExamTakerProps) {
         } finally {
             setSaving(false)
         }
+    }
+
+    const handleTextAnswer = (questionId: string, text: string) => {
+        setAnswers(prev => ({ ...prev, [questionId]: text }))
+
+        if (debounceRef.current) {
+            clearTimeout(debounceRef.current)
+        }
+
+        setSavingText(true)
+        debounceRef.current = setTimeout(async () => {
+            try {
+                await fetch("/api/attempts/answer", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        attemptId: attempt.id,
+                        questionId,
+                        textResponse: text
+                    }),
+                })
+            } catch (error) {
+                console.error("Failed to save text answer", error)
+            } finally {
+                setSavingText(false)
+            }
+        }, 1000) // Debounce 1s
     }
 
     const handleSubmit = useCallback(async (auto = false) => {
@@ -346,44 +376,63 @@ export function ExamTaker({ exam, attempt }: ExamTakerProps) {
                         )}
 
                         <div className={cn(
-                            "grid gap-3 md:gap-4",
+                            "w-full",
                             noAnswerQuestions.has(currentQuestionIndex) && "opacity-50 pointer-events-none"
                         )}>
-                            {currentQuestion.options.map((option: any, idx: number) => {
-                                const isSelected = answers[currentQuestion.id] === option.id
-                                return (
-                                    <button
-                                        key={option.id}
-                                        onClick={() => handleOptionSelect(currentQuestion.id, option.id)}
-                                        className={cn(
-                                            "w-full text-left p-4 md:p-5 rounded-2xl border-2 transition-all flex items-center gap-3 md:gap-4 group relative overflow-hidden",
-                                            isSelected
-                                                ? "border-primary bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary shadow-[0_4px_0_0_#1e40af] translate-y-[-2px]"
-                                                : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600 shadow-[0_4px_0_0_rgb(0,0,0,0.05)] active:shadow-none active:translate-y-[2px]"
-                                        )}
-                                    >
-                                        <div className={cn(
-                                            "h-8 w-8 rounded-lg border-2 flex items-center justify-center flex-shrink-0 font-bold text-sm transition-colors",
-                                            isSelected
-                                                ? "border-primary bg-primary text-white"
-                                                : "border-gray-300 dark:border-gray-600 text-gray-400 group-hover:border-gray-400"
-                                        )}>
-                                            {String.fromCharCode(65 + idx)}
+                            {currentQuestion.type === EvaluationType.OPEN_QUESTION ? (
+                                <div className="space-y-2">
+                                    <textarea
+                                        value={answers[currentQuestion.id] || ''}
+                                        onChange={(e) => handleTextAnswer(currentQuestion.id, e.target.value)}
+                                        placeholder="Tapez votre réponse ici..."
+                                        className="w-full h-64 p-5 rounded-2xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 outline-none transition-all text-lg resize-none shadow-sm"
+                                        spellCheck={false}
+                                    />
+                                    {savingText && (
+                                        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 justify-end">
+                                            <Loader2 className="h-3 w-3 animate-spin" /> Enregistrement...
                                         </div>
-                                        <span className="font-semibold text-base md:text-lg">{option.text}</span>
-
-                                        {isSelected && (
-                                            <motion.div
-                                                initial={{ scale: 0 }}
-                                                animate={{ scale: 1 }}
-                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-primary"
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="grid gap-3 md:gap-4">
+                                    {currentQuestion.options?.map((option: any, idx: number) => {
+                                        const isSelected = answers[currentQuestion.id] === option.id
+                                        return (
+                                            <button
+                                                key={option.id}
+                                                onClick={() => handleOptionSelect(currentQuestion.id, option.id)}
+                                                className={cn(
+                                                    "w-full text-left p-4 md:p-5 rounded-2xl border-2 transition-all flex items-center gap-3 md:gap-4 group relative overflow-hidden",
+                                                    isSelected
+                                                        ? "border-primary bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary shadow-[0_4px_0_0_#1e40af] translate-y-[-2px]"
+                                                        : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600 shadow-[0_4px_0_0_rgb(0,0,0,0.05)] active:shadow-none active:translate-y-[2px]"
+                                                )}
                                             >
-                                                <CheckCircle className="h-6 w-6 fill-current" />
-                                            </motion.div>
-                                        )}
-                                    </button>
-                                )
-                            })}
+                                                <div className={cn(
+                                                    "h-8 w-8 rounded-lg border-2 flex items-center justify-center flex-shrink-0 font-bold text-sm transition-colors",
+                                                    isSelected
+                                                        ? "border-primary bg-primary text-white"
+                                                        : "border-gray-300 dark:border-gray-600 text-gray-400 group-hover:border-gray-400"
+                                                )}>
+                                                    {String.fromCharCode(65 + idx)}
+                                                </div>
+                                                <span className="font-semibold text-base md:text-lg">{option.text}</span>
+
+                                                {isSelected && (
+                                                    <motion.div
+                                                        initial={{ scale: 0 }}
+                                                        animate={{ scale: 1 }}
+                                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-primary"
+                                                    >
+                                                        <CheckCircle className="h-6 w-6 fill-current" />
+                                                    </motion.div>
+                                                )}
+                                            </button>
+                                        )
+                                    })}
+                                </div>
+                            )}
                         </div>
                     </motion.div>
                 </AnimatePresence>

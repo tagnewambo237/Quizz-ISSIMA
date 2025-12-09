@@ -44,6 +44,15 @@ export interface IUser extends Document {
         address?: string
     }
 
+    // Gamification
+    gamification?: {
+        totalXP: number
+        level: number
+        currentStreak: number
+        longestStreak: number
+        lastActivityDate?: Date
+    }
+
     // Legacy fields (kept for compatibility during migration)
     studentCode?: string
     image?: string
@@ -88,6 +97,15 @@ const UserSchema = new Schema<IUser>(
             avatar: String,
             phone: String,
             address: String
+        },
+
+        // Gamification
+        gamification: {
+            totalXP: { type: Number, default: 0 },
+            level: { type: Number, default: 1 },
+            currentStreak: { type: Number, default: 0 },
+            longestStreak: { type: Number, default: 0 },
+            lastActivityDate: Date
         },
 
         // Legacy

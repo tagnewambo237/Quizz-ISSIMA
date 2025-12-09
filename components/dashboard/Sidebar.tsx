@@ -3,7 +3,7 @@
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { LayoutDashboard, PlusCircle, BookOpen, Users, Settings, LogOut, School, FileText, GraduationCap, ChevronDown, Check, MessageSquare } from "lucide-react"
+import { LayoutDashboard, PlusCircle, BookOpen, Users, Settings, LogOut, School, FileText, GraduationCap, ChevronDown, Check, MessageSquare, Clock, Trophy, BarChart2, HelpCircle, Flame } from "lucide-react"
 import { signOut, useSession } from "next-auth/react"
 import { cn } from "@/lib/utils"
 import { ThemeToggle } from "@/components/ThemeToggle"
@@ -73,7 +73,15 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () =>
 
     const studentLinks = [
         { href: "/student", label: "Dashboard", icon: LayoutDashboard },
-        { href: "/student/history", label: "History", icon: BookOpen },
+        { href: "/student/subjects", label: "Subjects", icon: BookOpen },
+        { href: "/student/classes", label: "My Classes", icon: Users },
+        { href: "/student/leaderboard", label: "Classement", icon: Trophy },
+        { href: "/student/analytics", label: "Performances", icon: BarChart2 },
+        { href: "/student/challenges", label: "Défis", icon: Flame },
+        { href: "/student/assistance", label: "Aide", icon: HelpCircle },
+        { href: "/student/messages", label: "Messages", icon: MessageSquare },
+        { href: "/student/notifications", label: "Notifications", icon: Bell },
+        { href: "/student/history", label: "Historique", icon: Clock },
     ]
 
     const links = isTeacher ? teacherLinks : studentLinks
@@ -217,17 +225,19 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () =>
                         </div>
                     </Link>
 
-                    {/* Notification Link */}
-                    <Link
-                        href="/teacher/notifications"
-                        className="flex items-center justify-between px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors group"
-                    >
-                        <span className="text-sm font-medium text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white">Notifications</span>
-                        <div className="relative">
-                            <Bell className="h-5 w-5 text-gray-400 group-hover:text-secondary transition-colors" />
-                            <span className="absolute -top-1 -right-1 h-2.5 w-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-900"></span>
-                        </div>
-                    </Link>
+                    {/* Notification Link - Only for teachers in bottom section as students have it in main nav */}
+                    {isTeacher && (
+                        <Link
+                            href="/teacher/notifications"
+                            className="flex items-center justify-between px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors group"
+                        >
+                            <span className="text-sm font-medium text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white">Notifications</span>
+                            <div className="relative">
+                                <Bell className="h-5 w-5 text-gray-400 group-hover:text-secondary transition-colors" />
+                                <span className="absolute -top-1 -right-1 h-2.5 w-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-900"></span>
+                            </div>
+                        </Link>
+                    )}
 
                     <div className="flex items-center gap-3 px-4 py-3 mb-2">
                         <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-sm font-medium">

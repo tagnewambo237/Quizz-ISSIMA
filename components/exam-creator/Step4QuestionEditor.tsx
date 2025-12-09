@@ -192,7 +192,7 @@ export function Step4QuestionEditor({ data, onUpdate }: Step4Props) {
                     <AnimatePresence mode="popLayout">
                         {questions.map((q, index) => (
                             <motion.div
-                                key={q.id}
+                                key={q.id || `question-${index}`}
                                 layout
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}

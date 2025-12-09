@@ -202,7 +202,7 @@ export const sendTeacherNotification = async (
         <p>Excellente nouvelle ! La classe <strong>${className}</strong> s'agrandit.</p>
         
         <div style="${STYLES.infoBox}">
-            <div style="${STYLES.infoBoxTitle}">Nouvel élève inscrit</div>
+            <div style="${STYLES.infoBoxTitle}">Nouvel Apprenant inscrit</div>
             <table style="width: 100%; border-collapse: collapse;">
                 <tr>
                     <td style="padding: 4px 0; color: ${COLORS.gray};">Nom :</td>
@@ -225,7 +225,7 @@ export const sendTeacherNotification = async (
     `;
 
     const html = emailWrapper("Nouvelle inscription", `${studentName} a rejoint ${className}`, content);
-    return sendEmail({ to: teacherEmail, subject: `Nouvel élève : ${studentName}`, html });
+    return sendEmail({ to: teacherEmail, subject: `Nouvel Apprenant : ${studentName}`, html });
 };
 
 // Rapport d'import
@@ -274,7 +274,7 @@ export const sendImportReportEmail = async (
         
         ${errorSection}
         
-        <p>Les e-mails d'invitation ont été envoyés automatiquement aux nouveaux élèves.</p>
+        <p>Les e-mails d'invitation ont été envoyés automatiquement aux nouveaux Apprenants.</p>
     `;
 
     const html = emailWrapper("Rapport d'import", `Résumé pour ${className}`, content);

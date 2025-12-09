@@ -138,6 +138,22 @@ export class ExamServiceV2 {
     }
 
     /**
+     * Nettoie les champs ObjectId vides pour éviter les CastErrors
+     */
+    private static cleanupObjectIdFields(data: any) {
+        const idFields = ['learningUnit', 'targetLevels', 'targetFields', 'targetedCompetencies', 'subject', 'syllabus', 'linkedConcepts']
+        idFields.forEach(field => {
+            if (data[field] === "") {
+                delete data[field]
+            }
+            // Also handle arrays if they contain empty strings
+            if (Array.isArray(data[field])) {
+                data[field] = data[field].filter((id: string) => id !== "")
+            }
+        })
+    }
+
+    /**
      * Crée un nouvel examen V2
      */
     static async createExam(examData: Partial<IExam> & { questions?: any[] }, createdBy: string) {
@@ -148,6 +164,9 @@ export class ExamServiceV2 {
 
         // Normalize legacy enum values
         this.normalizeLegacyEnums(examData)
+
+        // Cleanup empty strings for ObjectId fields to prevent CastErrors
+        this.cleanupObjectIdFields(examData)
 
         try {
             // Définir les valeurs par défaut V2
@@ -211,19 +230,49 @@ export class ExamServiceV2 {
                         }
                     })
 
-                    // Create options for QCM
-                    if (qData.type === EvaluationType.QCM && qData.options && qData.options.length > 0) {
-                        const optionsToCreate = qData.options.map((opt: any, idx: number) => ({
-                            questionId: createdQuestion._id,
-                            text: opt.text,
-                            isCorrect: opt.isCorrect,
-                            order: idx,
-                            stats: {
-                                timesSelected: 0,
-                                selectionRate: 0
-                            }
-                        }))
-                        await Option.create(optionsToCreate)
+                    // Create options for QCM and TRUE_FALSE
+                    if ((qData.type === EvaluationType.QCM || qData.type === EvaluationType.TRUE_FALSE || qData.type === EvaluationType.MIXED)) {
+                        let optionsToCreate = []
+
+                        if (qData.options && qData.options.length > 0) {
+                            // Use provided options
+                            optionsToCreate = qData.options.map((opt: any, idx: number) => ({
+                                questionId: createdQuestion._id,
+                                text: opt.text,
+                                isCorrect: opt.isCorrect,
+                                order: idx,
+                                stats: {
+                                    timesSelected: 0,
+                                    selectionRate: 0
+                                }
+                            }))
+                        } else if (qData.type === EvaluationType.TRUE_FALSE) {
+                            // Generate default TRUE/FALSE options if not provided
+                            // Determine which is correct based on qData.correctAnswer
+                            // Expecting query.correctAnswer to be "true", "Vrai", etc.
+                            const isTrueCorrect = String(qData.correctAnswer).toLowerCase() === 'true' || String(qData.correctAnswer).toLowerCase() === 'vrai';
+
+                            optionsToCreate = [
+                                {
+                                    questionId: createdQuestion._id,
+                                    text: "Vrai",
+                                    isCorrect: isTrueCorrect,
+                                    order: 0,
+                                    stats: { timesSelected: 0, selectionRate: 0 }
+                                },
+                                {
+                                    questionId: createdQuestion._id,
+                                    text: "Faux",
+                                    isCorrect: !isTrueCorrect,
+                                    order: 1,
+                                    stats: { timesSelected: 0, selectionRate: 0 }
+                                }
+                            ]
+                        }
+
+                        if (optionsToCreate.length > 0) {
+                            await Option.create(optionsToCreate)
+                        }
                     }
                 }
             }
@@ -260,6 +309,7 @@ export class ExamServiceV2 {
 
         // Normalize legacy enum values
         this.normalizeLegacyEnums(updateData)
+        this.cleanupObjectIdFields(updateData)
 
         // Incrémenter la version si modification majeure
         if ((updateData as any).questions || updateData.config) {
