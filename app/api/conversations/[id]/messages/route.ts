@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import connectDB from "@/lib/mongodb"
+import mongoose from "mongoose"
 import Message from "@/models/Message"
 import Conversation from "@/models/Conversation"
 import { getPusherServer, getConversationChannel } from "@/lib/pusher"
@@ -125,13 +126,13 @@ export async function POST(
 
         // Create message
         const message = await Message.create({
-            conversationId,
-            senderId: session.user.id,
+            conversationId: new mongoose.Types.ObjectId(conversationId),
+            senderId: new mongoose.Types.ObjectId(session.user.id),
             content: content.trim(),
             type: type || 'TEXT',
             attachments,
             replyTo,
-            readBy: [session.user.id]
+            readBy: [new mongoose.Types.ObjectId(session.user.id)]
         })
 
         // Update conversation's lastMessage

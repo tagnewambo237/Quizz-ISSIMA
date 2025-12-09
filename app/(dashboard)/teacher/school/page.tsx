@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { TeacherInvitationModal } from "@/components/school/TeacherInvitationModal"
 import { ClassFormModal } from "@/components/classes/ClassFormModal"
 import { useSession } from "next-auth/react"
@@ -11,7 +11,7 @@ import Link from "next/link"
 
 import { useRouter, useSearchParams } from "next/navigation"
 
-export default function TeacherSchoolPage() {
+function TeacherSchoolPageContent() {
     const { data: session } = useSession()
     const router = useRouter()
     const searchParams = useSearchParams()
@@ -930,6 +930,18 @@ export default function TeacherSchoolPage() {
                 initialData={{ school: schoolId }}
             />
         </div>
+    )
+}
+
+export default function TeacherSchoolPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+            </div>
+        }>
+            <TeacherSchoolPageContent />
+        </Suspense>
     )
 }
 

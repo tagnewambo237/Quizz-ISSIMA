@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -25,19 +26,26 @@ export async function POST(req: NextRequest) {
         }
 
         // Check if already a teacher or admin
-        if (school.teachers.includes(session.user.id) || school.admins.includes(session.user.id) || school.owner.toString() === session.user.id) {
+        const userId = session.user.id;
+        const isTeacher = school.teachers.some(id => id.toString() === userId);
+        const isAdmin = school.admins.some(id => id.toString() === userId);
+        const isOwner = school.owner.toString() === userId;
+
+        if (isTeacher || isAdmin || isOwner) {
             return NextResponse.json({ error: "You are already a member of this school" }, { status: 400 });
         }
 
         // Check if already applied
-        if (school.applicants && school.applicants.includes(session.user.id)) {
+        if (school.applicants && school.applicants.some(id => id.toString() === userId)) {
             return NextResponse.json({ error: "You have already applied to this school" }, { status: 400 });
         }
 
         // Add to applicants
         school.applicants = school.applicants || [];
-        school.applicants.push(session.user.id);
+        school.applicants.push(new mongoose.Types.ObjectId(userId));
         await school.save();
+
+        return NextResponse.json({ success: true, message: "Application submitted successfully" });
 
         return NextResponse.json({ success: true, message: "Application submitted successfully" });
 

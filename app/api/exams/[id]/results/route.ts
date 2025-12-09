@@ -36,7 +36,7 @@ export async function GET(
         }
 
         // Check ownership (teacher who created it)
-        if (exam.createdBy?.toString() !== session.user.id) {
+        if (exam.createdById?.toString() !== session.user.id) {
             return NextResponse.json(
                 { success: false, message: "Accès non autorisé" },
                 { status: 403 }
@@ -122,7 +122,7 @@ export async function GET(
                     id: exam._id,
                     title: exam.title,
                     duration: exam.duration,
-                    passingScore: exam.passingScore || 50
+                    passingScore: exam.config?.passingScore || 50
                 },
                 stats,
                 distribution,

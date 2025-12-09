@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { Step1Classification } from "@/components/exam-creator/Step1Classification"
@@ -50,7 +50,7 @@ const STEPS = [
     { id: 5, name: "Aperçu", description: "Vérifier et soumettre" },
 ]
 
-export default function CreateExamPage() {
+function CreateExamPageContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
 
@@ -352,5 +352,17 @@ export default function CreateExamPage() {
                 </div>
             </div>
         </RoleGuard>
+    )
+}
+
+export default function CreateExamPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950 dark:to-gray-900 p-4 md:p-8 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+            </div>
+        }>
+            <CreateExamPageContent />
+        </Suspense>
     )
 }

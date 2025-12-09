@@ -34,7 +34,7 @@ export async function GET(
             )
         }
 
-        if (exam.createdBy?.toString() !== session.user.id) {
+        if (exam.createdById?.toString() !== session.user.id) {
             return NextResponse.json(
                 { success: false, message: "Accès non autorisé" },
                 { status: 403 }
