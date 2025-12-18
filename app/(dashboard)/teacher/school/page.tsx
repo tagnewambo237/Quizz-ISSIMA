@@ -60,8 +60,9 @@ function TeacherSchoolPageContent() {
 
         Promise.all(fetchPromises).then((results) => {
             const [schoolsData, mySchoolsData] = results;
-            setPublicSchools(schoolsData)
-            setMySchools(mySchoolsData)
+            // API returns { success, data } so extract the data array
+            setPublicSchools(schoolsData?.data || schoolsData || [])
+            setMySchools(mySchoolsData?.data || mySchoolsData || [])
 
             // If we didn't have a schoolId but we got schools, trigger the redirect effect above
             // The data fetching for specific school will happen on next render after redirect? 

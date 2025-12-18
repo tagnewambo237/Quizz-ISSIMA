@@ -23,6 +23,12 @@ interface ClassOption {
     studentsCount?: number
 }
 
+interface SubjectOption {
+    _id: string
+    name: string
+    code?: string
+}
+
 export default function CreateForumPage() {
     const { data: session } = useSession()
     const router = useRouter()
@@ -31,30 +37,40 @@ export default function CreateForumPage() {
     const [description, setDescription] = useState('')
     const [type, setType] = useState<'CLASS' | 'SUBJECT' | 'GENERAL'>('CLASS')
     const [classId, setClassId] = useState('')
+    const [subjectId, setSubjectId] = useState('')
     const [isPrivate, setIsPrivate] = useState(false)
     const [allowStudentPosts, setAllowStudentPosts] = useState(true)
 
     const [classes, setClasses] = useState<ClassOption[]>([])
+    const [subjects, setSubjects] = useState<SubjectOption[]>([])
     const [loading, setLoading] = useState(false)
     const [submitting, setSubmitting] = useState(false)
 
-    // Fetch teacher's classes
+    // Fetch teacher's classes and subjects
     useEffect(() => {
-        const fetchClasses = async () => {
+        const fetchData = async () => {
             setLoading(true)
             try {
-                const res = await fetch('/api/classes')
-                if (res.ok) {
-                    const data = await res.json()
-                    setClasses(data.data || data.classes || [])
+                // Fetch classes
+                const classesRes = await fetch('/api/classes')
+                if (classesRes.ok) {
+                    const classesData = await classesRes.json()
+                    setClasses(classesData.data || classesData.classes || [])
+                }
+
+                // Fetch subjects
+                const subjectsRes = await fetch('/api/subjects?isActive=true')
+                if (subjectsRes.ok) {
+                    const subjectsData = await subjectsRes.json()
+                    setSubjects(subjectsData.data || [])
                 }
             } catch (err) {
-                console.error('Error fetching classes:', err)
+                console.error('Error fetching data:', err)
             } finally {
                 setLoading(false)
             }
         }
-        fetchClasses()
+        fetchData()
     }, [])
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -71,6 +87,7 @@ export default function CreateForumPage() {
                     description,
                     type,
                     classId: type === 'CLASS' ? classId : undefined,
+                    subjectId: type === 'SUBJECT' ? subjectId : undefined,
                     isPrivate,
                     allowStudentPosts
                 })
@@ -213,6 +230,31 @@ export default function CreateForumPage() {
                         </div>
                     )}
 
+                    {/* Subject Selection (only for SUBJECT type) */}
+                    {type === 'SUBJECT' && (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Matière associée *
+                            </label>
+                            <select
+                                value={subjectId}
+                                onChange={e => setSubjectId(e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 focus:ring-2 focus:ring-[#2a3575] focus:border-transparent transition-all"
+                                required={type === 'SUBJECT'}
+                            >
+                                <option value="">Sélectionner une matière...</option>
+                                {subjects.map(subject => (
+                                    <option key={subject._id} value={subject._id}>
+                                        {subject.name} {subject.code ? `(${subject.code})` : ''}
+                                    </option>
+                                ))}
+                            </select>
+                            <p className="text-xs text-gray-500 mt-2">
+                                Ce forum sera dédié aux discussions sur cette matière
+                            </p>
+                        </div>
+                    )}
+
                     {/* Privacy & Permissions */}
                     <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                         <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Paramètres</h3>
@@ -262,7 +304,7 @@ export default function CreateForumPage() {
                         </Link>
                         <button
                             type="submit"
-                            disabled={submitting || !name.trim() || (type === 'CLASS' && !classId)}
+                            disabled={submitting || !name.trim() || (type === 'CLASS' && !classId) || (type === 'SUBJECT' && !subjectId)}
                             className="flex-1 px-4 py-3 bg-[#2a3575] text-white rounded-xl font-medium hover:bg-[#2a3575]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
                             {submitting ? (

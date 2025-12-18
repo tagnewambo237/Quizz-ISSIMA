@@ -19,7 +19,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     try {
         // Return existing active link
         const link = await InvitationService.getOrCreateSchoolLink(id, session.user.id);
-        return NextResponse.json({ link: `${process.env.NEXT_PUBLIC_APP_URL}/api/invitations/${link.token}/join` });
+        // Retourner un chemin relatif - le client construira l'URL complète
+        return NextResponse.json({ link: `/api/invitations/${link.token}/join` });
     } catch (err) {
         return NextResponse.json({ error: "Internal Error" }, { status: 500 });
     }

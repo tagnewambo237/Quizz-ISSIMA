@@ -5,7 +5,7 @@ import connectDB from '@/lib/mongodb'
 import Forum, { ForumType, ForumStatus } from '@/models/Forum'
 import Class from '@/models/Class'
 import { UserRole } from '@/models/enums'
-import { getPusherServer, getForumChannel } from '@/lib/pusher'
+import { safeTrigger } from '@/lib/pusher'
 import mongoose from 'mongoose'
 
 /**
@@ -128,10 +128,9 @@ export async function POST(request: NextRequest) {
         await forum.populate('createdBy', 'name image')
         await forum.populate('relatedClass', 'name')
 
-        // Trigger Pusher event for real-time updates
-        const pusher = getPusherServer()
-        if (pusher && classId) {
-            pusher.trigger(`class-${classId}`, 'forum-created', {
+        // Trigger Pusher event for real-time updates (safely handles network errors)
+        if (classId) {
+            safeTrigger(`class-${classId}`, 'forum-created', {
                 forum: forum.toObject()
             })
         }

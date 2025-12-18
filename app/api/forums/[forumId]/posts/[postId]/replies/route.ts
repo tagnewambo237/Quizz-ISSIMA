@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import connectDB from '@/lib/mongodb'
 import ForumPost from '@/models/ForumPost'
-import { getPusherServer, getForumChannel } from '@/lib/pusher'
+import { safeTrigger, getForumChannel } from '@/lib/pusher'
 import mongoose from 'mongoose'
 
 interface RouteParams {
@@ -47,25 +47,22 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         post.replyCount = post.replies.length // Manually update count since we removed the hook
         await post.save()
 
-        // Trigger Pusher event
-        const pusher = getPusherServer()
-        if (pusher) {
-            // Include full author info for UI
-            const replyWithUser = {
-                ...newReply,
-                authorId: {
-                    _id: session.user.id,
-                    name: session.user.name,
-                    image: session.user.image,
-                    role: session.user.role
-                }
+        // Trigger Pusher event (safely handles network errors)
+        // Include full author info for UI
+        const replyWithUser = {
+            ...newReply,
+            authorId: {
+                _id: session.user.id,
+                name: session.user.name,
+                image: session.user.image,
+                role: session.user.role
             }
-
-            pusher.trigger(getForumChannel(forumId), 'new-reply', {
-                postId,
-                reply: replyWithUser
-            })
         }
+
+        safeTrigger(getForumChannel(forumId), 'new-reply', {
+            postId,
+            reply: replyWithUser
+        })
 
         return NextResponse.json({
             success: true,
