@@ -221,6 +221,7 @@ export class ExamServiceV2 {
                         timeLimit: qData.timeLimit,
                         correctAnswer: qData.correctAnswer,
                         modelAnswer: qData.modelAnswer,
+                        openQuestionConfig: qData.openQuestionConfig,
                         order: i,
                         stats: {
                             timesAsked: 0,

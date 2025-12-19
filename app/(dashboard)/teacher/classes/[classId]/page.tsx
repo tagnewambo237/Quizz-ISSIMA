@@ -79,6 +79,13 @@ export default function ClassDetailPage() {
         }
     }, [params.classId])
 
+    // Fetch teachers when switching to the teachers tab
+    useEffect(() => {
+        if (activeTab === 'teachers' && params.classId) {
+            fetchClassTeachers()
+        }
+    }, [activeTab, params.classId])
+
     const handleDelete = async () => {
         setIsDeleting(true)
         try {

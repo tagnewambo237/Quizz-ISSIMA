@@ -283,6 +283,219 @@ export class ExamSimulationStrategy implements EvaluationStrategy {
     }
 }
 
+/**
+ * Stratégie pour les questions ouvertes (OPEN_QUESTION)
+ * Supporte plusieurs modes de correction: keywords, semantic, hybrid, manual
+ */
+export class OpenQuestionEvaluationStrategy implements EvaluationStrategy {
+    async evaluate(
+        exam: IExam,
+        responses: any[],
+        questions: any[]
+    ): Promise<EvaluationResult> {
+        let score = 0
+        let maxScore = 0
+        const questionResults: any[] = []
+
+        for (const question of questions) {
+            const questionPoints = question.points || 1
+            maxScore += questionPoints
+
+            const response = responses.find(
+                r => r.questionId.toString() === question._id.toString()
+            )
+
+            if (!response || !response.textAnswer) {
+                questionResults.push({
+                    questionId: question._id,
+                    earned: 0,
+                    maxPoints: questionPoints,
+                    status: 'unanswered'
+                })
+                continue
+            }
+
+            const studentAnswer = response.textAnswer.toLowerCase().trim()
+            const config = question.openQuestionConfig || { gradingMode: 'hybrid' }
+            const modelAnswer = (question.modelAnswer || '').toLowerCase().trim()
+
+            let earnedPoints = 0
+            let gradingDetails: any = { mode: config.gradingMode }
+
+            // Check minimum/maximum length constraints
+            if (config.minLength && studentAnswer.length < config.minLength) {
+                gradingDetails.lengthError = `Réponse trop courte (min: ${config.minLength} caractères)`
+                earnedPoints = 0
+            } else if (config.maxLength && studentAnswer.length > config.maxLength) {
+                gradingDetails.lengthError = `Réponse trop longue (max: ${config.maxLength} caractères)`
+                earnedPoints = questionPoints * 0.5 // Partial credit
+            } else {
+                // Grade based on mode
+                switch (config.gradingMode) {
+                    case 'keywords':
+                        earnedPoints = this.gradeByKeywords(studentAnswer, config, questionPoints)
+                        gradingDetails.keywordResults = this.getKeywordMatches(studentAnswer, config)
+                        break
+
+                    case 'semantic':
+                        earnedPoints = this.gradeBySemantic(studentAnswer, modelAnswer, config, questionPoints)
+                        gradingDetails.semanticScore = earnedPoints / questionPoints
+                        break
+
+                    case 'hybrid':
+                        const keywordScore = this.gradeByKeywords(studentAnswer, config, questionPoints)
+                        const semanticScore = this.gradeBySemantic(studentAnswer, modelAnswer, config, questionPoints)
+                        // Hybrid: 60% semantic, 40% keywords (or 100% semantic if no keywords)
+                        const hasKeywords = (config.keywords || []).length > 0
+                        if (hasKeywords) {
+                            earnedPoints = (semanticScore * 0.6) + (keywordScore * 0.4)
+                        } else {
+                            earnedPoints = semanticScore
+                        }
+                        gradingDetails.keywordScore = keywordScore
+                        gradingDetails.semanticScore = semanticScore
+                        gradingDetails.keywordResults = this.getKeywordMatches(studentAnswer, config)
+                        break
+
+                    case 'manual':
+                        // For manual grading, mark as pending review
+                        earnedPoints = 0
+                        gradingDetails.pendingReview = true
+                        gradingDetails.manualGradingRequired = true
+                        break
+
+                    default:
+                        earnedPoints = this.gradeBySemantic(studentAnswer, modelAnswer, config, questionPoints)
+                }
+            }
+
+            score += earnedPoints
+
+            // Update response with grading info (useful for review)
+            response.isCorrect = earnedPoints >= questionPoints * 0.5
+            response.earnedPoints = earnedPoints
+            response.gradingDetails = gradingDetails
+
+            questionResults.push({
+                questionId: question._id,
+                earned: Math.round(earnedPoints * 100) / 100,
+                maxPoints: questionPoints,
+                status: config.gradingMode === 'manual' ? 'pending_review' : 'graded',
+                details: gradingDetails
+            })
+        }
+
+        const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0
+        const passed = percentage >= exam.config.passingScore
+        const pendingManual = questionResults.some(r => r.status === 'pending_review')
+
+        return {
+            score: Math.round(score * 100) / 100,
+            maxScore,
+            percentage: Math.round(percentage * 100) / 100,
+            passed: pendingManual ? false : passed, // Can't pass if manual review pending
+            feedback: pendingManual
+                ? 'Certaines questions sont en attente de correction manuelle.'
+                : (passed ? 'Excellent travail sur les questions ouvertes !' : 'Continuez à développer vos réponses.'),
+            details: {
+                questionResults,
+                pendingManualReview: pendingManual,
+                autoGradedCount: questionResults.filter(r => r.status === 'graded').length,
+                pendingReviewCount: questionResults.filter(r => r.status === 'pending_review').length
+            }
+        }
+    }
+
+    /**
+     * Grade answer by keyword matching
+     */
+    private gradeByKeywords(answer: string, config: any, maxPoints: number): number {
+        const keywords = config.keywords || []
+        if (keywords.length === 0) return 0
+
+        let totalWeight = 0
+        let earnedWeight = 0
+        const caseSensitive = config.caseSensitive || false
+        const processedAnswer = caseSensitive ? answer : answer.toLowerCase()
+
+        for (const kw of keywords) {
+            const word = caseSensitive ? kw.word : kw.word.toLowerCase()
+            const synonyms = (kw.synonyms || []).map((s: string) => caseSensitive ? s : s.toLowerCase())
+            const allForms = [word, ...synonyms]
+
+            totalWeight += kw.weight || 10
+
+            // Check if any form of the keyword is present
+            const found = allForms.some(form => processedAnswer.includes(form))
+
+            if (found) {
+                earnedWeight += kw.weight || 10
+            } else if (kw.required) {
+                // Required keyword missing = 0 points for this question
+                return 0
+            }
+        }
+
+        // Calculate proportional score
+        return totalWeight > 0 ? (earnedWeight / totalWeight) * maxPoints : 0
+    }
+
+    /**
+     * Get detailed keyword match results
+     */
+    private getKeywordMatches(answer: string, config: any): any[] {
+        const keywords = config.keywords || []
+        const caseSensitive = config.caseSensitive || false
+        const processedAnswer = caseSensitive ? answer : answer.toLowerCase()
+
+        return keywords.map((kw: any) => {
+            const word = caseSensitive ? kw.word : kw.word.toLowerCase()
+            const synonyms = (kw.synonyms || []).map((s: string) => caseSensitive ? s : s.toLowerCase())
+            const allForms = [word, ...synonyms]
+            const found = allForms.some(form => processedAnswer.includes(form))
+
+            return {
+                keyword: kw.word,
+                found,
+                weight: kw.weight || 10,
+                required: kw.required || false
+            }
+        })
+    }
+
+    /**
+     * Grade answer by semantic similarity (simplified version using keyword overlap)
+     * For production, integrate with HuggingFace embeddings
+     */
+    private gradeBySemantic(answer: string, modelAnswer: string, config: any, maxPoints: number): number {
+        if (!modelAnswer) return 0
+
+        // Simple semantic scoring using word overlap (Jaccard similarity)
+        // In production, replace with actual embedding similarity from HuggingFace
+        const answerWords = new Set(answer.split(/\s+/).filter(w => w.length > 2))
+        const modelWords = new Set(modelAnswer.split(/\s+/).filter(w => w.length > 2))
+
+        if (modelWords.size === 0) return maxPoints // No model answer = full credit
+
+        // Calculate Jaccard similarity
+        const intersection = [...answerWords].filter(w => modelWords.has(w)).length
+        const union = new Set([...answerWords, ...modelWords]).size
+        const similarity = union > 0 ? intersection / union : 0
+
+        // Apply threshold
+        const threshold = config.semanticThreshold || 0.7
+
+        if (similarity >= threshold) {
+            return maxPoints
+        } else if (similarity >= threshold * 0.5) {
+            // Partial credit for close answers
+            return maxPoints * (similarity / threshold)
+        }
+
+        return 0
+    }
+}
+
 // ==========================================
 // CONCEPT SELF-EVALUATION STRATEGY
 // ==========================================
@@ -359,6 +572,9 @@ export class EvaluationStrategyFactory {
 
             case EvaluationType.TRUE_FALSE:
                 return new TrueFalseEvaluationStrategy()
+
+            case EvaluationType.OPEN_QUESTION:
+                return new OpenQuestionEvaluationStrategy()
 
             case EvaluationType.ADAPTIVE:
                 return new AdaptiveEvaluationStrategy()
