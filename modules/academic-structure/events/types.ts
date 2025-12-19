@@ -1,0 +1,14 @@
+/**
+ * Types d'événements spécifiques au module Academic Structure
+ */
+
+export const AcademicStructureEvents = {
+  SCHOOL_CREATED: "SCHOOL_CREATED",
+  SCHOOL_VALIDATED: "SCHOOL_VALIDATED",
+  CLASS_CREATED: "CLASS_CREATED",
+  CLASS_UPDATED: "CLASS_UPDATED",
+  TEACHER_ADDED_TO_CLASS: "TEACHER_ADDED_TO_CLASS",
+  SYLLABUS_CREATED: "SYLLABUS_CREATED",
+  SYLLABUS_UPDATED: "SYLLABUS_UPDATED",
+} as const;
+

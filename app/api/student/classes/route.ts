@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import connectDB from "@/lib/mongodb"
 import Class from "@/models/Class"
-import { LeaderboardService } from "@/lib/services/LeaderboardService"
+import { LeaderboardService } from "@/modules/gamification"
 import mongoose from "mongoose"
 
 /**

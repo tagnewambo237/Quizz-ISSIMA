@@ -1,37 +1,101 @@
-import { EventPublisher } from './EventPublisher'
-import { EmailNotificationObserver } from './observers/EmailNotificationObserver'
-import { StatsUpdateObserver } from './observers/StatsUpdateObserver'
-import { BadgeAwardObserver } from './observers/BadgeAwardObserver'
-import { XPUpdateObserver } from './observers/XPUpdateObserver'
-import { NotificationObserver } from './observers/NotificationObserver'
-
-export * from './types'
-export * from './interfaces/IObserver'
-export * from './EventPublisher'
-
 /**
- * Initialise le système d'événements en enregistrant tous les observateurs
+ * Public API pour le système d'événements
+ *
+ * Ce fichier exporte tous les composants nécessaires pour utiliser
+ * le système d'événements modulaire de QuizLock.
+ *
+ * @example
+ * // Publier un événement
+ * import { publishEvent, EventPriority, EventType } from '@/lib/events';
+ *
+ * await publishEvent(EventType.ATTEMPT_GRADED, {
+ *   attemptId: '123',
+ *   score: 85
+ * }, {
+ *   priority: EventPriority.HIGH,
+ *   userId: userId
+ * });
+ *
+ * @example
+ * // Écouter un événement
+ * import { createEventHandler, EventType } from '@/lib/events';
+ *
+ * createEventHandler(EventType.BADGE_EARNED, async (event) => {
+ *   console.log('Badge earned:', event.data);
+ * });
+ *
+ * @example
+ * // Utiliser l'adaptateur pour la transition
+ * import { LegacyEventAdapter } from '@/lib/events';
+ *
+ * const adapter = new LegacyEventAdapter();
+ * await adapter.publishBoth(event);
  */
-export const initEventSystem = (): void => {
-    const publisher = EventPublisher.getInstance()
 
-    // Vérifier si déjà initialisé pour éviter les doublons (si appelé plusieurs fois)
-    // Note: EventPublisher gère déjà les doublons d'abonnement, mais c'est bien d'être explicite
+// ========================================
+// Core EventBus
+// ========================================
+export {
+  EventBus,
+  EventPriority,
+  type DomainEvent,
+  type EventFilter,
+  type QueueStats
+} from './core/EventBus';
 
-    console.log('[EventSystem] Initializing observers...')
+// ========================================
+// Dead Letter Queue
+// ========================================
+export { DeadLetterQueue } from './core/DeadLetterQueue';
 
-    // Enregistrer les observateurs
-    publisher.subscribe(new NotificationObserver())
-    publisher.subscribe(new EmailNotificationObserver())
-    publisher.subscribe(new StatsUpdateObserver())
-    publisher.subscribe(new BadgeAwardObserver())
-    publisher.subscribe(new XPUpdateObserver())
+// ========================================
+// Event Types
+// ========================================
+export {
+  EventType,
+  type UserRegisteredEvent,
+  type StudentEnrolledEvent,
+  type AttemptGradedEvent,
+  type XPGainedEvent,
+  type BadgeEarnedEvent,
+  type LevelUpEvent,
+  type ExamPublishedEvent,
+  type AntiCheatViolationEvent
+} from './types';
 
-    console.log('[EventSystem] Initialization complete.')
+// ========================================
+// Helpers
+// ========================================
+export {
+  publishEvent,
+  createEventHandler,
+  createSafeEventHandler,
+  getEventBusStats,
+  getEventHistory,
+  replayEvents,
+  OnEvent,
+  type PublishEventOptions
+} from './helpers';
 
-    // Afficher l'état
-    const observers = publisher.listObservers()
-    for (const [event, obsList] of observers.entries()) {
-        console.log(`[EventSystem] ${event}: ${obsList.length} observers (${obsList.join(', ')})`)
-    }
+// ========================================
+// Legacy Adapter (for migration)
+// ========================================
+export { LegacyEventAdapter } from './adapters/LegacyEventAdapter';
+
+// ========================================
+// Re-export ancien EventPublisher pour compatibilité
+// ========================================
+export { EventPublisher, type Event } from './EventPublisher';
+
+// ========================================
+// Initialization (legacy compatibility)
+// ========================================
+/**
+ * Initialize event system (legacy function for compatibility)
+ * EventBus is now initialized automatically as a singleton
+ */
+export function initEventSystem(): void {
+  // EventBus initializes automatically via singleton pattern
+  // This function is kept for backward compatibility
+  EventBus.getInstance();
 }

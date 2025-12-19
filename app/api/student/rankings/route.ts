@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import connectDB from "@/lib/mongodb"
-import { LeaderboardService } from "@/lib/services/LeaderboardService"
+import { LeaderboardService } from "@/modules/gamification"
 
 /**
  * GET /api/student/rankings
