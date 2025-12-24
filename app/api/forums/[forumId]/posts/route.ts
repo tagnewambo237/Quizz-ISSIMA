@@ -5,7 +5,7 @@ import connectDB from '@/lib/mongodb'
 import Forum from '@/models/Forum'
 import ForumPost, { PostStatus } from '@/models/ForumPost'
 import { UserRole } from '@/models/enums'
-import { getPusherServer, getForumChannel } from '@/lib/pusher'
+import { safeTrigger, getForumChannel } from '@/lib/pusher'
 
 interface RouteParams {
     params: Promise<{ forumId: string }>
@@ -127,12 +127,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         await post.populate('authorId', 'name image role')
 
         // Trigger Pusher for real-time
-        const pusher = getPusherServer()
-        if (pusher) {
-            pusher.trigger(getForumChannel(forumId), 'new-post', {
-                post: post.toObject()
-            })
-        }
+        safeTrigger(getForumChannel(forumId), 'new-post', {
+            post: post.toObject()
+        })
 
         return NextResponse.json({
             success: true,

@@ -162,3 +162,59 @@ export enum ReportingAccess {
     ESTABLISHMENT = 'ESTABLISHMENT',
     GLOBAL = 'GLOBAL'
 }
+
+/**
+ * Class Teacher Collaboration System
+ * 
+ * Allows multiple teachers to collaborate on a class, each with their own
+ * subject specialty and configurable permissions.
+ */
+
+/**
+ * Role of a teacher within a class
+ * - OWNER: The main teacher who created the class. Has all permissions.
+ * - COLLABORATOR: Can do most things except delete the class or remove the owner.
+ * - ASSISTANT: Limited permissions, defined by the ClassTeacherPermission array.
+ */
+export enum ClassTeacherRole {
+    OWNER = 'OWNER',
+    COLLABORATOR = 'COLLABORATOR',
+    ASSISTANT = 'ASSISTANT'
+}
+
+/**
+ * Granular permissions for teachers in a class
+ * These define what actions a COLLABORATOR or ASSISTANT can perform.
+ */
+export enum ClassTeacherPermission {
+    // Exam Management
+    CREATE_EXAM = 'CREATE_EXAM',           // Create exams for the class
+    EDIT_EXAM = 'EDIT_EXAM',               // Edit existing exams
+    DELETE_EXAM = 'DELETE_EXAM',           // Delete exams
+    PUBLISH_EXAM = 'PUBLISH_EXAM',         // Publish exams to students
+
+    // Student Management
+    GRADE_STUDENTS = 'GRADE_STUDENTS',     // Grade student submissions
+    VIEW_STUDENTS = 'VIEW_STUDENTS',       // View student list and info
+    MANAGE_STUDENTS = 'MANAGE_STUDENTS',   // Add/remove students
+
+    // Communication
+    CREATE_FORUM = 'CREATE_FORUM',         // Create class forums
+    SEND_MESSAGES = 'SEND_MESSAGES',       // Send messages to class
+
+    // Administration
+    INVITE_TEACHERS = 'INVITE_TEACHERS',   // Invite other teachers to the class
+    VIEW_ANALYTICS = 'VIEW_ANALYTICS',     // View class analytics and reports
+    EDIT_CLASS_INFO = 'EDIT_CLASS_INFO'    // Edit class name, description, etc.
+}
+
+/**
+ * Status of a teacher invitation to join a class
+ */
+export enum ClassTeacherInvitationStatus {
+    PENDING = 'PENDING',
+    ACCEPTED = 'ACCEPTED',
+    REJECTED = 'REJECTED',
+    EXPIRED = 'EXPIRED'
+}
+

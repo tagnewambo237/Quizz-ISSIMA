@@ -66,6 +66,7 @@ interface Forum {
     members: any[]
     lastPostAt?: string
     relatedClass?: { name: string }
+    relatedSubject?: { name: string }
     allowStudentPosts: boolean
 }
 
@@ -443,7 +444,9 @@ function StudentMessagesContent() {
                                                         <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-[#2a3575] transition-colors">
                                                             {forum.name}
                                                         </h3>
-                                                        <p className="text-sm text-gray-500">{forum.relatedClass?.name || 'Forum général'}</p>
+                                                        <p className="text-sm text-gray-500">
+                                                            {forum.relatedClass?.name || forum.relatedSubject?.name || 'Forum général'}
+                                                        </p>
                                                         <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
                                                             <span className="flex items-center gap-1">
                                                                 <MessageSquare className="w-3 h-3" />

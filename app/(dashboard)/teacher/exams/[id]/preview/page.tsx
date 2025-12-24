@@ -20,6 +20,14 @@ interface Question {
     correctAnswer?: boolean
     modelAnswer?: string
     mediaUrl?: string
+    openQuestionConfig?: {
+        gradingMode?: 'keywords' | 'semantic' | 'manual' | 'hybrid'
+        keywords?: { word: string; weight: number; required: boolean; synonyms?: string[] }[]
+        semanticThreshold?: number
+        minLength?: number
+        maxLength?: number
+        caseSensitive?: boolean
+    }
 }
 
 interface ExamData {
@@ -111,6 +119,62 @@ export default function ExamPreviewPage() {
         setTextAnswers(prev => ({ ...prev, [questionId]: text }))
     }
 
+    // Evaluate open question based on keywords or model answer
+    const evaluateOpenQuestion = (studentAnswer: string, question: Question): boolean => {
+        const config = question.openQuestionConfig || { gradingMode: 'hybrid' }
+        const modelAnswer = (question.modelAnswer || '').toLowerCase().trim()
+
+        // If manual grading mode, always return false (needs teacher review)
+        if (config.gradingMode === 'manual') {
+            return false
+        }
+
+        // Check keywords if available
+        if (config.keywords && config.keywords.length > 0) {
+            let matchedWeight = 0
+            let totalWeight = 0
+            let requiredMissing = false
+
+            for (const kw of config.keywords) {
+                const word = kw.word.toLowerCase()
+                const synonyms = (kw.synonyms || []).map(s => s.toLowerCase())
+                const allForms = [word, ...synonyms]
+
+                totalWeight += kw.weight || 10
+                const found = allForms.some(form => studentAnswer.includes(form))
+
+                if (found) {
+                    matchedWeight += kw.weight || 10
+                } else if (kw.required) {
+                    requiredMissing = true
+                }
+            }
+
+            // If a required keyword is missing, fail
+            if (requiredMissing) return false
+
+            // Consider correct if at least 50% of keywords matched
+            return matchedWeight >= totalWeight * 0.5
+        }
+
+        // Fall back to model answer comparison (semantic-like)
+        if (modelAnswer) {
+            const answerWords = new Set(studentAnswer.split(/\s+/).filter(w => w.length > 2))
+            const modelWords = new Set(modelAnswer.split(/\s+/).filter(w => w.length > 2))
+
+            if (modelWords.size === 0) return true // No model answer = accept any
+
+            const intersection = [...answerWords].filter(w => modelWords.has(w)).length
+            const similarity = intersection / modelWords.size
+
+            const threshold = config.semanticThreshold || 0.7
+            return similarity >= threshold * 0.5 // More lenient for preview
+        }
+
+        // If no keywords and no model answer, consider it correct (preview mode)
+        return true
+    }
+
     const handleFinish = () => {
         setShowResults(true)
         toast.success("Preview terminée!")
@@ -133,7 +197,15 @@ export default function ExamPreviewPage() {
                     earnedPoints += q.points || 1
                 }
             } else if (q.type === 'OPEN_QUESTION') {
-                // Open questions need manual grading, skip for now
+                // Evaluate open question in preview mode
+                const studentAnswer = (textAnswers[q._id] || '').toLowerCase().trim()
+                if (studentAnswer) {
+                    const isCorrect = evaluateOpenQuestion(studentAnswer, q)
+                    if (isCorrect) {
+                        correct++
+                        earnedPoints += q.points || 1
+                    }
+                }
             } else {
                 // QCM
                 const selectedOptionId = answers[q._id]
@@ -317,9 +389,26 @@ export default function ExamPreviewPage() {
                             <div className="text-left space-y-4 mb-8">
                                 <h3 className="font-bold text-lg">Récapitulatif</h3>
                                 {questions.map((q, idx) => {
-                                    const selectedOptionId = answers[q._id]
-                                    const correctOption = (q.options || []).find(o => o.isCorrect)
-                                    const isCorrect = selectedOptionId === correctOption?._id
+                                    let isCorrect = false
+                                    let correctAnswerText = "N/A"
+
+                                    if (q.type === 'TRUE_FALSE') {
+                                        // For TRUE_FALSE questions
+                                        const studentAnswer = answers[q._id] === 'true'
+                                        isCorrect = studentAnswer === q.correctAnswer
+                                        correctAnswerText = q.correctAnswer ? "Vrai" : "Faux"
+                                    } else if (q.type === 'OPEN_QUESTION') {
+                                        // Open questions - evaluate with keywords/model answer
+                                        const studentAnswer = (textAnswers[q._id] || '').toLowerCase().trim()
+                                        isCorrect = studentAnswer ? evaluateOpenQuestion(studentAnswer, q) : false
+                                        correctAnswerText = q.modelAnswer || "Réponse libre"
+                                    } else {
+                                        // QCM
+                                        const selectedOptionId = answers[q._id]
+                                        const correctOption = (q.options || []).find(o => o.isCorrect)
+                                        isCorrect = selectedOptionId === correctOption?._id
+                                        correctAnswerText = correctOption?.text || "N/A"
+                                    }
 
                                     return (
                                         <div key={q._id} className={cn(
@@ -336,7 +425,7 @@ export default function ExamPreviewPage() {
                                                 <div className="flex-1">
                                                     <p className="font-medium text-sm">{q.text}</p>
                                                     <p className="text-xs text-gray-500 mt-1">
-                                                        Bonne réponse: {correctOption?.text || "N/A"}
+                                                        Bonne réponse: {correctAnswerText}
                                                     </p>
                                                 </div>
                                             </div>

@@ -9,7 +9,7 @@ import { ClassFormModal } from "@/components/classes/ClassFormModal"
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal"
 import { StudentInvitationModal } from "@/components/classes/invitations/StudentInvitationModal"
 import { ClassAnalytics } from "@/components/analytics/ClassAnalytics"
-import { Eye, MonitorX } from "lucide-react"
+import { Eye, MonitorX, UserPlus, Shield, BookOpen as BookIcon, X } from "lucide-react"
 
 // Mock Data removed - using real stats
 
@@ -26,7 +26,10 @@ export default function ClassDetailPage() {
     const [showEditModal, setShowEditModal] = useState(false)
     const [showDeleteModal, setShowDeleteModal] = useState(false)
     const [showInviteModal, setShowInviteModal] = useState(false)
+
     const [isDeleting, setIsDeleting] = useState(false)
+    const [classTeachers, setClassTeachers] = useState<any[]>([])
+    const [loadingTeachers, setLoadingTeachers] = useState(false)
 
     const fetchData = async () => {
         try {
@@ -40,7 +43,11 @@ export default function ClassDetailPage() {
             const statsJson = await statsRes.json()
             const examsJson = await examsRes.json()
 
-            if (classJson.success) setClassData(classJson.data)
+            if (classJson.success) {
+                setClassData(classJson.data)
+                // Fetch class teachers after getting class data
+                fetchClassTeachers()
+            }
             if (statsJson.success) setStats(statsJson.data)
             if (examsJson.success) setExams(examsJson.data)
 
@@ -51,11 +58,33 @@ export default function ClassDetailPage() {
         }
     }
 
+    const fetchClassTeachers = async () => {
+        setLoadingTeachers(true)
+        try {
+            const res = await fetch(`/api/classes/${params.classId}/teachers`)
+            const data = await res.json()
+            if (data.success) {
+                setClassTeachers(data.data || [])
+            }
+        } catch (error) {
+            console.error('Failed to fetch class teachers', error)
+        } finally {
+            setLoadingTeachers(false)
+        }
+    }
+
     useEffect(() => {
         if (params.classId) {
             fetchData()
         }
     }, [params.classId])
+
+    // Fetch teachers when switching to the teachers tab
+    useEffect(() => {
+        if (activeTab === 'teachers' && params.classId) {
+            fetchClassTeachers()
+        }
+    }, [activeTab, params.classId])
 
     const handleDelete = async () => {
         setIsDeleting(true)
@@ -139,10 +168,11 @@ export default function ClassDetailPage() {
 
             {/* Tabs */}
             <div className="flex gap-6 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
-                {['overview', 'students', 'exams', 'analytics', 'settings'].map((tab) => {
+                {['overview', 'students', 'teachers', 'exams', 'analytics', 'settings'].map((tab) => {
                     const tabLabels: Record<string, string> = {
                         overview: "Vue d'ensemble",
                         students: "Apprenants",
+                        teachers: "Enseignants",
                         exams: "Examens",
                         analytics: "Analyse",
                         settings: "Paramètres"
@@ -392,6 +422,168 @@ export default function ClassDetailPage() {
                     </div>
                 )}
 
+                {activeTab === 'teachers' && (
+                    <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+                        <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+                            <div>
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Enseignants de la classe</h3>
+                                <p className="text-sm text-gray-500 mt-1">Professeur principal et enseignants collaborateurs</p>
+                            </div>
+                            <button
+                                onClick={() => router.push(`/teacher/classes/${params.classId}/teachers/add`)}
+                                className="px-4 py-2 bg-secondary text-white rounded-xl text-sm font-medium hover:bg-secondary/90 transition-colors flex items-center gap-2"
+                            >
+                                <UserPlus className="h-4 w-4" />
+                                Ajouter un enseignant
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-6">
+                            {/* Main Teacher */}
+                            <div>
+                                <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                    <Shield className="h-4 w-4" />
+                                    Professeur Principal
+                                </h4>
+                                <div className="p-4 bg-gradient-to-br from-secondary/5 to-secondary/10 border border-secondary/20 rounded-2xl">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-14 h-14 rounded-full bg-linear-to-br from-secondary to-secondary/70 flex items-center justify-center text-white text-xl font-bold">
+                                            {classData.mainTeacher?.name?.charAt(0) || 'T'}
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="font-bold text-gray-900 dark:text-white text-lg">
+                                                {classData.mainTeacher?.name || 'Non assigné'}
+                                            </p>
+                                            <p className="text-gray-500 text-sm">{classData.mainTeacher?.email}</p>
+                                        </div>
+                                        <span className="px-3 py-1.5 bg-secondary/20 text-secondary rounded-full text-sm font-bold">
+                                            Propriétaire
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Collaborating Teachers */}
+                            <div>
+                                <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                    <Users className="h-4 w-4" />
+                                    Enseignants Collaborateurs ({classTeachers.length})
+                                </h4>
+
+                                {loadingTeachers ? (
+                                    <div className="flex justify-center py-8">
+                                        <Loader2 className="h-6 w-6 animate-spin text-secondary" />
+                                    </div>
+                                ) : classTeachers.length === 0 ? (
+                                    <div className="text-center py-12 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700">
+                                        <UserPlus className="h-12 w-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
+                                        <p className="text-gray-500 dark:text-gray-400">Aucun enseignant collaborateur</p>
+                                        <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Ajoutez des collègues pour enseigner des matières spécifiques</p>
+                                        <button
+                                            onClick={() => router.push(`/teacher/classes/${params.classId}/teachers/add`)}
+                                            className="mt-4 px-4 py-2 bg-secondary/10 text-secondary rounded-xl text-sm font-medium hover:bg-secondary/20 transition-colors"
+                                        >
+                                            + Inviter un enseignant
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {classTeachers.map((entry: any) => (
+                                            <div
+                                                key={`${entry.teacher?._id}-${entry.subject?._id}`}
+                                                className="p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl hover:border-secondary/30 transition-all group"
+                                            >
+                                                <div className="flex items-start gap-4">
+                                                    <div className="w-12 h-12 rounded-full bg-linear-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold shrink-0">
+                                                        {entry.teacher?.name?.charAt(0) || 'T'}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center justify-between mb-1">
+                                                            <p className="font-bold text-gray-900 dark:text-white">
+                                                                {entry.teacher?.name}
+                                                            </p>
+                                                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${entry.role === 'COLLABORATOR'
+                                                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                                                                : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                                                }`}>
+                                                                {entry.role === 'COLLABORATOR' ? 'Collaborateur' : 'Assistant'}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-sm text-gray-500 truncate">{entry.teacher?.email}</p>
+
+                                                        <div className="flex items-center gap-2 mt-2 text-sm">
+                                                            <BookIcon className="h-4 w-4 text-secondary" />
+                                                            <span className="font-medium text-gray-700 dark:text-gray-300">
+                                                                {entry.subject?.name}
+                                                            </span>
+                                                            {entry.subject?.code && (
+                                                                <span className="text-xs text-gray-400">({entry.subject.code})</span>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Permissions preview */}
+                                                        <div className="mt-3 flex flex-wrap gap-1">
+                                                            {(entry.permissions || []).slice(0, 4).map((perm: string) => {
+                                                                const permLabels: Record<string, string> = {
+                                                                    'CREATE_EXAM': 'Créer examens',
+                                                                    'GRADE_STUDENTS': 'Noter',
+                                                                    'VIEW_STUDENTS': 'Voir élèves',
+                                                                    'CREATE_FORUM': 'Forums',
+                                                                    'VIEW_ANALYTICS': 'Stats',
+                                                                    'EDIT_EXAM': 'Modifier examens',
+                                                                    'PUBLISH_EXAM': 'Publier',
+                                                                    'SEND_MESSAGES': 'Messages'
+                                                                }
+                                                                return (
+                                                                    <span key={perm} className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-xs rounded-md text-gray-600 dark:text-gray-300">
+                                                                        {permLabels[perm] || perm}
+                                                                    </span>
+                                                                )
+                                                            })}
+                                                            {(entry.permissions || []).length > 4 && (
+                                                                <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-xs rounded-md text-gray-500">
+                                                                    +{entry.permissions.length - 4}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Actions */}
+                                                <div className="flex gap-2 mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
+                                                    <button
+                                                        onClick={async () => {
+                                                            if (confirm(`Voulez-vous vraiment retirer ${entry.teacher?.name} de cette classe ?`)) {
+                                                                try {
+                                                                    const res = await fetch(
+                                                                        `/api/classes/${params.classId}/teachers?teacherId=${entry.teacher?._id}&subjectId=${entry.subject?._id}`,
+                                                                        { method: 'DELETE' }
+                                                                    )
+                                                                    if (res.ok) {
+                                                                        fetchClassTeachers()
+                                                                    } else {
+                                                                        alert('Erreur lors de la suppression')
+                                                                    }
+                                                                } catch (err) {
+                                                                    console.error(err)
+                                                                }
+                                                            }
+                                                        }}
+                                                        className="flex-1 py-2 px-4 border border-red-200 dark:border-red-900/50 rounded-lg text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center justify-center gap-2"
+                                                    >
+                                                        <X className="h-4 w-4" />
+                                                        Retirer
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {activeTab === 'exams' && (
                     <div className="space-y-6">
                         <div className="flex justify-between items-center">
@@ -561,6 +753,8 @@ export default function ClassDetailPage() {
                 isOpen={showInviteModal}
                 onClose={() => setShowInviteModal(false)}
             />
+
+
 
 
 

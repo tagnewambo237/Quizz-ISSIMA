@@ -5,8 +5,12 @@ import Exam from "@/models/Exam"
 import EducationLevel from "@/models/EducationLevel"
 import School from "@/models/School"
 import Field from "@/models/Field"
+import Subject from "@/models/Subject"
 import mongoose from "mongoose"
 import { ClassValidationStatus } from "@/models/enums"
+
+// Ensure all models are registered (Next.js serverless context fix)
+const _models = { Class, User, Attempt, Exam, EducationLevel, School, Field, Subject }
 
 export class ClassService {
     /**
