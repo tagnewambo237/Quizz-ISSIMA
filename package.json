@@ -15,6 +15,7 @@
     "test:components": "jest __tests__/components",
     "seed": "tsx --env-file=.env scripts/seed/index.ts",
     "seed:clean": "tsx --env-file=.env scripts/seed/index.ts --clean",
+    "migrate:new-models": "tsx --env-file=.env.example scripts/migrate-new-models.ts",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {

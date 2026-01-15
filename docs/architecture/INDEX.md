@@ -19,10 +19,18 @@ Cette documentation modulaire décrit l'architecture actuelle de la plateforme X
    - Scripts npm disponibles
 
 2. **[02_DATABASE_MODELS.md](./02_DATABASE_MODELS.md)** - Modèles de Données
-   - 15 modèles Mongoose documentés
+   - 37 modèles Mongoose documentés
    - Schémas complets avec indexes
    - Relations entre entités
    - Champs calculés et cache
+   - Modèles de géolocalisation (Country, Region, Department, City)
+   - Modèles de réglementation (RegulatoryApproval, AcademicTutelle)
+   - Modèles de partenariats (Partner, InstitutionPartner)
+   - Modèles de spécialités (Specialty, Skill, SpecialtySkill, CareerOutcome, SpecialtyOutcome)
+   - Modèles de curriculum (CurriculumSemester, CurriculumUE)
+   - Modèles d'offre & formation (SchoolProgram)
+   - Modèles de métriques (PerformanceMetric, EmploymentMetric, InfrastructureMetric)
+   - Modèles de scoring (SchoolScore, SpecialtyScore, SchoolProgramScore)
 
 3. **[03_DESIGN_PATTERNS.md](./03_DESIGN_PATTERNS.md)** - Design Patterns
    - Strategy Pattern (Évaluation)
@@ -241,5 +249,5 @@ Cette documentation reflète l'état actuel du code. Si vous modifiez l'architec
 
 ---
 
-**Dernière mise à jour:** Janvier 2026 (ajout du module Student **Orientation** + route `/api/student/orientation/schools` + redirection post-auth STUDENT)
+**Dernière mise à jour:** Janvier 2026 (ajout du module Student **Orientation** + route `/api/student/orientation/schools` + redirection post-auth STUDENT + modèles de géolocalisation + modèles de réglementation et partenariats + modèles de spécialités et curriculum + modèles d'offre/formation et métriques + modèles de scoring)
 **Contributeurs:** Documentation générée à partir de l'analyse du code existant

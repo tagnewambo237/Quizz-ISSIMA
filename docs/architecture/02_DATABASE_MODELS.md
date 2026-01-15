@@ -2,8 +2,8 @@
 
 > **Document:** Schémas de Base de Données
 > **Version:** 2.0
-> **Dernière mise à jour:** Décembre 2024
-> **Nombre de modèles:** 15
+> **Dernière mise à jour:** Janvier 2026
+> **Nombre de modèles:** 37
 
 ---
 
@@ -13,15 +13,23 @@
 2. [Modèles Utilisateurs](#modèles-utilisateurs)
 3. [Modèles Éducatifs](#modèles-éducatifs)
 4. [Modèles d'Évaluation](#modèles-dévaluation)
-5. [Relations entre Modèles](#relations-entre-modèles)
-6. [Stratégie d'Indexation](#stratégie-dindexation)
-7. [Champs Calculés et Cache](#champs-calculés-et-cache)
+5. [Modèles de Géolocalisation](#modèles-de-géolocalisation)
+6. [Modèles de Réglementation](#modèles-de-réglementation)
+7. [Modèles de Partenariats](#modèles-de-partenariats)
+8. [Modèles de Spécialités](#modèles-de-spécialités)
+9. [Modèles de Curriculum](#modèles-de-curriculum)
+10. [Modèles d'Offre & Formation](#modèles-doffre--formation)
+11. [Modèles de Métriques](#modèles-de-métriques)
+12. [Modèles de Scoring](#modèles-de-scoring)
+13. [Relations entre Modèles](#relations-entre-modèles)
+14. [Stratégie d'Indexation](#stratégie-dindexation)
+15. [Champs Calculés et Cache](#champs-calculés-et-cache)
 
 ---
 
 ## 🎯 Vue d'ensemble
 
-Xkorin School utilise **MongoDB** avec **Mongoose 8.10.4** comme ODM. La base de données est organisée en **15 collections** principales regroupées en 3 catégories :
+Xkorin School utilise **MongoDB** avec **Mongoose 8.10.4** comme ODM. La base de données est organisée en **37 collections** principales regroupées en 11 catégories :
 
 ### Catégories de Modèles
 
@@ -30,6 +38,14 @@ Xkorin School utilise **MongoDB** avec **Mongoose 8.10.4** comme ODM. La base de
 | **Utilisateurs** | User, LearnerProfile, PedagogicalProfile | Authentification et profils |
 | **Éducation** | EducationLevel, Field, Subject, LearningUnit, Competency | Structure hiérarchique |
 | **Évaluation** | Exam, Question, Option, Attempt, Response, LateCode | Système d'examen |
+| **Géolocalisation** | Country, Region, Department, City | Hiérarchie géographique |
+| **Réglementation** | RegulatoryApproval, AcademicTutelle | Approbations et tutelles académiques |
+| **Partenariats** | Partner, InstitutionPartner | Partenaires et relations institutionnelles |
+| **Spécialités** | Specialty, Skill, SpecialtySkill, CareerOutcome, SpecialtyOutcome | Spécialités, compétences et débouchés |
+| **Curriculum** | CurriculumSemester, CurriculumUE | Structure du curriculum par semestre |
+| **Offre & Formation** | SchoolProgram | Programmes offerts par les écoles |
+| **Métriques** | PerformanceMetric, EmploymentMetric, InfrastructureMetric | Performance, emploi et infrastructure |
+| **Scoring** | SchoolScore, SpecialtyScore, SchoolProgramScore | Système de notation "TripAdvisor éducatif" |
 
 ### Conventions
 
@@ -1391,6 +1407,1250 @@ lateCodeSchema.pre('save', function(next) {
 
 ---
 
+## 🌍 Modèles de Géolocalisation
+
+Les modèles de géolocalisation permettent de structurer hiérarchiquement les informations géographiques (Pays → Région → Département → Ville). Cette hiérarchie est utilisée pour localiser les établissements scolaires, les utilisateurs et permettre des recherches géographiques avancées.
+
+### Hiérarchie Géographique
+
+```
+Country (Pays)
+  └─ Region (Région)
+      └─ Department (Département)
+          └─ City (Ville)
+```
+
+### 16. Country
+
+**Fichier:** `/models/Country.ts`
+**Collection:** `countries`
+**Rôle:** Entité géographique de niveau pays
+
+#### Schéma Complet
+
+```typescript
+{
+  _id: ObjectId,                         // Auto-généré (country_id)
+  name: String,                          // Required, unique, indexed, trim
+  isoCode: String,                       // Required, unique, uppercase, length: 2, indexed
+  currency: String,                      // Required, trim (ex: "FCFA", "EUR", "USD")
+  createdAt: Date,                      // Auto-généré
+  updatedAt: Date                        // Auto-généré
+}
+```
+
+#### Indexes
+
+- `{ isoCode: 1 }` - Unique index pour recherche rapide par code ISO
+- `{ name: 1 }` - Unique index pour recherche par nom
+
+#### Exemple
+
+```typescript
+{
+  _id: ObjectId("..."),
+  name: "Cameroun",
+  isoCode: "CM",
+  currency: "FCFA",
+  createdAt: ISODate("2024-01-01T00:00:00Z"),
+  updatedAt: ISODate("2024-01-01T00:00:00Z")
+}
+```
+
+---
+
+### 17. Region
+
+**Fichier:** `/models/Region.ts`
+**Collection:** `regions`
+**Rôle:** Entité géographique de niveau région (appartient à un pays)
+
+#### Schéma Complet
+
+```typescript
+{
+  _id: ObjectId,                         // Auto-généré (region_id)
+  country: ObjectId,                     // Required, Ref: 'Country', indexed
+  name: String,                          // Required, indexed, trim
+  createdAt: Date,                       // Auto-généré
+  updatedAt: Date                        // Auto-généré
+}
+```
+
+#### Indexes
+
+- `{ country: 1, name: 1 }` - Unique composite index (une région est unique par pays)
+- `{ country: 1 }` - Index pour recherche par pays
+
+#### Exemple
+
+```typescript
+{
+  _id: ObjectId("..."),
+  country: ObjectId("..."), // Référence au Cameroun
+  name: "Centre",
+  createdAt: ISODate("2024-01-01T00:00:00Z"),
+  updatedAt: ISODate("2024-01-01T00:00:00Z")
+}
+```
+
+---
+
+### 18. Department
+
+**Fichier:** `/models/Department.ts`
+**Collection:** `departments`
+**Rôle:** Entité géographique de niveau département (appartient à une région)
+
+#### Schéma Complet
+
+```typescript
+{
+  _id: ObjectId,                         // Auto-généré (department_id)
+  region: ObjectId,                      // Required, Ref: 'Region', indexed
+  name: String,                          // Required, indexed, trim
+  createdAt: Date,                       // Auto-généré
+  updatedAt: Date                        // Auto-généré
+}
+```
+
+#### Indexes
+
+- `{ region: 1, name: 1 }` - Unique composite index (un département est unique par région)
+- `{ region: 1 }` - Index pour recherche par région
+
+#### Exemple
+
+```typescript
+{
+  _id: ObjectId("..."),
+  region: ObjectId("..."), // Référence à la région Centre
+  name: "Mfoundi",
+  createdAt: ISODate("2024-01-01T00:00:00Z"),
+  updatedAt: ISODate("2024-01-01T00:00:00Z")
+}
+```
+
+---
+
+### 19. City
+
+**Fichier:** `/models/City.ts`
+**Collection:** `cities`
+**Rôle:** Entité géographique de niveau ville (appartient à un département)
+
+#### Schéma Complet
+
+```typescript
+{
+  _id: ObjectId,                         // Auto-généré (city_id)
+  department: ObjectId,                  // Required, Ref: 'Department', indexed
+  name: String,                          // Required, indexed, trim
+  lat: Number,                           // Optional, min: -90, max: 90 (Latitude)
+  lng: Number,                           // Optional, min: -180, max: 180 (Longitude)
+  costOfLivingIndex: Number,             // Optional, min: 0 (Indice du coût de la vie)
+  createdAt: Date,                       // Auto-généré
+  updatedAt: Date                        // Auto-généré
+}
+```
+
+#### Indexes
+
+- `{ department: 1, name: 1 }` - Unique composite index (une ville est unique par département)
+- `{ department: 1 }` - Index pour recherche par département
+- `{ lat: 1, lng: 1 }` - Index géospatial pour recherches de proximité
+
+#### Exemple
+
+```typescript
+{
+  _id: ObjectId("..."),
+  department: ObjectId("..."), // Référence au département Mfoundi
+  name: "Yaoundé",
+  lat: 3.8480,
+  lng: 11.5021,
+  costOfLivingIndex: 45.2,
+  createdAt: ISODate("2024-01-01T00:00:00Z"),
+  updatedAt: ISODate("2024-01-01T00:00:00Z")
+}
+```
+
+#### Cas d'Usage
+
+- **Recherche géographique** : Trouver toutes les écoles dans un rayon de X km
+- **Filtrage par localisation** : Filtrer les établissements par pays/région/département/ville
+- **Calcul de coût** : Utiliser `costOfLivingIndex` pour estimer le coût de la vie dans une ville
+- **Affichage de carte** : Utiliser `lat` et `lng` pour afficher les établissements sur une carte
+
+---
+
+## 📋 Modèles de Réglementation
+
+Les modèles de réglementation permettent de gérer les approbations légales et les tutelles académiques des établissements scolaires. Ces informations sont essentielles pour valider la légitimité et la reconnaissance officielle des institutions.
+
+### 20. RegulatoryApproval
+
+**Fichier:** `/models/RegulatoryApproval.ts`
+**Collection:** `regulatoryapprovals`
+**Rôle:** Gestion des approbations réglementaires des établissements
+
+#### Schéma Complet
+
+```typescript
+{
+  _id: ObjectId,                         // Auto-généré (approval_id)
+  school: ObjectId,                      // Required, Ref: 'School', indexed
+  approvalNumber: String,               // Required, indexed, trim
+  approvalStatus: ApprovalStatus,       // Required, enum: Issued | NotIssued | Expired, indexed
+  approvalDate: Date,                    // Optional
+  issuedBy: String,                      // Required, indexed, trim (MINESUP, MINEFOP, etc.)
+  documentsUrl: String,                  // Optional, trim (URL vers documents scannés)
+  createdAt: Date,                       // Auto-généré
+  updatedAt: Date                        // Auto-généré
+}
+```
+
+#### Enums
+
+```typescript
+enum ApprovalStatus {
+  ISSUED = 'Issued',
+  NOT_ISSUED = 'NotIssued',
+  EXPIRED = 'Expired'
+}
+```
+
+#### Indexes
+
+- `{ school: 1, approvalNumber: 1 }` - Unique composite index (un numéro d'approbation unique par école)
+- `{ school: 1 }` - Index pour recherche par école
+- `{ approvalStatus: 1 }` - Index pour filtrage par statut
+- `{ issuedBy: 1 }` - Index pour recherche par organisme émetteur
+
+#### Exemple
+
+```typescript
+{
+  _id: ObjectId("..."),
+  school: ObjectId("..."), // Référence à une école
+  approvalNumber: "MINESUP-2024-001",
+  approvalStatus: "Issued",
+  approvalDate: ISODate("2024-01-15T00:00:00Z"),
+  issuedBy: "MINESUP",
+  documentsUrl: "https://storage.example.com/approvals/minesup-2024-001.pdf",
+  createdAt: ISODate("2024-01-01T00:00:00Z"),
+  updatedAt: ISODate("2024-01-01T00:00:00Z")
+}
+```
+
+---
+
+### 21. AcademicTutelle
+
+**Fichier:** `/models/AcademicTutelle.ts`
+**Collection:** `academictutelles`
+**Rôle:** Gestion des tutelles académiques des établissements
+
+#### Schéma Complet
+
+```typescript
+{
+  _id: ObjectId,                         // Auto-généré (tutelle_id)
+  school: ObjectId,                      // Required, Ref: 'School', indexed
+  tutelleName: String,                   // Required, indexed, trim (Université de Douala, Yaoundé I, etc.)
+  tutelleType: TutelleType,              // Required, enum, indexed
+  rank: Number,                          // Required, min: 1, max: 10, default: 1
+  documentsUrl: String,                  // Optional, trim (URL vers documents de tutelle)
+  createdAt: Date,                       // Auto-généré
+  updatedAt: Date                        // Auto-généré
+}
+```
+
+#### Enums
+
+```typescript
+enum TutelleType {
+  STATE_UNIVERSITY = 'StateUniversity',
+  MINISTRY = 'Ministry',
+  AGREEMENT = 'Agreement',
+  SEAT_AGREEMENT = 'SeatAgreement',
+  OTHER = 'Other'
+}
+```
+
+#### Indexes
+
+- `{ school: 1, tutelleName: 1 }` - Unique composite index (une tutelle unique par école)
+- `{ school: 1 }` - Index pour recherche par école
+- `{ tutelleType: 1 }` - Index pour filtrage par type de tutelle
+- `{ rank: 1 }` - Index pour tri par rang
+
+#### Exemple
+
+```typescript
+{
+  _id: ObjectId("..."),
+  school: ObjectId("..."), // Référence à une école
+  tutelleName: "Université de Yaoundé I",
+  tutelleType: "StateUniversity",
+  rank: 1,
+  documentsUrl: "https://storage.example.com/tutelles/uy1-agreement.pdf",
+  createdAt: ISODate("2024-01-01T00:00:00Z"),
+  updatedAt: ISODate("2024-01-01T00:00:00Z")
+}
+```
+
+#### Cas d'Usage
+
+- **Validation légale** : Vérifier que l'établissement a les approbations nécessaires
+- **Recherche par organisme** : Trouver tous les établissements approuvés par MINESUP
+- **Hiérarchie académique** : Identifier les établissements sous tutelle d'une université d'État
+- **Classement** : Utiliser le `rank` pour prioriser les tutelles principales
+
+---
+
+## 🤝 Modèles de Partenariats
+
+Les modèles de partenariats permettent de gérer les relations entre établissements scolaires et partenaires (entreprises, universités, organisations). Ces relations peuvent inclure des stages, des emplois, des doubles diplômes, des certifications, etc.
+
+### 22. Partner
+
+**Fichier:** `/models/Partner.ts`
+**Collection:** `partners`
+**Rôle:** Entité partenaire (entreprise, université, organisation)
+
+#### Schéma Complet
+
+```typescript
+{
+  _id: ObjectId,                         // Auto-généré (partner_id)
+  name: String,                          // Required, indexed, trim
+  country: ObjectId,                     // Optional, Ref: 'Country', indexed
+  partnerType: PartnerType,              // Required, enum: Local | International, indexed
+  sector: String,                        // Required, indexed, trim (secteur d'activité)
+  website: String,                       // Optional, trim
+  createdAt: Date,                      // Auto-généré
+  updatedAt: Date                        // Auto-généré
+}
+```
+
+#### Enums
+
+```typescript
+enum PartnerType {
+  LOCAL = 'Local',
+  INTERNATIONAL = 'International'
+}
+```
+
+#### Indexes
+
+- `{ name: 1 }` - Index pour recherche par nom
+- `{ country: 1 }` - Index pour recherche par pays
+- `{ partnerType: 1 }` - Index pour filtrage par type
+- `{ sector: 1 }` - Index pour recherche par secteur
+
+#### Exemple
+
+```typescript
+{
+  _id: ObjectId("..."),
+  name: "Total Energies",
+  country: ObjectId("..."), // Référence au Cameroun
+  partnerType: "International",
+  sector: "Énergie",
+  website: "https://totalenergies.cm",
+  createdAt: ISODate("2024-01-01T00:00:00Z"),
+  updatedAt: ISODate("2024-01-01T00:00:00Z")
+}
+```
+
+---
+
+### 23. InstitutionPartner
+
+**Fichier:** `/models/InstitutionPartner.ts`
+**Collection:** `institutionpartners`
+**Rôle:** Relation entre un établissement et un partenaire
+
+#### Schéma Complet
+
+```typescript
+{
+  _id: ObjectId,                         // Auto-généré (institution_partner_id)
+  school: ObjectId,                      // Required, Ref: 'School', indexed
+  partner: ObjectId,                     // Required, Ref: 'Partner', indexed
+  relationshipType: RelationshipType,   // Required, enum, indexed
+  startDate: Date,                       // Optional
+  endDate: Date,                         // Optional
+  proofUrl: String,                      // Optional, trim (URL vers documents de preuve)
+  notes: String,                         // Optional, trim
+  createdAt: Date,                       // Auto-généré
+  updatedAt: Date                        // Auto-généré
+}
+```
+
+#### Enums
+
+```typescript
+enum RelationshipType {
+  INTERNSHIP = 'Internship',
+  EMPLOYMENT = 'Employment',
+  DOUBLE_DEGREE = 'DoubleDegree',
+  CERTIFICATION = 'Certification',
+  EXCHANGE = 'Exchange',
+  SPONSORSHIP = 'Sponsorship',
+  OTHER = 'Other'
+}
+```
+
+#### Indexes
+
+- `{ school: 1, partner: 1, relationshipType: 1 }` - Unique composite index (une relation unique par combinaison)
+- `{ school: 1 }` - Index pour recherche par école
+- `{ partner: 1 }` - Index pour recherche par partenaire
+- `{ relationshipType: 1 }` - Index pour filtrage par type de relation
+- `{ startDate: 1, endDate: 1 }` - Index pour recherche par période
+
+#### Exemple
+
+```typescript
+{
+  _id: ObjectId("..."),
+  school: ObjectId("..."), // Référence à une école
+  partner: ObjectId("..."), // Référence à Total Energies
+  relationshipType: "Internship",
+  startDate: ISODate("2024-01-01T00:00:00Z"),
+  endDate: ISODate("2024-12-31T00:00:00Z"),
+  proofUrl: "https://storage.example.com/partnerships/total-internship-2024.pdf",
+  notes: "Convention de stage annuelle pour étudiants en génie pétrolier",
+  createdAt: ISODate("2024-01-01T00:00:00Z"),
+  updatedAt: ISODate("2024-01-01T00:00:00Z")
+}
+```
+
+#### Cas d'Usage
+
+- **Stages** : Gérer les conventions de stage entre écoles et entreprises
+- **Emploi** : Suivre les partenariats d'embauche
+- **Doubles diplômes** : Gérer les accords de double diplôme avec d'autres universités
+- **Certifications** : Suivre les partenariats pour certifications professionnelles
+- **Échanges** : Gérer les programmes d'échange d'étudiants
+- **Sponsoring** : Suivre les partenariats de financement
+
+---
+
+## 🎓 Modèles de Spécialités
+
+Les modèles de spécialités permettent de gérer les programmes d'études, leurs compétences associées et les débouchés professionnels. Ces modèles sont essentiels pour structurer l'offre académique des établissements.
+
+### 24. Specialty
+
+**Fichier:** `/models/Specialty.ts`
+**Collection:** `specialties`
+**Rôle:** Programme de spécialité académique
+
+#### Schéma Complet
+
+```typescript
+{
+  _id: ObjectId,                         // Auto-généré (specialty_id)
+  domain: String,                        // Required, indexed, trim (Domaine d'études)
+  field: String,                         // Required, indexed, trim (Filière)
+  specialtyName: String,                 // Required, indexed, trim
+  level: SpecialtyLevel,                 // Required, enum, indexed
+  degreeAwarded: String,                 // Required, trim (Diplôme délivré)
+  durationYears: Number,                 // Required, min: 1 (Durée en années)
+  language: String,                      // Required, indexed, trim (Langue d'enseignement)
+  mode: SpecialtyMode,                   // Required, enum, indexed
+  prerequisites: String,                 // Optional, trim
+  generalObjective: String,               // Optional, trim (Objectif général)
+  specificObjectives: String[],          // Optional (Objectifs spécifiques)
+  valueProposition: String,              // Optional, trim (Proposition de valeur)
+  exitProfile: String,                   // Optional, trim (Profil de sortie)
+  createdAt: Date,                       // Auto-généré
+  updatedAt: Date                        // Auto-généré
+}
+```
+
+#### Enums
+
+```typescript
+enum SpecialtyLevel {
+  BTS = 'BTS',
+  HND = 'HND',
+  LICENCE = 'Licence',
+  MASTER = 'Master',
+  DOCTORAT = 'Doctorat',
+  CERTIFICATE = 'Certificate'
+}
+
+enum SpecialtyMode {
+  ONSITE = 'Onsite',
+  HYBRID = 'Hybrid',
+  ONLINE = 'Online'
+}
+```
+
+#### Indexes
+
+- `{ domain: 1, field: 1 }` - Index composite pour recherche par domaine/filière
+- `{ level: 1 }` - Index pour filtrage par niveau
+- `{ mode: 1 }` - Index pour filtrage par mode d'enseignement
+- `{ language: 1 }` - Index pour filtrage par langue
+- `{ specialtyName: 1 }` - Index pour recherche par nom
+
+#### Exemple
+
+```typescript
+{
+  _id: ObjectId("..."),
+  domain: "Informatique",
+  field: "Génie Logiciel",
+  specialtyName: "Développement Web Full Stack",
+  level: "Licence",
+  degreeAwarded: "Licence Professionnelle en Informatique",
+  durationYears: 3,
+  language: "Français",
+  mode: "Hybrid",
+  prerequisites: "Baccalauréat scientifique ou équivalent",
+  generalObjective: "Former des développeurs web complets maîtrisant les technologies modernes",
+  specificObjectives: [
+    "Maîtriser les langages frontend (HTML, CSS, JavaScript)",
+    "Développer des applications backend avec Node.js",
+    "Gérer des bases de données (SQL et NoSQL)"
+  ],
+  valueProposition: "Formation pratique avec projets réels et stage en entreprise",
+  exitProfile: "Développeur Full Stack capable de créer des applications web complètes",
+  createdAt: ISODate("2024-01-01T00:00:00Z"),
+  updatedAt: ISODate("2024-01-01T00:00:00Z")
+}
+```
+
+---
+
+### 25. Skill
+
+**Fichier:** `/models/Skill.ts`
+**Collection:** `skills`
+**Rôle:** Compétence générique ou spécifique
+
+#### Schéma Complet
+
+```typescript
+{
+  _id: ObjectId,                         // Auto-généré (skill_id)
+  name: String,                          // Required, unique, indexed, trim
+  skillType: SkillType,                  // Required, enum, indexed
+  createdAt: Date,                       // Auto-généré
+  updatedAt: Date                        // Auto-généré
+}
+```
+
+#### Enums
+
+```typescript
+enum SkillType {
+  GENERIC = 'Generic',
+  SPECIFIC = 'Specific'
+}
+```
+
+#### Indexes
+
+- `{ name: 1 }` - Unique index pour recherche par nom
+- `{ skillType: 1 }` - Index pour filtrage par type
+
+#### Exemple
+
+```typescript
+{
+  _id: ObjectId("..."),
+  name: "Gestion de projet",
+  skillType: "Generic",
+  createdAt: ISODate("2024-01-01T00:00:00Z"),
+  updatedAt: ISODate("2024-01-01T00:00:00Z")
+}
+```
+
+---
+
+### 26. SpecialtySkill
+
+**Fichier:** `/models/SpecialtySkill.ts`
+**Collection:** `specialtyskills`
+**Rôle:** Relation entre une spécialité et une compétence
+
+#### Schéma Complet
+
+```typescript
+{
+  _id: ObjectId,                         // Auto-généré (specialty_skill_id)
+  specialty: ObjectId,                   // Required, Ref: 'Specialty', indexed
+  skill: ObjectId,                       // Required, Ref: 'Skill', indexed
+  createdAt: Date,                       // Auto-généré
+  updatedAt: Date                        // Auto-généré
+}
+```
+
+#### Indexes
+
+- `{ specialty: 1, skill: 1 }` - Unique composite index (une compétence unique par spécialité)
+- `{ specialty: 1 }` - Index pour recherche par spécialité
+- `{ skill: 1 }` - Index pour recherche par compétence
+
+#### Exemple
+
+```typescript
+{
+  _id: ObjectId("..."),
+  specialty: ObjectId("..."), // Référence à "Développement Web Full Stack"
+  skill: ObjectId("..."), // Référence à "Gestion de projet"
+  createdAt: ISODate("2024-01-01T00:00:00Z"),
+  updatedAt: ISODate("2024-01-01T00:00:00Z")
+}
+```
+
+---
+
+### 27. CareerOutcome
+
+**Fichier:** `/models/CareerOutcome.ts`
+**Collection:** `careeroutcomes`
+**Rôle:** Débouché professionnel
+
+#### Schéma Complet
+
+```typescript
+{
+  _id: ObjectId,                         // Auto-généré (outcome_id)
+  name: String,                          // Required, unique, indexed, trim
+  sector: String,                        // Required, indexed, trim (Secteur d'activité)
+  createdAt: Date,                       // Auto-généré
+  updatedAt: Date                        // Auto-généré
+}
+```
+
+#### Indexes
+
+- `{ name: 1 }` - Unique index pour recherche par nom
+- `{ sector: 1 }` - Index pour recherche par secteur
+
+#### Exemple
+
+```typescript
+{
+  _id: ObjectId("..."),
+  name: "Développeur Full Stack",
+  sector: "Technologies de l'Information",
+  createdAt: ISODate("2024-01-01T00:00:00Z"),
+  updatedAt: ISODate("2024-01-01T00:00:00Z")
+}
+```
+
+---
+
+### 28. SpecialtyOutcome
+
+**Fichier:** `/models/SpecialtyOutcome.ts`
+**Collection:** `specialtyoutcomes`
+**Rôle:** Relation entre une spécialité et un débouché professionnel
+
+#### Schéma Complet
+
+```typescript
+{
+  _id: ObjectId,                         // Auto-généré (specialty_outcome_id)
+  specialty: ObjectId,                   // Required, Ref: 'Specialty', indexed
+  outcome: ObjectId,                     // Required, Ref: 'CareerOutcome', indexed
+  createdAt: Date,                       // Auto-généré
+  updatedAt: Date                        // Auto-généré
+}
+```
+
+#### Indexes
+
+- `{ specialty: 1, outcome: 1 }` - Unique composite index (un débouché unique par spécialité)
+- `{ specialty: 1 }` - Index pour recherche par spécialité
+- `{ outcome: 1 }` - Index pour recherche par débouché
+
+#### Exemple
+
+```typescript
+{
+  _id: ObjectId("..."),
+  specialty: ObjectId("..."), // Référence à "Développement Web Full Stack"
+  outcome: ObjectId("..."), // Référence à "Développeur Full Stack"
+  createdAt: ISODate("2024-01-01T00:00:00Z"),
+  updatedAt: ISODate("2024-01-01T00:00:00Z")
+}
+```
+
+---
+
+## 📚 Modèles de Curriculum
+
+Les modèles de curriculum permettent de structurer le programme d'études par semestres et unités d'enseignement (UE). Cette structure permet de gérer les heures de cours, travaux dirigés, travaux pratiques et les crédits ECTS.
+
+### Hiérarchie du Curriculum
+
+```
+Specialty (Spécialité)
+  └─ CurriculumSemester (Semestre 1, 2, 3, ...)
+      └─ CurriculumUE (Unité d'Enseignement)
+```
+
+### 29. CurriculumSemester
+
+**Fichier:** `/models/CurriculumSemester.ts`
+**Collection:** `curriculumsemesters`
+**Rôle:** Semestre du curriculum d'une spécialité
+
+#### Schéma Complet
+
+```typescript
+{
+  _id: ObjectId,                         // Auto-généré (semester_id)
+  specialty: ObjectId,                   // Required, Ref: 'Specialty', indexed
+  semesterNumber: Number,                 // Required, min: 1, max: 10, indexed
+  createdAt: Date,                        // Auto-généré
+  updatedAt: Date                         // Auto-généré
+}
+```
+
+#### Indexes
+
+- `{ specialty: 1, semesterNumber: 1 }` - Unique composite index (un numéro de semestre unique par spécialité)
+- `{ specialty: 1 }` - Index pour recherche par spécialité
+
+#### Exemple
+
+```typescript
+{
+  _id: ObjectId("..."),
+  specialty: ObjectId("..."), // Référence à "Développement Web Full Stack"
+  semesterNumber: 1,
+  createdAt: ISODate("2024-01-01T00:00:00Z"),
+  updatedAt: ISODate("2024-01-01T00:00:00Z")
+}
+```
+
+---
+
+### 30. CurriculumUE
+
+**Fichier:** `/models/CurriculumUE.ts`
+**Collection:** `curriculumues`
+**Rôle:** Unité d'Enseignement (UE) dans un semestre
+
+#### Schéma Complet
+
+```typescript
+{
+  _id: ObjectId,                         // Auto-généré (ue_id)
+  semester: ObjectId,                    // Required, Ref: 'CurriculumSemester', indexed
+  ueCode: String,                        // Required, indexed, trim (Code de l'UE)
+  title: String,                         // Required, trim
+  ueType: UEType,                        // Required, enum, indexed
+  hoursTotal: Number,                    // Required, min: 0 (Heures totales)
+  hoursCm: Number,                       // Required, min: 0 (Heures CM - Cours Magistraux)
+  hoursTd: Number,                       // Required, min: 0 (Heures TD - Travaux Dirigés)
+  hoursTp: Number,                       // Required, min: 0 (Heures TP - Travaux Pratiques)
+  hoursTpe: Number,                      // Optional, min: 0 (Heures TPE - Travaux Personnels Encadrés)
+  credits: Number,                       // Required, min: 0 (Crédits ECTS)
+  createdAt: Date,                       // Auto-généré
+  updatedAt: Date                        // Auto-généré
+}
+```
+
+#### Enums
+
+```typescript
+enum UEType {
+  FUNDAMENTAL = 'Fundamental',
+  PROFESSIONAL = 'Professional',
+  TRANSVERSAL = 'Transversal'
+}
+```
+
+#### Indexes
+
+- `{ semester: 1, ueCode: 1 }` - Unique composite index (un code UE unique par semestre)
+- `{ semester: 1 }` - Index pour recherche par semestre
+- `{ ueType: 1 }` - Index pour filtrage par type d'UE
+
+#### Exemple
+
+```typescript
+{
+  _id: ObjectId("..."),
+  semester: ObjectId("..."), // Référence au Semestre 1
+  ueCode: "UE-INF-101",
+  title: "Introduction à la Programmation",
+  ueType: "Fundamental",
+  hoursTotal: 60,
+  hoursCm: 30,
+  hoursTd: 20,
+  hoursTp: 10,
+  hoursTpe: 0,
+  credits: 6,
+  createdAt: ISODate("2024-01-01T00:00:00Z"),
+  updatedAt: ISODate("2024-01-01T00:00:00Z")
+}
+```
+
+#### Cas d'Usage
+
+- **Planification académique** : Structurer le programme par semestres
+- **Calcul de crédits** : Suivre les crédits ECTS par UE
+- **Répartition horaire** : Gérer CM, TD, TP, TPE
+- **Filtrage par type** : Distinguer les UE fondamentales, professionnelles et transversales
+
+---
+
+## 🎯 Modèles d'Offre & Formation
+
+Les modèles d'offre et formation permettent de gérer les programmes académiques offerts par les établissements scolaires, incluant les coûts, les conditions d'admission, les facilités de paiement et les stages.
+
+### 31. SchoolProgram
+
+**Fichier:** `/models/SchoolProgram.ts`
+**Collection:** `schoolprograms`
+**Rôle:** Programme académique offert par une école
+
+#### Schéma Complet
+
+```typescript
+{
+  _id: ObjectId,                         // Auto-généré (school_program_id)
+  school: ObjectId,                     // Required, Ref: 'School', indexed
+  specialty: ObjectId,                  // Required, Ref: 'Specialty', indexed
+  campusCity: ObjectId,                 // Optional, Ref: 'City', indexed (si multi-campus)
+  admissionRequirements: String,        // Optional, trim
+  annualCostTotal: Number,               // Required, min: 0 (Coût annuel total)
+  costBreakdownJson: Object,            // Optional (Détail des coûts en JSON)
+  otherFeesJson: Object,                 // Optional (Autres frais en JSON)
+  scholarshipAvailable: Boolean,        // Required, default: false, indexed
+  paymentFacilities: Boolean,            // Required, default: false
+  mandatoryInternship: Boolean,          // Required, default: false, indexed
+  internshipDurationMonths: Number,      // Optional, min: 0
+  deliveryMode: DeliveryMode,            // Required, enum, indexed
+  programStatus: ProgramStatus,          // Required, enum, default: Open, indexed
+  createdAt: Date,                      // Auto-généré
+  updatedAt: Date                       // Auto-généré
+}
+```
+
+#### Enums
+
+```typescript
+enum DeliveryMode {
+  ONSITE = 'Onsite',
+  HYBRID = 'Hybrid',
+  ONLINE = 'Online'
+}
+
+enum ProgramStatus {
+  OPEN = 'Open',
+  CLOSED = 'Closed',
+  LIMITED_SEATS = 'LimitedSeats'
+}
+```
+
+#### Indexes
+
+- `{ school: 1, specialty: 1 }` - Unique composite index (un programme unique par école/spécialité)
+- `{ school: 1 }` - Index pour recherche par école
+- `{ specialty: 1 }` - Index pour recherche par spécialité
+- `{ campusCity: 1 }` - Index pour recherche par campus
+- `{ programStatus: 1 }` - Index pour filtrage par statut
+- `{ deliveryMode: 1 }` - Index pour filtrage par mode
+- `{ scholarshipAvailable: 1 }` - Index pour filtrage par bourses
+- `{ mandatoryInternship: 1 }` - Index pour filtrage par stage obligatoire
+
+#### Exemple
+
+```typescript
+{
+  _id: ObjectId("..."),
+  school: ObjectId("..."), // Référence à une école
+  specialty: ObjectId("..."), // Référence à "Développement Web Full Stack"
+  campusCity: ObjectId("..."), // Référence à Yaoundé (si multi-campus)
+  admissionRequirements: "Baccalauréat scientifique ou équivalent, test d'entrée",
+  annualCostTotal: 500000,
+  costBreakdownJson: {
+    tuition: 450000,
+    registration: 50000,
+    materials: 0
+  },
+  otherFeesJson: {
+    library: 10000,
+    sports: 5000,
+    insurance: 15000
+  },
+  scholarshipAvailable: true,
+  paymentFacilities: true,
+  mandatoryInternship: true,
+  internshipDurationMonths: 6,
+  deliveryMode: "Hybrid",
+  programStatus: "Open",
+  createdAt: ISODate("2024-01-01T00:00:00Z"),
+  updatedAt: ISODate("2024-01-01T00:00:00Z")
+}
+```
+
+#### Cas d'Usage
+
+- **Catalogue de programmes** : Lister tous les programmes offerts par une école
+- **Recherche multi-campus** : Gérer les programmes par campus
+- **Gestion des coûts** : Détail des frais de scolarité et autres frais
+- **Conditions d'admission** : Stocker les prérequis et conditions
+- **Gestion des places** : Suivre l'ouverture/fermeture des inscriptions
+
+---
+
+## 📊 Modèles de Métriques
+
+Les modèles de métriques permettent de suivre et comparer la performance des établissements scolaires en termes de réussite académique, d'insertion professionnelle et de qualité d'infrastructure.
+
+### 32. PerformanceMetric
+
+**Fichier:** `/models/PerformanceMetric.ts`
+**Collection:** `performancemetrics`
+**Rôle:** Métriques de performance académique (réussite, classement)
+
+#### Schéma Complet
+
+```typescript
+{
+  _id: ObjectId,                         // Auto-généré (metric_id)
+  school: ObjectId,                      // Required, Ref: 'School', indexed
+  year: Number,                          // Required, indexed (Année de référence)
+  examType: ExamType,                    // Optional, enum, indexed (BTS, HND, Other)
+  successRate: Number,                    // Optional, min: 0, max: 100 (Taux de réussite)
+  rankingPosition: Number,               // Optional, min: 1 (Position au classement)
+  officialSourceUrl: String,             // Optional, trim (URL source officielle)
+  createdAt: Date,                       // Auto-généré
+  updatedAt: Date                        // Auto-généré
+}
+```
+
+#### Enums
+
+```typescript
+enum ExamType {
+  BTS = 'BTS',
+  HND = 'HND',
+  OTHER = 'Other'
+}
+```
+
+#### Indexes
+
+- `{ school: 1, year: 1, examType: 1 }` - Unique composite index (une métrique unique par combinaison)
+- `{ school: 1 }` - Index pour recherche par école
+- `{ year: 1 }` - Index pour recherche par année
+- `{ examType: 1 }` - Index pour filtrage par type d'examen
+- `{ successRate: 1 }` - Index pour tri par taux de réussite
+- `{ rankingPosition: 1 }` - Index pour tri par classement
+
+#### Exemple
+
+```typescript
+{
+  _id: ObjectId("..."),
+  school: ObjectId("..."), // Référence à une école
+  year: 2024,
+  examType: "BTS",
+  successRate: 85.5,
+  rankingPosition: 3,
+  officialSourceUrl: "https://minesup.cm/classements/bts-2024",
+  createdAt: ISODate("2024-01-01T00:00:00Z"),
+  updatedAt: ISODate("2024-01-01T00:00:00Z")
+}
+```
+
+---
+
+### 33. EmploymentMetric
+
+**Fichier:** `/models/EmploymentMetric.ts`
+**Collection:** `employmentmetrics`
+**Rôle:** Métriques d'insertion professionnelle
+
+#### Schéma Complet
+
+```typescript
+{
+  _id: ObjectId,                         // Auto-généré (employment_id)
+  school: ObjectId,                      // Required, Ref: 'School', indexed
+  year: Number,                          // Required, indexed (Année de référence)
+  employmentRate6m: Number,               // Optional, min: 0, max: 100 (Taux d'emploi à 6 mois)
+  employmentRate12m: Number,             // Optional, min: 0, max: 100 (Taux d'emploi à 12 mois)
+  topEmployersJson: Object,              // Optional (Top employeurs en JSON)
+  alumniTracking: Boolean,               // Required, default: false, indexed (Suivi des anciens)
+  createdAt: Date,                       // Auto-généré
+  updatedAt: Date                        // Auto-généré
+}
+```
+
+#### Indexes
+
+- `{ school: 1, year: 1 }` - Unique composite index (une métrique unique par école/année)
+- `{ school: 1 }` - Index pour recherche par école
+- `{ year: 1 }` - Index pour recherche par année
+- `{ employmentRate6m: 1 }` - Index pour tri par taux 6 mois
+- `{ employmentRate12m: 1 }` - Index pour tri par taux 12 mois
+- `{ alumniTracking: 1 }` - Index pour filtrage par suivi
+
+#### Exemple
+
+```typescript
+{
+  _id: ObjectId("..."),
+  school: ObjectId("..."), // Référence à une école
+  year: 2024,
+  employmentRate6m: 78.5,
+  employmentRate12m: 92.3,
+  topEmployersJson: {
+    "Total Energies": 15,
+    "MTN": 12,
+    "Orange": 10,
+    "Société Générale": 8
+  },
+  alumniTracking: true,
+  createdAt: ISODate("2024-01-01T00:00:00Z"),
+  updatedAt: ISODate("2024-01-01T00:00:00Z")
+}
+```
+
+---
+
+### 34. InfrastructureMetric
+
+**Fichier:** `/models/InfrastructureMetric.ts`
+**Collection:** `infrastructuremetrics`
+**Rôle:** Métriques de qualité d'infrastructure
+
+#### Schéma Complet
+
+```typescript
+{
+  _id: ObjectId,                         // Auto-généré (infra_id)
+  school: ObjectId,                      // Required, Ref: 'School', indexed, unique
+  labsAvailable: Boolean,                // Required, default: false, indexed
+  labQualityScore: Number,               // Optional, min: 1, max: 5
+  itEquipmentScore: Number,              // Optional, min: 1, max: 5
+  internetQuality: InternetQuality,      // Optional, enum, indexed
+  libraryScore: Number,                 // Optional, min: 1, max: 5
+  accessibilityDisability: Boolean,      // Required, default: false, indexed
+  campusSecurityScore: Number,           // Optional, min: 1, max: 5
+  createdAt: Date,                       // Auto-généré
+  updatedAt: Date                        // Auto-généré
+}
+```
+
+#### Enums
+
+```typescript
+enum InternetQuality {
+  LOW = 'Low',
+  MEDIUM = 'Medium',
+  HIGH = 'High'
+}
+```
+
+#### Indexes
+
+- `{ school: 1 }` - Unique index (une seule métrique d'infrastructure par école)
+- `{ labsAvailable: 1 }` - Index pour filtrage par laboratoires
+- `{ internetQuality: 1 }` - Index pour filtrage par qualité internet
+- `{ accessibilityDisability: 1 }` - Index pour filtrage par accessibilité
+
+#### Exemple
+
+```typescript
+{
+  _id: ObjectId("..."),
+  school: ObjectId("..."), // Référence à une école
+  labsAvailable: true,
+  labQualityScore: 4,
+  itEquipmentScore: 5,
+  internetQuality: "High",
+  libraryScore: 4,
+  accessibilityDisability: true,
+  campusSecurityScore: 5,
+  createdAt: ISODate("2024-01-01T00:00:00Z"),
+  updatedAt: ISODate("2024-01-01T00:00:00Z")
+}
+```
+
+#### Cas d'Usage
+
+- **Comparaison d'écoles** : Comparer les infrastructures entre établissements
+- **Recherche par critères** : Filtrer par accessibilité, qualité internet, etc.
+- **Score global** : Calculer un score d'infrastructure global
+- **Planification** : Identifier les besoins d'amélioration
+
+---
+
+## ⭐ Modèles de Scoring
+
+Les modèles de scoring permettent de calculer et stocker des scores agrégés pour les écoles, spécialités et programmes. Ce système de notation fonctionne comme un "TripAdvisor éducatif", permettant de comparer et classer les établissements selon différents critères.
+
+### 35. SchoolScore
+
+**Fichier:** `/models/SchoolScore.ts`
+**Collection:** `schoolscores`
+**Rôle:** Score global d'une école (TripAdvisor éducatif)
+
+#### Schéma Complet
+
+```typescript
+{
+  _id: ObjectId,                         // Auto-généré (score_id)
+  school: ObjectId,                      // Required, Ref: 'School', unique, indexed
+  legalScore: Number,                    // Required, min: 0, max: 100 (Score légal/réglementaire)
+  academicScore: Number,                 // Required, min: 0, max: 100 (Score académique)
+  employmentScore: Number,               // Required, min: 0, max: 100 (Score d'emploi)
+  infrastructureScore: Number,           // Required, min: 0, max: 100 (Score d'infrastructure)
+  affordabilityScore: Number,            // Required, min: 0, max: 100 (Score d'accessibilité financière)
+  globalScore: Number,                   // Required, min: 0, max: 100, indexed (Score global)
+  lastComputedAt: Date,                  // Required, indexed (Date du dernier calcul)
+  createdAt: Date,                       // Auto-généré
+  updatedAt: Date                        // Auto-généré
+}
+```
+
+#### Indexes
+
+- `{ school: 1 }` - Unique index (un seul score par école)
+- `{ globalScore: 1 }` - Index pour tri par score global
+- `{ lastComputedAt: 1 }` - Index pour recherche par date de calcul
+
+#### Exemple
+
+```typescript
+{
+  _id: ObjectId("..."),
+  school: ObjectId("..."), // Référence à une école
+  legalScore: 95,
+  academicScore: 88,
+  employmentScore: 82,
+  infrastructureScore: 90,
+  affordabilityScore: 75,
+  globalScore: 86,
+  lastComputedAt: ISODate("2024-01-15T10:30:00Z"),
+  createdAt: ISODate("2024-01-01T00:00:00Z"),
+  updatedAt: ISODate("2024-01-15T10:30:00Z")
+}
+```
+
+#### Calcul du Score Global
+
+Le score global peut être calculé comme une moyenne pondérée :
+- Legal: 20%
+- Academic: 25%
+- Employment: 25%
+- Infrastructure: 15%
+- Affordability: 15%
+
+---
+
+### 36. SpecialtyScore
+
+**Fichier:** `/models/SpecialtyScore.ts`
+**Collection:** `specialtyscores`
+**Rôle:** Score d'une spécialité
+
+#### Schéma Complet
+
+```typescript
+{
+  _id: ObjectId,                         // Auto-généré (specialty_score_id)
+  specialty: ObjectId,                   // Required, Ref: 'Specialty', unique, indexed
+  employabilityScore: Number,            // Required, min: 0, max: 100 (Score d'employabilité)
+  accessibilityScore: Number,            // Required, min: 0, max: 100 (Score d'accessibilité)
+  difficultyScore: Number,              // Required, min: 0, max: 100 (Score de difficulté)
+  lnobScore: Number,                     // Required, min: 0, max: 100 (Score LNOB - Leave No One Behind)
+  globalScore: Number,                   // Required, min: 0, max: 100, indexed (Score global)
+  createdAt: Date,                       // Auto-généré
+  updatedAt: Date                        // Auto-généré
+}
+```
+
+#### Indexes
+
+- `{ specialty: 1 }` - Unique index (un seul score par spécialité)
+- `{ globalScore: 1 }` - Index pour tri par score global
+
+#### Exemple
+
+```typescript
+{
+  _id: ObjectId("..."),
+  specialty: ObjectId("..."), // Référence à "Développement Web Full Stack"
+  employabilityScore: 92,
+  accessibilityScore: 78,
+  difficultyScore: 65,
+  lnobScore: 85,
+  globalScore: 80,
+  createdAt: ISODate("2024-01-01T00:00:00Z"),
+  updatedAt: ISODate("2024-01-01T00:00:00Z")
+}
+```
+
+---
+
+### 37. SchoolProgramScore
+
+**Fichier:** `/models/SchoolProgramScore.ts`
+**Collection:** `schoolprogramscores`
+**Rôle:** Score d'un programme d'école
+
+#### Schéma Complet
+
+```typescript
+{
+  _id: ObjectId,                         // Auto-généré (ips_id)
+  schoolProgram: ObjectId,               // Required, Ref: 'SchoolProgram', unique, indexed
+  matchScoreAvg: Number,                 // Required, min: 0, max: 100 (Moyenne des matchs élèves)
+  lnobAccessibilityScore: Number,        // Required, min: 0, max: 100 (Score LNOB d'accessibilité)
+  valueForMoneyScore: Number,            // Required, min: 0, max: 100, indexed (Score rapport qualité/prix)
+  createdAt: Date,                       // Auto-généré
+  updatedAt: Date                        // Auto-généré
+}
+```
+
+#### Indexes
+
+- `{ schoolProgram: 1 }` - Unique index (un seul score par programme)
+- `{ valueForMoneyScore: 1 }` - Index pour tri par rapport qualité/prix
+- `{ matchScoreAvg: 1 }` - Index pour tri par match moyen
+
+#### Exemple
+
+```typescript
+{
+  _id: ObjectId("..."),
+  schoolProgram: ObjectId("..."), // Référence à un programme
+  matchScoreAvg: 87.5,
+  lnobAccessibilityScore: 82,
+  valueForMoneyScore: 90,
+  createdAt: ISODate("2024-01-01T00:00:00Z"),
+  updatedAt: ISODate("2024-01-01T00:00:00Z")
+}
+```
+
+#### Cas d'Usage
+
+- **Classement des écoles** : Trier les écoles par score global
+- **Recommandations** : Suggérer les meilleures écoles selon les critères
+- **Comparaison** : Comparer les scores entre établissements
+- **Tendances** : Suivre l'évolution des scores dans le temps
+
+---
+
 ## 🔗 Relations entre Modèles
 
 ### Diagramme de Relations
@@ -1432,6 +2692,58 @@ Question
 Attempt
   │
   └── 1:N ──> Response
+
+Country
+  │
+  └── 1:N ──> Region
+
+Region
+  │
+  └── 1:N ──> Department
+
+Department
+  │
+  └── 1:N ──> City
+
+School
+  │
+  ├── 1:N ──> RegulatoryApproval
+  ├── 1:N ──> AcademicTutelle
+  └── N:M ──> Partner (via InstitutionPartner)
+
+Partner
+  │
+  ├── N:1 ──> Country (optional)
+  └── N:M ──> School (via InstitutionPartner)
+
+Specialty
+  │
+  ├── N:M ──> Skill (via SpecialtySkill)
+  ├── N:M ──> CareerOutcome (via SpecialtyOutcome)
+  └── 1:N ──> CurriculumSemester
+
+CurriculumSemester
+  │
+  └── 1:N ──> CurriculumUE
+
+School
+  │
+  ├── 1:N ──> SchoolProgram
+  ├── 1:N ──> PerformanceMetric
+  ├── 1:N ──> EmploymentMetric
+  ├── 1:1 ──> InfrastructureMetric
+  └── 1:1 ──> SchoolScore
+
+SchoolProgram
+  │
+  ├── N:1 ──> School
+  ├── N:1 ──> Specialty
+  ├── N:1 ──> City (optional, campus)
+  └── 1:1 ──> SchoolProgramScore
+
+Specialty
+  │
+  └── 1:1 ──> SpecialtyScore
 ```
 
 ### Cardinalités Détaillées
@@ -1448,6 +2760,26 @@ Attempt
 | Subject → LearningUnit | 1:N | Une matière a plusieurs chapitres |
 | EducationLevel ↔ Field | N:M | Niveaux applicables à plusieurs filières |
 | Subject ↔ Field | N:M | Matières applicables à plusieurs filières |
+| Country → Region | 1:N | Un pays contient plusieurs régions |
+| Region → Department | 1:N | Une région contient plusieurs départements |
+| Department → City | 1:N | Un département contient plusieurs villes |
+| School → RegulatoryApproval | 1:N | Une école peut avoir plusieurs approbations |
+| School → AcademicTutelle | 1:N | Une école peut avoir plusieurs tutelles |
+| School ↔ Partner | N:M | Relations via InstitutionPartner |
+| Partner → Country | N:1 | Un partenaire peut être associé à un pays (optionnel) |
+| Specialty ↔ Skill | N:M | Compétences via SpecialtySkill |
+| Specialty ↔ CareerOutcome | N:M | Débouchés via SpecialtyOutcome |
+| Specialty → CurriculumSemester | 1:N | Une spécialité contient plusieurs semestres |
+| CurriculumSemester → CurriculumUE | 1:N | Un semestre contient plusieurs UE |
+| School → SchoolProgram | 1:N | Une école offre plusieurs programmes |
+| SchoolProgram → Specialty | N:1 | Un programme correspond à une spécialité |
+| SchoolProgram → City | N:1 | Un programme peut être localisé dans une ville (optionnel) |
+| School → PerformanceMetric | 1:N | Une école a plusieurs métriques de performance (par année) |
+| School → EmploymentMetric | 1:N | Une école a plusieurs métriques d'emploi (par année) |
+| School → InfrastructureMetric | 1:1 | Une école a une seule métrique d'infrastructure |
+| School → SchoolScore | 1:1 | Une école a un seul score global |
+| Specialty → SpecialtyScore | 1:1 | Une spécialité a un seul score |
+| SchoolProgram → SchoolProgramScore | 1:1 | Un programme a un seul score |
 
 ---
 
@@ -1468,6 +2800,27 @@ Attempt
 | Attempt | `resumeToken` | Unique | Token de reprise unique |
 | LateCode | `code` | Unique | Code unique |
 | Response | `(attemptId, questionId)` | Unique Compound | Une réponse par question/tentative |
+| Country | `isoCode` | Unique | Code ISO unique |
+| Country | `name` | Unique | Nom unique |
+| Region | `(country, name)` | Unique Compound | Une région unique par pays |
+| Department | `(region, name)` | Unique Compound | Un département unique par région |
+| City | `(department, name)` | Unique Compound | Une ville unique par département |
+| RegulatoryApproval | `(school, approvalNumber)` | Unique Compound | Un numéro d'approbation unique par école |
+| AcademicTutelle | `(school, tutelleName)` | Unique Compound | Une tutelle unique par école |
+| InstitutionPartner | `(school, partner, relationshipType)` | Unique Compound | Une relation unique par combinaison |
+| Skill | `name` | Unique | Nom de compétence unique |
+| CareerOutcome | `name` | Unique | Nom de débouché unique |
+| SpecialtySkill | `(specialty, skill)` | Unique Compound | Une compétence unique par spécialité |
+| SpecialtyOutcome | `(specialty, outcome)` | Unique Compound | Un débouché unique par spécialité |
+| CurriculumSemester | `(specialty, semesterNumber)` | Unique Compound | Un numéro de semestre unique par spécialité |
+| CurriculumUE | `(semester, ueCode)` | Unique Compound | Un code UE unique par semestre |
+| SchoolProgram | `(school, specialty)` | Unique Compound | Un programme unique par école/spécialité |
+| PerformanceMetric | `(school, year, examType)` | Unique Compound | Une métrique unique par combinaison |
+| EmploymentMetric | `(school, year)` | Unique Compound | Une métrique d'emploi unique par école/année |
+| InfrastructureMetric | `school` | Unique | Une seule métrique d'infrastructure par école |
+| SchoolScore | `school` | Unique | Un seul score par école |
+| SpecialtyScore | `specialty` | Unique | Un seul score par spécialité |
+| SchoolProgramScore | `schoolProgram` | Unique | Un seul score par programme |
 
 ### Indexes Composés (Performance)
 
