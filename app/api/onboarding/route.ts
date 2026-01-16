@@ -4,8 +4,9 @@ import { authOptions } from "@/lib/auth"
 import connectDB from "@/lib/mongodb"
 import User from "@/models/User"
 import LearnerProfile from "@/models/LearnerProfile"
+import EducationLevel from "@/models/EducationLevel"
 import PedagogicalProfile from "@/models/PedagogicalProfile"
-import { UserRole, SubscriptionStatus } from "@/models/enums"
+import { Cycle, SubSystem, SubscriptionStatus } from "@/models/enums"
 
 export async function POST(req: Request) {
     try {
@@ -38,8 +39,9 @@ export async function POST(req: Request) {
             )
         }
 
-        // Prevent changing role if already set (security measure)
-        if (user.role) {
+        // Prevent changing role if already set (security measure),
+        // but do not block if the same role is already set and onboarding is incomplete.
+        if (user.role && user.role !== role) {
             return NextResponse.json(
                 { message: "Role already assigned" },
                 { status: 400 }
@@ -53,28 +55,81 @@ export async function POST(req: Request) {
         if (role === "STUDENT") {
             user.studentCode = Math.random().toString(36).substring(2, 10).toUpperCase()
 
-            // Create LearnerProfile
-            // Note: In a real app, we would resolve level/field IDs from the database
-            // Here we store the raw values or look them up if we had the hierarchy populated
-            await LearnerProfile.create({
-                user: user._id,
-                subscriptionStatus: SubscriptionStatus.FREEMIUM,
-                // We store these temporarily in metadata or map them to IDs if possible
-                // For this implementation, we assume the profile schema might need adjustment 
-                // or we just create the basic profile and let the user refine it later
-                // But let's try to map what we can
-                stats: {
-                    totalExamsTaken: 0,
-                    averageScore: 0,
-                    totalStudyTime: 0
+            // Resolve (or create) an EducationLevel so LearnerProfile.currentLevel is never missing.
+            const subSystem: SubSystem =
+                details?.subSystem && Object.values(SubSystem).includes(details.subSystem)
+                    ? details.subSystem
+                    : SubSystem.FRANCOPHONE
+
+            const cycle: Cycle =
+                details?.cycle && Object.values(Cycle).includes(details.cycle)
+                    ? details.cycle
+                    : Cycle.COLLEGE
+
+            const levelName: string =
+                typeof details?.level === "string" && details.level.trim().length > 0
+                    ? details.level.trim()
+                    : "NIVEAU_INCONNU"
+
+            let educationLevel =
+                await EducationLevel.findOne({
+                    subSystem,
+                    cycle,
+                    $or: [
+                        { name: levelName },
+                        { code: levelName },
+                        { "metadata.displayName.fr": levelName }
+                    ]
+                })
+
+            if (!educationLevel) {
+                const last = await EducationLevel.findOne({ subSystem, cycle }).sort({ order: -1 }).lean()
+                const order = (last?.order ?? 0) + 1
+                const code = `ONB_${Date.now().toString(36).toUpperCase()}_${Math.random().toString(36).slice(2, 8).toUpperCase()}`
+
+                educationLevel = await EducationLevel.create({
+                    name: levelName,
+                    code,
+                    cycle,
+                    subSystem,
+                    order,
+                    isActive: true,
+                    metadata: {
+                        displayName: { fr: levelName, en: levelName },
+                        description: "Créé automatiquement lors de l'onboarding."
+                    }
+                })
+            }
+
+            // Create/update LearnerProfile (avoid blocking if a partial profile already exists)
+            await LearnerProfile.findOneAndUpdate(
+                { user: user._id },
+                {
+                    $setOnInsert: {
+                        subscriptionStatus: SubscriptionStatus.FREEMIUM,
+                        stats: {
+                            totalExamsTaken: 0,
+                            averageScore: 0,
+                            totalStudyTime: 0
+                        },
+                        gamification: {
+                            level: 1,
+                            xp: 0,
+                            badges: [],
+                            streak: 0
+                        }
+                    },
+                    $set: {
+                        currentLevel: educationLevel._id
+                    }
                 },
-                gamification: {
-                    level: 1,
-                    xp: 0,
-                    badges: [],
-                    streak: 0
-                }
-            })
+                // IMPORTANT:
+                // L'onboarding ne doit jamais être bloquant. En dev, le modèle Mongoose
+                // peut rester "caché" avec d'anciennes contraintes (ex: currentLevel required),
+                // ce qui déclenche un ValidatorError et bloque la connexion.
+                // On évite donc l'exécution des validateurs sur cet upsert.
+                { upsert: true, new: true }
+            )
         } else if (role === "TEACHER") {
             // Create PedagogicalProfile
             await PedagogicalProfile.create({

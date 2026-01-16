@@ -73,6 +73,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () =>
 
     const studentLinks = [
         { href: "/student", label: "Dashboard", icon: LayoutDashboard },
+        { href: "/student/orientation", label: "Orientation", icon: School },
         { href: "/student/subjects", label: "Subjects", icon: BookOpen },
         { href: "/student/classes", label: "My Classes", icon: Users },
         { href: "/student/leaderboard", label: "Classement", icon: Trophy },

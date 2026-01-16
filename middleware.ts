@@ -17,7 +17,7 @@ export default withAuth(
                     response = NextResponse.redirect(new URL("/onboarding", req.url))
                 } else {
                     // Route based on role
-                    let target = "/student"
+                    let target = "/student/orientation" // TODO: Change to /student
                     if (token.role === "TEACHER") target = "/teacher"
                     else if (token.role === "SCHOOL_ADMIN") target = "/admin"
                     response = NextResponse.redirect(new URL(target, req.url))
@@ -34,7 +34,7 @@ export default withAuth(
             }
             // If user has role but tries to access main onboarding page (not subpages), redirect to dashboard
             else if (token?.role && req.nextUrl.pathname === "/onboarding") {
-                let target = "/student"
+                let target = "/student/orientation" // TODO: Change to /student
                 if (token.role === "TEACHER") target = "/teacher"
                 else if (token.role === "SCHOOL_ADMIN") target = "/admin"
                 response = NextResponse.redirect(new URL(target, req.url))

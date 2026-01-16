@@ -241,5 +241,5 @@ Cette documentation reflète l'état actuel du code. Si vous modifiez l'architec
 
 ---
 
-**Dernière mise à jour:** Décembre 2024
+**Dernière mise à jour:** Janvier 2026 (ajout du module Student **Orientation** + route `/api/student/orientation/schools` + redirection post-auth STUDENT)
 **Contributeurs:** Documentation générée à partir de l'analyse du code existant

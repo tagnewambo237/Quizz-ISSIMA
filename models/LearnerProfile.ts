@@ -11,7 +11,14 @@ export interface ILearnerProfile extends Document {
     user: mongoose.Types.ObjectId // Ref: 'User'
 
     // Parcours Académique
-    currentLevel: mongoose.Types.ObjectId // Ref: 'EducationLevel'
+    /**
+     * Niveau actuel (EducationLevel).
+     *
+     * NOTE: L'onboarding "student" peut être incomplet / en cours.
+     * On garde donc ce champ non-bloquant pour éviter de bloquer la connexion
+     * (erreur 500) si la résolution du niveau échoue ou n'est pas fournie.
+     */
+    currentLevel?: mongoose.Types.ObjectId // Ref: 'EducationLevel'
     currentField?: mongoose.Types.ObjectId // Ref: 'Field'
     enrollmentDate: Date
     expectedGraduationDate?: Date
@@ -63,7 +70,7 @@ const LearnerProfileSchema = new Schema<ILearnerProfile>(
         currentLevel: {
             type: Schema.Types.ObjectId,
             ref: 'EducationLevel',
-            required: true
+            required: false // IMPORTANT: L'onboarding "student" peut être incomplet / en cours.
         },
         currentField: {
             type: Schema.Types.ObjectId,
