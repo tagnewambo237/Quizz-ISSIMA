@@ -9,6 +9,7 @@ A secure, modern QCM platform built with Next.js 14, Prisma, MongoDB, and NextAu
 - **Real-time Monitoring**: Teachers can track attempts and generate late codes.
 - **Resume Capability**: Resume exams on any device via login or resume token.
 - **Modern UI**: Built with Tailwind CSS, Framer Motion, and Lucide Icons.
+- **School Creation Steppers**: Teacher flow for creating institutions (see `docs/features/SCHOOL_CREATION_STEPPER.md`).
 
 ## Getting Started
 
